@@ -40,6 +40,9 @@ updates:
       day: "monday"
     cooldown:
       default-days: 5
+    ignore:
+      - dependency-name: "typescript"
+        versions: [">= 6.1.0"]
     groups:
       javascript:
         patterns: ["*"]

@@ -3772,7 +3772,6 @@
           }
         },
         "required": [
-          "kind",
           "provider",
           "entity_kind",
           "entity_id",
@@ -3785,6 +3784,7 @@
           "detected_at",
           "reference",
           "occurrences",
+          "kind",
           "read_reference",
           "read_at"
         ],
@@ -6592,7 +6592,6 @@
           }
         },
         "required": [
-          "kind",
           "provider",
           "entity_kind",
           "entity_id",
@@ -6604,7 +6603,8 @@
           "owner_role",
           "detected_at",
           "reference",
-          "occurrences"
+          "occurrences",
+          "kind"
         ],
         "title": "SignalOut",
         "type": "object"

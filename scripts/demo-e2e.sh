@@ -22,8 +22,8 @@ web_url="http://127.0.0.1:${web_port}"
 for tool in docker just uv pnpm python3 curl; do
   command -v "$tool" >/dev/null || { echo "error: $tool is not installed" >&2; exit 1; }
 done
-[[ -f "$root/apps/web/.next/BUILD_ID" ]] || {
-  echo "error: no production build in apps/web/.next; run just web::test-e2e-demo" >&2
+[[ -f "$root/apps/web/.next/standalone/.next/BUILD_ID" ]] || {
+  echo "error: no standalone build in apps/web/.next/standalone; run just web::test-e2e-demo" >&2
   exit 1
 }
 

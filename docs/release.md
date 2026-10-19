@@ -62,6 +62,10 @@ Before `1.0.0`, `feat` commits bump the minor version and `fix` commits bump the
 
 ## Bumps Dependabot does not make
 
+[`.github/dependabot.yml`](../.github/dependabot.yml) skips TypeScript 6.1 and later:
+typescript-eslint, which `eslint-config-next` uses, accepts TypeScript below 6.1.0. Remove that
+`ignore` entry when `npm view typescript-eslint peerDependencies` allows the newer version.
+
 Dependabot has no `mise` ecosystem, so the tool versions in [`mise.toml`](../mise.toml) and
 [`mise.lock`](../mise.lock) (Python, Node.js, pnpm, uv, just, actionlint, trivy, and the
 rest) move only by hand. Once a month, run `mise upgrade --bump`, which rewrites both files
