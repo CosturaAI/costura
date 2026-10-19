@@ -42,13 +42,12 @@ Nobody edits those versions or the changelog by hand. Before the first release t
    `docker-compose.prod.yml`, the mise pins, the production smoke scripts, or
    `.just/prod.just`. A change to `COSTURA_DEMO_REFRESH` in that compose file is already
    on this path list. The variable defaults to `false` and is forwarded to the scheduler.
-5. [`.github/workflows/post-release.yml`](../.github/workflows/post-release.yml) runs when
-   Publish images completes with success (or by hand with a `version` input). It checks out
-   the release, pulls `ghcr.io/costuraai/costura-{api,web,proxy}:X.Y.Z` from GHCR, starts
+5. The last job of Publish images, "Published images smoke", runs after the tags move. It
+   checks out the release tag, pulls `ghcr.io/costuraai/costura-{api,web,proxy}:X.Y.Z` from GHCR, starts
    the production Compose stack on the runner with `just prod::up` and a synthetic env file
    from `scripts/smoke-env.sh`, reads `/live` through the proxy, and removes the stack. It
-   builds nothing: a red run means the published images do not start together. Rerun it
-   from the Actions tab after a GHCR outage; a failure that reproduces is a reason to pull
+   builds nothing: a red run means the published images do not start together. Rerun that
+   job from the Actions tab after a GHCR outage; a failure that reproduces is a reason to pull
    the Release and the tags before announcing them.
 
 ## Release notes

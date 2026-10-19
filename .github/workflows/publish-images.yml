@@ -3,6 +3,7 @@ name: Publish images
 # Each image is built for amd64 and arm64 and pushed only under its source tag sha-<commit>.
 # Both architectures are scanned and attested. The release tags (X.Y.Z and latest) move in
 # one promote job after every image passed, so a release never points at a partial set.
+# The smoke job then starts those tags with `just prod::up`, the recipe an operator runs.
 
 on:
   release:
@@ -192,3 +193,75 @@ jobs:
             ref="$REGISTRY/$OWNER/$image"
             docker buildx imagetools create --tag "$ref:$VERSION" --tag "$ref:latest" "$ref:sha-$SHA"
           done
+
+  smoke:
+    name: Published images smoke
+    needs: [resolve, promote]
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    permissions:
+      contents: read
+      packages: read
+    env:
+      COSTURA_SMOKE_PROJECT: costura-post-release
+    steps:
+      - name: Check out the release tag
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ needs.resolve.outputs.ref }}
+          persist-credentials: false
+      - name: Set up mise
+        uses: jdx/mise-action@9b200bcecbfd6303e69a4a261b2e09e3757440a7 # v5.2.0
+        with:
+          install: true
+          cache: true
+      - name: Log in to GHCR
+        uses: docker/login-action@dbcb813823bdd20940b903addbd779551569679f # v4.6.0
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+      - name: Start the published release with just prod::up
+        shell: bash
+        env:
+          VERSION: ${{ needs.resolve.outputs.version }}
+        run: |
+          set -euo pipefail
+          env_file=$(mktemp)
+          echo "env_file=$env_file" >> "$GITHUB_ENV"
+          smoke_names=$(bash scripts/smoke-env.sh "$env_file")
+          # shellcheck disable=SC2086
+          unset $smoke_names || true
+          sed -i "s/^COSTURA_VERSION=.*/COSTURA_VERSION=$VERSION/" "$env_file"
+          export COSTURA_COMPOSE="docker compose --env-file $env_file -p $COSTURA_SMOKE_PROJECT -f docker-compose.prod.yml"
+          export COSTURA_ENV_FILE="$env_file"
+          just --dotenv-path "$env_file" prod::up
+          just --dotenv-path "$env_file" prod::ps
+      - name: Check /live through the proxy
+        shell: bash
+        env:
+          VERSION: ${{ needs.resolve.outputs.version }}
+        run: |
+          set -euo pipefail
+          live=$(curl -sS -f -H "Host: localhost" http://127.0.0.1:18080/live)
+          python3 -c 'import json,sys; body=json.loads(sys.argv[1]); assert body.get("status")=="ok", body' "$live"
+          echo "proxy /live $live"
+          for image in costura-api costura-web costura-proxy; do
+            docker image inspect "$REGISTRY/$OWNER/$image:$VERSION" --format '{{.RepoDigests}}'
+          done
+      - name: Show the stack on failure
+        if: failure()
+        shell: bash
+        run: |
+          set -euo pipefail
+          [[ -n "${env_file:-}" ]] || exit 0
+          docker compose --env-file "$env_file" -p "$COSTURA_SMOKE_PROJECT" -f docker-compose.prod.yml ps || true
+          docker compose --env-file "$env_file" -p "$COSTURA_SMOKE_PROJECT" -f docker-compose.prod.yml logs --no-color --tail 100 || true
+      - name: Remove the stack
+        if: always()
+        shell: bash
+        run: |
+          set -euo pipefail
+          [[ -n "${env_file:-}" ]] || exit 0
+          docker compose --env-file "$env_file" -p "$COSTURA_SMOKE_PROJECT" -f docker-compose.prod.yml down -v --remove-orphans || true
+          rm -f "$env_file"
