@@ -1,6 +1,6 @@
 # Next.js standalone server. next.config.ts sets output: "standalone".
 
-FROM node:26.11.1-bookworm-slim@sha256:86f07bc9c5dce4578cf37e5a418b7bfc7f817cda25cde66e2b66e95ed86c4567 AS base
+FROM node:26.12.0-bookworm-slim@sha256:298992629d69bbd5b2b03ad57094d8e4fcb3a8eeb7c4e25d29de656519568913 AS base
 ENV PNPM_HOME="/pnpm" \
     PATH="/pnpm:$PATH" \
     NEXT_TELEMETRY_DISABLED=1
@@ -19,7 +19,7 @@ COPY apps/web/ .
 RUN pnpm build \
     && node scripts/collect-licenses.mjs /app/npm-THIRD-PARTY.txt
 
-FROM node:26.11.1-bookworm-slim@sha256:86f07bc9c5dce4578cf37e5a418b7bfc7f817cda25cde66e2b66e95ed86c4567 AS runtime
+FROM node:26.12.0-bookworm-slim@sha256:298992629d69bbd5b2b03ad57094d8e4fcb3a8eeb7c4e25d29de656519568913 AS runtime
 
 ARG COSTURA_UID=1001
 ARG COSTURA_GID=1001
