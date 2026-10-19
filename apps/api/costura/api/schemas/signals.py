@@ -36,8 +36,7 @@ InboxSignalKind = Literal[
 ]
 
 
-class SignalOut(BaseModel):
-    kind: SignalKindOut
+class SignalFields(BaseModel):
     provider: str
     entity_kind: str
     entity_id: str
@@ -52,6 +51,10 @@ class SignalOut(BaseModel):
     # Times this entity's signal opened in the last 90 days, this one included; 0 before the
     # worker's history pass has seen it.
     occurrences: int
+
+
+class SignalOut(SignalFields):
+    kind: SignalKindOut
 
 
 class ClosedSignalOut(BaseModel):
@@ -100,7 +103,7 @@ class SignalsOut(BaseModel):
     snoozed: list[SnoozeOut] = []
 
 
-class InboxSignalOut(SignalOut):
+class InboxSignalOut(SignalFields):
     kind: InboxSignalKind
     # What a read mark names: the budget alert id for a budget, `reference` otherwise.
     read_reference: str
