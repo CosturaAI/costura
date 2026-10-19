@@ -1,0 +1,37 @@
+{
+  "data": [
+    {
+      "user": {
+        "type": "user",
+        "id": "user_alpha",
+        "email_address": "alpha@example.com"
+      },
+      "chat_metrics": {
+        "message_count": 8
+      },
+      "claude_code_metrics": {
+        "core_metrics": {
+          "commit_count": 2
+        }
+      },
+      "last_activity_date": "2026-09-02"
+    },
+    {
+      "user": {
+        "type": "user",
+        "id": "user_beta",
+        "email_address": "beta@example.com"
+      },
+      "chat_metrics": {
+        "message_count": 2
+      },
+      "claude_code_metrics": {
+        "core_metrics": {
+          "commit_count": 0
+        }
+      },
+      "last_activity_date": "2026-09-01"
+    }
+  ],
+  "next_page": null
+}

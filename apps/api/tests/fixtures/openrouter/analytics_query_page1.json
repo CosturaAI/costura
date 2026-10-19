@@ -1,0 +1,96 @@
+{
+  "data": {
+    "data": [
+      {
+        "date__day": "2026-08-01",
+        "api_key_id": "prod-backend",
+        "model": "openai/gpt-5.2",
+        "total_usage": 10.5,
+        "credits_usage": 2.5,
+        "byok_usage": 8.0,
+        "usage_web": 0,
+        "tokens_prompt": "1000000",
+        "tokens_completion": "200000",
+        "cached_tokens": "400000",
+        "reasoning_tokens": "0",
+        "request_count": "120"
+      },
+      {
+        "date__day": "2026-08-01",
+        "api_key_id": "prod-backend",
+        "model": "anthropic/claude-sonnet-4.6",
+        "total_usage": 4.25,
+        "credits_usage": 4.25,
+        "byok_usage": 0,
+        "usage_web": 0.25,
+        "tokens_prompt": "300000",
+        "tokens_completion": "50000",
+        "cached_tokens": "0",
+        "reasoning_tokens": "0",
+        "request_count": "30"
+      },
+      {
+        "date__day": "2026-08-01",
+        "api_key_id": "research",
+        "model": "x-ai/grok-4.6-20260810",
+        "total_usage": 2.0,
+        "credits_usage": 2.0,
+        "byok_usage": 0,
+        "usage_web": 0,
+        "tokens_prompt": "150000",
+        "tokens_completion": "40000",
+        "cached_tokens": "0",
+        "reasoning_tokens": "20000",
+        "request_count": "10"
+      },
+      {
+        "date__day": "2026-08-02",
+        "api_key_id": "prod-backend",
+        "model": "openai/gpt-5.2",
+        "total_usage": 12.0,
+        "credits_usage": 3.0,
+        "byok_usage": 9.0,
+        "usage_web": 0,
+        "tokens_prompt": "1200000",
+        "tokens_completion": "220000",
+        "cached_tokens": "500000",
+        "reasoning_tokens": "0",
+        "request_count": "140"
+      },
+      {
+        "date__day": "2026-08-02",
+        "api_key_id": "old-key",
+        "model": "openai/gpt-5.2",
+        "total_usage": 1.25,
+        "credits_usage": 1.25,
+        "byok_usage": 0,
+        "usage_web": 0,
+        "tokens_prompt": "100000",
+        "tokens_completion": "10000",
+        "cached_tokens": "0",
+        "reasoning_tokens": "0",
+        "request_count": "5"
+      },
+      {
+        "date__day": "2026-08-02",
+        "api_key_id": "research",
+        "model": "x-ai/grok-4.6-20260810",
+        "total_usage": 1.5,
+        "credits_usage": 1.5,
+        "byok_usage": 0,
+        "usage_web": 0,
+        "tokens_prompt": "120000",
+        "tokens_completion": "30000",
+        "cached_tokens": "0",
+        "reasoning_tokens": "15000",
+        "request_count": "8"
+      }
+    ],
+    "metadata": {
+      "query_time_ms": 105,
+      "row_count": 6,
+      "truncated": false
+    },
+    "cachedAt": 1786000000000
+  }
+}

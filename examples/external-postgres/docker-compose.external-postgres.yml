@@ -1,0 +1,13 @@
+services:
+  migrate:
+    volumes:
+      - ${COSTURA_DATABASE_CA:?set COSTURA_DATABASE_CA to the CA bundle path}:/run/costura/db-ca.crt:ro
+  api:
+    volumes:
+      - ${COSTURA_DATABASE_CA:?set COSTURA_DATABASE_CA to the CA bundle path}:/run/costura/db-ca.crt:ro
+  worker:
+    volumes:
+      - ${COSTURA_DATABASE_CA:?set COSTURA_DATABASE_CA to the CA bundle path}:/run/costura/db-ca.crt:ro
+  scheduler:
+    volumes:
+      - ${COSTURA_DATABASE_CA:?set COSTURA_DATABASE_CA to the CA bundle path}:/run/costura/db-ca.crt:ro

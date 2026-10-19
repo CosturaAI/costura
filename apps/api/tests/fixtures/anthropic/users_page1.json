@@ -1,0 +1,23 @@
+{
+  "data": [
+    {
+      "id": "user_redacted_alice",
+      "type": "user",
+      "email": "alice@example.com",
+      "name": "Alice",
+      "role": "admin",
+      "added_at": "2025-10-01T12:00:00Z"
+    },
+    {
+      "id": "user_redacted_bob",
+      "type": "user",
+      "email": "bob@example.com",
+      "name": "Bob",
+      "role": "developer",
+      "added_at": "2025-12-05T08:45:00Z"
+    }
+  ],
+  "has_more": false,
+  "first_id": "user_redacted_alice",
+  "last_id": "user_redacted_bob"
+}

@@ -1,0 +1,40 @@
+# Single-node beta proxy.
+# COSTURA_SITE_ADDRESS selects the public listener:
+#   http://localhost or :80     plain HTTP, for a local trial on this machine
+#   costura.example.com         automatic HTTPS, using Caddy's default ACME account
+
+# Compose healthcheck. Loopback only; the host ports are 80 and 443.
+http://127.0.0.1:9080 {
+	handle /health {
+		respond 200
+	}
+}
+
+{$COSTURA_SITE_ADDRESS:http://localhost} {
+	encode zstd gzip
+
+	# One megabyte is enough for a key, a filter and a CSV query. Larger bodies are refused.
+	request_body {
+		max_size 1MB
+	}
+
+	# /live and /api/v1 go to the API. /ready and /health query the database without a
+	# rate limit and /metrics exposes counters, so they stay on the docker network.
+	@api expression `{http.request.uri.path}.startsWith("/api/v1/") || {http.request.uri.path} == "/api/v1" || {http.request.uri.path} == "/live"`
+	handle @api {
+		header Cache-Control "no-store"
+		# The web app sends the same header from next.config.ts. Browsers ignore it on plain
+		# HTTP, so http://localhost is unaffected.
+		header Strict-Transport-Security "max-age=31536000; includeSubDomains"
+		reverse_proxy api:8000
+	}
+
+	@internal path /ready /health /metrics
+	handle @internal {
+		respond 404
+	}
+
+	handle {
+		reverse_proxy web:3000
+	}
+}

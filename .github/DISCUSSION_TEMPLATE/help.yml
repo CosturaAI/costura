@@ -1,0 +1,19 @@
+body:
+  - type: textarea
+    attributes:
+      label: Summary
+      description: What do you need help with?
+    validations:
+      required: true
+  - type: textarea
+    attributes:
+      label: What you tried
+      description: Commands, settings and redacted log lines. Remove provider keys, session cookies, COSTURA_SECRET_KEY and the contents of .env before pasting.
+    validations:
+      required: false
+  - type: input
+    attributes:
+      label: Costura version
+      description: COSTURA_VERSION from .env, or the contents of version.txt on a checkout
+    validations:
+      required: false

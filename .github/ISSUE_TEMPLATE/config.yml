@@ -1,0 +1,8 @@
+blank_issues_enabled: false
+contact_links:
+  - name: Ask a question
+    url: https://github.com/CosturaAI/costura/discussions
+    about: Questions about running or using Costura, and discussion with other users.
+  - name: Security advisory
+    url: https://github.com/CosturaAI/costura/security/advisories/new
+    about: Report a vulnerability privately. Do not open a public issue for security reports.

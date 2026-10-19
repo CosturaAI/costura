@@ -1,0 +1,27 @@
+{
+  "object": "list",
+  "data": [
+    {
+      "object": "organization.project.api_key",
+      "redacted_value": "sk-xyz...b111",
+      "name": "batch-runner",
+      "created_at": 1780700000,
+      "last_used_at": 1785600000,
+      "id": "key_b1",
+      "owner": {
+        "type": "user",
+        "user": {
+          "object": "organization.project.user",
+          "id": "user_x",
+          "name": "Ada",
+          "email": "Alice@example.com",
+          "role": "owner",
+          "added_at": 1770000000
+        }
+      }
+    }
+  ],
+  "first_id": "key_b1",
+  "last_id": "key_b1",
+  "has_more": false
+}

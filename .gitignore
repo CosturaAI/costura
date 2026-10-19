@@ -1,0 +1,41 @@
+# Local notes, never published
+/private/
+
+# Environment
+.env
+.env.*
+!.env.example
+*.dump
+
+# Python
+__pycache__/
+*.pyc
+*.pyo
+*.egg-info/
+dist/
+build/
+.venv/
+venv/
+.pytest_cache/
+.ruff_cache/
+.coverage
+coverage.xml
+coverage.json
+
+# Node
+node_modules/
+.next/
+out/
+playwright-report/
+playwright-report-demo/
+test-results/
+test-results-demo/
+coverage/
+next-env.d.ts
+*.tsbuildinfo
+.pnpm-store/
+
+# Editors and OS
+.DS_Store
+Thumbs.db
+*.log

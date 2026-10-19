@@ -1,0 +1,38 @@
+# Costura
+
+> Costura is self-hosted AI spend attribution: it imports read-only billing data from AI providers, attributes each dollar to a key, workspace or person, and checks the totals against each provider's own report. These pages are the project's documentation, served from the GitHub repository.
+
+## Project
+
+- [README](https://github.com/CosturaAI/costura/blob/main/README.md): Costura imports read-only billing data from the AI providers a team uses, stores it as one daily ledger, attributes each dollar to an API key, a workspace or a person, and checks every month that the stored total matches what the provider itself reports.
+- [Contributing](https://github.com/CosturaAI/costura/blob/main/CONTRIBUTING.md): Contributions of code, docs, tests, and bug reports are welcome. Issues labeled good first issue and help wanted are a place to start. GOVERNANCE.md describes how someone becomes a maintainer. Questions about using a deployment go to SUPPORT.md.
+- [Security](https://github.com/CosturaAI/costura/blob/main/SECURITY.md): Costura stores customer provider admin keys (Anthropic Admin API, Claude.ai Enterprise Analytics, OpenRouter management, OpenAI and Codex admin, Cursor team, and the GitHub token of the experimental Copilot connector) and the billing and usage data those keys read.
+- [Support](https://github.com/CosturaAI/costura/blob/main/SUPPORT.md): Costura is a self-hosted project. Support is community support through GitHub issues, with no response-time agreement, uptime target, or hosted instance.
+
+## Docs
+
+- [Releasing](https://github.com/CosturaAI/costura/blob/main/docs/release.md): Costura releases with release-please. Squash-merged pull requests whose titles follow Conventional Commits (feat:, fix:, docs:, ...) accumulate on main.
+
+## Architecture
+
+- [Architecture overview](https://github.com/CosturaAI/costura/blob/main/docs/architecture/overview.md): One host, one replica of each service, from docker-compose.prod.yml.
+
+## Operations
+
+- [Backup and restore](https://github.com/CosturaAI/costura/blob/main/docs/operations/backup-restore.md): The production database is the costura_prod_pgdata volume of the costura-prod compose project (docker-compose.prod.yml). A backup can be taken while the stack runs. A restore stops every writer first.
+- [Configuration](https://github.com/CosturaAI/costura/blob/main/docs/operations/configuration.md): Every variable Costura reads, grouped by the process that reads it. Values come from .env next to docker-compose.prod.yml; the compose file passes each one to the services listed. just prod::init writes a working .env (install).
+- [Errors](https://github.com/CosturaAI/costura/blob/main/docs/operations/errors.md): The API answers a refusal with the HTTP status of the error and a JSON body with two fields: detail, the message for the person who sent the request, and code, a stable name for the kind of error. Validation failures keep FastAPI's list of field errors in detail and add code: "validation_failed".
+- [Install](https://github.com/CosturaAI/costura/blob/main/docs/operations/install.md): Single-node. One replica of each unit: Postgres, the API, the worker, the scheduler, the web app, and Caddy. docker-compose.yml is only the local development database. This install is docker-compose.prod.yml.
+- [Monitoring](https://github.com/CosturaAI/costura/blob/main/docs/operations/monitoring.md): The API exposes probes and Prometheus metrics. Every process writes logs to standard output. Nothing is sent outside the host. Variables are in configuration.
+- [Troubleshooting](https://github.com/CosturaAI/costura/blob/main/docs/operations/troubleshooting.md): Start with just doctor. It checks that the tools are on PATH at the versions in mise.toml, that the Docker daemon answers, that ports 8000, 3000 and 5432 are free, and the .env key, without printing a secret. An empty COSTURA_SECRET_KEY is a warning: just dev runs without it.
+- [Upgrade](https://github.com/CosturaAI/costura/blob/main/docs/operations/upgrade.md): One node, one replica of each unit. Releases are listed in CHANGELOG.md and on the GitHub releases page; read the entry for every release you skip.
+- [Webhooks](https://github.com/CosturaAI/costura/blob/main/docs/operations/webhooks.md): Each organization can post its signals (anomalies, budget alerts, key gaps) to one Slack-compatible incoming webhook. This page states what the code does today, with the file that does it. Egress is off until the operator lists hosts in COSTURA_WEBHOOK_HOSTS (configuration).
+
+## Product
+
+- [Screens](https://github.com/CosturaAI/costura/blob/main/docs/product/screens.md): Every screen of the web app, captured from the sample organization (Acme Analytics, September 2026, every figure synthetic) with just web::screens on a running just dev stack.
+
+## Security
+
+- [Provider keys: what Costura asks for and what a stolen key can do](https://github.com/CosturaAI/costura/blob/main/docs/security/provider-keys.md): One section per provider: the credential Costura asks for, every request the client sends (method and path; tests/test_provider_keys_doc.py checks this list against the client modules), the narrowest credential the provider documents, and the blast radius if the key leaks.
+- [Threat model](https://github.com/CosturaAI/costura/blob/main/docs/security/threat-model.md): Single-node install. This is the trust boundary of docker-compose.prod.yml.

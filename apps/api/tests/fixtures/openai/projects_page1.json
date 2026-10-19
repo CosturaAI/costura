@@ -1,0 +1,32 @@
+{
+  "object": "list",
+  "data": [
+    {
+      "object": "organization.project",
+      "id": "proj_a",
+      "name": "Assistants",
+      "created_at": 1780000000,
+      "archived_at": null,
+      "status": "active"
+    },
+    {
+      "object": "organization.project",
+      "id": "proj_b",
+      "name": "Batch jobs",
+      "created_at": 1780100000,
+      "archived_at": null,
+      "status": "active"
+    },
+    {
+      "object": "organization.project",
+      "id": "proj_old",
+      "name": "Legacy",
+      "created_at": 1770000000,
+      "archived_at": 1782000000,
+      "status": "archived"
+    }
+  ],
+  "first_id": "proj_a",
+  "last_id": "proj_old",
+  "has_more": false
+}

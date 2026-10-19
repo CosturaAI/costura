@@ -1,0 +1,48 @@
+{
+  "data": [
+    {
+      "starting_at": "2026-08-01T00:00:00Z",
+      "ending_at": "2026-08-02T00:00:00Z",
+      "results": [
+        {
+          "api_key_id": "apikey_redacted_1",
+          "workspace_id": null,
+          "model": "claude-opus-5",
+          "service_tier": "standard",
+          "context_window": "0-200k",
+          "inference_geo": "global",
+          "uncached_input_tokens": 1000,
+          "cache_creation": {
+            "ephemeral_5m_input_tokens": 200,
+            "ephemeral_1h_input_tokens": 50
+          },
+          "cache_read_input_tokens": 3000,
+          "output_tokens": 400,
+          "server_tool_use": {
+            "web_search_requests": 2
+          }
+        },
+        {
+          "api_key_id": null,
+          "workspace_id": null,
+          "model": "claude-opus-5",
+          "service_tier": "standard",
+          "context_window": "0-200k",
+          "inference_geo": "global",
+          "uncached_input_tokens": 10,
+          "cache_creation": {
+            "ephemeral_5m_input_tokens": 0,
+            "ephemeral_1h_input_tokens": 0
+          },
+          "cache_read_input_tokens": 0,
+          "output_tokens": 5,
+          "server_tool_use": {
+            "web_search_requests": 0
+          }
+        }
+      ]
+    }
+  ],
+  "has_more": true,
+  "next_page": "page_usage_2"
+}

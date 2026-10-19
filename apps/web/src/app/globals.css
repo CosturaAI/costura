@@ -1,0 +1,339 @@
+@import "tailwindcss";
+@import "tw-animate-css";
+@import "shadcn/tailwind.css";
+@import "../themes/costura.css";
+@import "../themes/costura-dark.css";
+
+/*
+ * `dark:` follows the host-selected scheme on <html data-theme>, not the OS alone: a light
+ * deployment stays light on a dark OS, and `system` defers to the OS. See src/lib/theme.ts.
+ */
+@custom-variant dark {
+  &:where([data-theme="dark"], [data-theme="dark"] *) {
+    @slot;
+  }
+  @media (prefers-color-scheme: dark) {
+    &:where([data-theme="system"], [data-theme="system"] *) {
+      @slot;
+    }
+  }
+}
+
+/*
+ * Design tokens. Semantic colors below are what components use; the theme files in
+ * src/themes assign the values.
+ */
+@theme {
+  --color-brand-50: #faf5f5;
+  --color-brand-100: #f0e5e5;
+  --color-brand-200: #e0cbcb;
+  --color-brand-300: #c9a3a3;
+  --color-brand-400: #a87070;
+  --color-brand-500: #8b4f4f;
+  --color-brand-600: #5b2d2d;
+  --color-brand-700: #4a2424;
+  --color-brand-800: #3b1c1c;
+  --color-brand-900: #2d1515;
+  --color-brand-950: #1a0d0d;
+
+  --color-accent-indigo: #6369e5;
+  --color-accent-green: #8fe036;
+  --color-accent-indigo-light: #d1d8ff;
+  --color-accent-green-light: #edffd9;
+
+  --color-surface-0: #ffffff;
+  --color-surface-50: #fbfaf5;
+  --color-surface-100: #f8f6f0;
+  --color-surface-200: #ecece5;
+
+  /* Foregrounds are the Tailwind 700 step so text-xs on the -bg tints reaches 4.5:1 (WCAG AA). */
+  --color-severity-critical: var(--critical);
+  --color-severity-critical-bg: var(--critical-bg);
+  --color-severity-warning: var(--warning);
+  --color-severity-warning-bg: var(--warning-bg);
+  --color-severity-info: var(--info);
+  --color-severity-info-bg: var(--info-bg);
+  --color-severity-success: var(--success);
+  --color-severity-success-bg: var(--success-bg);
+
+  /* Chart series follow the active theme file. */
+  --color-chart-1: var(--chart-1);
+  --color-chart-2: var(--chart-2);
+  --color-chart-3: var(--chart-3);
+  --color-chart-4: var(--chart-4);
+  --color-chart-5: var(--chart-5);
+  --color-chart-6: var(--chart-6);
+  --color-chart-7: var(--chart-7);
+  --color-chart-8: var(--chart-8);
+  --color-chart-other: var(--chart-other);
+  --color-chart-projection: var(--chart-projection);
+
+  --font-sans: var(--font-inter), -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  --font-mono: var(--font-jetbrains-mono), "Fira Code", Menlo, Monaco, Consolas, monospace;
+
+  --text-2xs: 0.6875rem;
+  --text-2xs--line-height: 1rem;
+
+  --shadow-card: 0 1px 3px 0 rgb(0 0 0 / 0.04), 0 1px 2px -1px rgb(0 0 0 / 0.04);
+  --shadow-card-hover: 0 4px 6px -1px rgb(0 0 0 / 0.06), 0 2px 4px -2px rgb(0 0 0 / 0.04);
+  --shadow-elevated: 0 10px 15px -3px rgb(0 0 0 / 0.06), 0 4px 6px -4px rgb(0 0 0 / 0.04);
+
+  --animate-fade-in: fade-in 0.3s ease-out;
+  --animate-slide-up: slide-up 0.3s ease-out;
+  --animate-slide-down: slide-down 0.2s ease-out;
+  --animate-pulse-slow: pulse 3s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+  --animate-shimmer: shimmer 2s infinite;
+
+  @keyframes fade-in {
+    0% {
+      opacity: 0;
+    }
+    100% {
+      opacity: 1;
+    }
+  }
+  @keyframes slide-up {
+    0% {
+      opacity: 0;
+      transform: translateY(8px);
+    }
+    100% {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+  @keyframes slide-down {
+    0% {
+      opacity: 0;
+      transform: translateY(-4px);
+    }
+    100% {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+  @keyframes shimmer {
+    0% {
+      background-position: -200% 0;
+    }
+    100% {
+      background-position: 200% 0;
+    }
+  }
+}
+
+/* shadcn/ui semantic variables. Values live in src/themes/. */
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --font-heading: var(--font-sans);
+  --color-ring: var(--ring);
+  --color-input: var(--input);
+  --color-border: var(--border);
+  --color-destructive: var(--destructive);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-accent: var(--accent);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-muted: var(--muted);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-secondary: var(--secondary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-primary: var(--primary);
+  --color-primary-hover: var(--primary-hover);
+  --color-primary-active: var(--primary-active);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-popover: var(--popover);
+  --color-card-foreground: var(--card-foreground);
+  --color-card: var(--card);
+  --color-subtle: var(--subtle);
+  --color-faint-foreground: var(--faint-foreground);
+  --color-on-solid: var(--on-solid);
+  --color-critical: var(--critical);
+  --color-critical-bg: var(--critical-bg);
+  --color-warning: var(--warning);
+  --color-warning-bg: var(--warning-bg);
+  --color-info: var(--info);
+  --color-info-bg: var(--info-bg);
+  --color-success: var(--success);
+  --color-success-bg: var(--success-bg);
+  --radius-sm: calc(var(--radius) * 0.6);
+  --radius-md: calc(var(--radius) * 0.8);
+  --radius-lg: var(--radius);
+  --radius-xl: 0.75rem;
+  --radius-2xl: 1rem;
+}
+
+@layer base {
+  /* A link set in text color is told apart by an underline too, not by color alone
+     (WCAG 1.4.1); navigation marks the current page with color, position and aria-current. */
+  a.text-primary:not(:where(nav a, [aria-current])) {
+    text-decoration-line: underline;
+    text-underline-offset: 2px;
+    text-decoration-thickness: 1px;
+  }
+}
+
+@layer base {
+  * {
+    @apply border-border outline-ring/50;
+  }
+  html {
+    @apply font-sans;
+  }
+  body {
+    @apply bg-background font-sans text-foreground antialiased;
+    font-feature-settings: "cv11", "ss01";
+  }
+  ::selection {
+    @apply bg-accent text-accent-foreground;
+  }
+  /* One focus token. Plain links, summaries and meters get the same brand outline as the
+     shadcn controls' ring; the controls keep their `focus-visible:ring` and `outline-none`. */
+  :focus-visible {
+    outline: 2px solid var(--ring);
+    outline-offset: 2px;
+  }
+  button:not(:disabled),
+  [role="button"]:not(:disabled) {
+    cursor: pointer;
+  }
+  /* Touch targets: 44 px on coarse pointers, whatever the button size class says. */
+  @media (pointer: coarse) {
+    [data-slot="button"],
+    [data-slot="select-trigger"],
+    nav a {
+      min-height: 2.75rem;
+    }
+  }
+}
+
+/* Component classes. Declared as utilities so they can be composed with @apply and variants
+ * in Tailwind 4. */
+@utility card {
+  @apply rounded-xl border border-border/60 bg-card shadow-card;
+}
+
+@utility card-hover {
+  @apply card transition-all duration-200 hover:border-primary/40 hover:shadow-card-hover;
+}
+
+@utility badge {
+  @apply inline-flex items-center gap-1 rounded-md px-2 py-0.5 text-xs font-medium;
+}
+
+@utility badge-critical {
+  @apply badge bg-critical-bg text-critical ring-1 ring-critical/10 ring-inset;
+}
+
+@utility badge-warning {
+  @apply badge bg-warning-bg text-warning ring-1 ring-warning/10 ring-inset;
+}
+
+@utility badge-success {
+  @apply badge bg-success-bg text-success ring-1 ring-success/10 ring-inset;
+}
+
+@utility badge-info {
+  @apply badge bg-info-bg text-info ring-1 ring-info/10 ring-inset;
+}
+
+@utility badge-neutral {
+  @apply badge bg-muted text-muted-foreground ring-1 ring-ring/10 ring-inset;
+}
+
+@utility badge-brand {
+  @apply badge bg-accent text-primary ring-1 ring-ring/10 ring-inset;
+}
+
+@utility badge-high {
+  @apply badge bg-warning-bg text-warning ring-1 ring-warning/10 ring-inset;
+}
+
+@utility btn {
+  @apply inline-flex items-center justify-center gap-2 rounded-lg font-medium transition-all duration-150 focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:outline-none disabled:pointer-events-none disabled:opacity-50;
+}
+
+@utility btn-primary {
+  @apply btn bg-primary px-4 py-2.5 text-sm text-on-solid shadow-xs hover:bg-primary-hover focus-visible:ring-ring active:bg-primary-active;
+}
+
+@utility btn-secondary {
+  @apply btn border border-border bg-card px-4 py-2.5 text-sm text-secondary-foreground shadow-xs hover:bg-muted focus-visible:ring-ring active:bg-muted;
+}
+
+@utility btn-ghost {
+  @apply btn px-3 py-2 text-sm text-muted-foreground hover:bg-muted hover:text-foreground focus-visible:ring-ring active:bg-muted;
+}
+
+@utility input {
+  @apply w-full rounded-lg border border-border bg-card px-3 py-2 text-sm text-foreground transition-colors placeholder:text-faint-foreground focus:border-primary focus:ring-2 focus:ring-ring/20 focus:outline-none;
+}
+
+@utility select {
+  @apply input cursor-pointer appearance-none bg-[length:16px] bg-[center_right_0.75rem] bg-no-repeat;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 20 20'%3E%3Cpath stroke='%236b7280' stroke-linecap='round' stroke-linejoin='round' stroke-width='1.5' d='M6 8l4 4 4-4'/%3E%3C/svg%3E");
+  padding-right: 2.5rem;
+}
+
+@utility skeleton {
+  @apply animate-shimmer rounded bg-linear-to-r from-muted via-muted to-muted bg-[length:200%_100%];
+}
+
+@utility section-title {
+  @apply text-lg font-semibold tracking-tight text-foreground;
+}
+
+@utility code-block {
+  @apply overflow-x-auto rounded-lg bg-foreground p-4 font-mono text-sm leading-relaxed text-faint-foreground;
+}
+
+@layer utilities {
+  .text-balance {
+    text-wrap: balance;
+  }
+
+  .scrollbar-thin {
+    scrollbar-width: thin;
+    scrollbar-color: var(--scrollbar) transparent;
+  }
+
+  .scrollbar-thin::-webkit-scrollbar {
+    width: 6px;
+    height: 6px;
+  }
+
+  .scrollbar-thin::-webkit-scrollbar-track {
+    background: transparent;
+  }
+
+  .scrollbar-thin::-webkit-scrollbar-thumb {
+    background-color: var(--scrollbar);
+    border-radius: 3px;
+  }
+}
+
+@media (min-width: 1024px) {
+  html[data-sidebar="collapsed"] [data-sidebar-rail] {
+    width: 3.5rem;
+  }
+
+  html[data-sidebar="collapsed"] [data-sidebar-rail] .sidebar-expanded {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    padding: 0;
+    margin: -1px;
+    overflow: hidden;
+    clip: rect(0, 0, 0, 0);
+    white-space: nowrap;
+    border: 0;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .skeleton,
+  [data-state] {
+    animation: none;
+    transition: none;
+  }
+}

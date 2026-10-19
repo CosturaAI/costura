@@ -1,0 +1,106 @@
+{
+  "data": {
+    "metrics": [
+      {
+        "name": "request_count",
+        "display_label": "Request Count",
+        "is_rate": false,
+        "display_format": "number"
+      },
+      {
+        "name": "total_usage",
+        "display_label": "Total Usage",
+        "is_rate": false,
+        "display_format": "currency"
+      },
+      {
+        "name": "credits_usage",
+        "display_label": "Credits Usage",
+        "is_rate": false,
+        "display_format": "currency"
+      },
+      {
+        "name": "byok_usage",
+        "display_label": "Byok Usage",
+        "is_rate": false,
+        "display_format": "currency"
+      },
+      {
+        "name": "tokens_prompt",
+        "display_label": "Tokens Prompt",
+        "is_rate": false,
+        "display_format": "number"
+      },
+      {
+        "name": "tokens_completion",
+        "display_label": "Tokens Completion",
+        "is_rate": false,
+        "display_format": "number"
+      },
+      {
+        "name": "reasoning_tokens",
+        "display_label": "Reasoning Tokens",
+        "is_rate": false,
+        "display_format": "number"
+      },
+      {
+        "name": "cached_tokens",
+        "display_label": "Cached Tokens",
+        "is_rate": false,
+        "display_format": "number"
+      },
+      {
+        "name": "usage_web",
+        "display_label": "Usage Web",
+        "is_rate": false,
+        "display_format": "currency"
+      }
+    ],
+    "dimensions": [
+      {
+        "name": "model",
+        "display_label": "Model"
+      },
+      {
+        "name": "variant",
+        "display_label": "Variant"
+      },
+      {
+        "name": "api_key_id",
+        "display_label": "Api_Key_Id"
+      },
+      {
+        "name": "provider",
+        "display_label": "Provider"
+      },
+      {
+        "name": "workspace",
+        "display_label": "Workspace"
+      },
+      {
+        "name": "user",
+        "display_label": "User"
+      }
+    ],
+    "operators": [
+      {
+        "name": "eq",
+        "value_type": "scalar"
+      },
+      {
+        "name": "in",
+        "value_type": "array"
+      }
+    ],
+    "granularities": [
+      {
+        "name": "day",
+        "display_label": "Day"
+      },
+      {
+        "name": "month",
+        "display_label": "Month"
+      }
+    ]
+  }
+}

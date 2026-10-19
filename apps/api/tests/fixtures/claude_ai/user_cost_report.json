@@ -1,0 +1,65 @@
+{
+  "data": [
+    {
+      "actor": {
+        "type": "user_actor",
+        "user_id": "user_alpha",
+        "email": "alpha@example.com",
+        "name": "Alpha",
+        "deleted": false
+      },
+      "starting_at": "2026-09-01T00:00:00Z",
+      "ending_at": "2026-09-02T00:00:00Z",
+      "product": "chat",
+      "model": "claude-opus-5",
+      "amount": "100.000000",
+      "list_amount": "120.000000",
+      "currency": "USD",
+      "cost_type": null,
+      "token_type": null,
+      "requests": 8
+    },
+    {
+      "actor": {
+        "type": "user_actor",
+        "user_id": "user_beta",
+        "email": "beta@example.com",
+        "name": "Beta",
+        "deleted": false
+      },
+      "starting_at": "2026-09-01T00:00:00Z",
+      "ending_at": "2026-09-02T00:00:00Z",
+      "product": "chat",
+      "model": "claude-opus-5",
+      "amount": "20.000000",
+      "list_amount": "25.000000",
+      "currency": "USD",
+      "cost_type": null,
+      "token_type": null,
+      "requests": 2
+    },
+    {
+      "actor": {
+        "type": "user_actor",
+        "user_id": "user_alpha",
+        "email": "alpha@example.com",
+        "name": "Alpha",
+        "deleted": false
+      },
+      "starting_at": "2026-09-02T00:00:00Z",
+      "ending_at": "2026-09-03T00:00:00Z",
+      "product": "claude_code",
+      "model": "claude-sonnet-4-6",
+      "amount": "150.000000",
+      "list_amount": "190.000000",
+      "currency": "USD",
+      "cost_type": null,
+      "token_type": null,
+      "requests": 4
+    }
+  ],
+  "data_refreshed_at": "2026-09-03T12:00:00Z",
+  "has_more": false,
+  "next_page": null,
+  "organization_id": "org_claude_ai"
+}

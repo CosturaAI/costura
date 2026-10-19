@@ -1,0 +1,6 @@
+{
+  "error": {
+    "message": "This endpoint is only available for organization accounts",
+    "code": 404
+  }
+}

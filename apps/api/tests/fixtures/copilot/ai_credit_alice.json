@@ -1,0 +1,8 @@
+{
+  "timePeriod": {"year": 2026, "month": 8, "day": 1},
+  "organization": "acme-inc",
+  "user": "alice-gh",
+  "usageItems": [
+    {"product": "Copilot", "sku": "copilot_ai_credit", "model": "GPT-5", "unitType": "credits", "pricePerUnit": 0.01, "grossQuantity": 300, "grossAmount": 3.0, "discountQuantity": 100, "discountAmount": 1.0, "netQuantity": 200, "netAmount": 2.0}
+  ]
+}

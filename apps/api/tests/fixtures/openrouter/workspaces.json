@@ -1,0 +1,43 @@
+{
+  "data": [
+    {
+      "id": "0f0e0d0c-0000-4000-8000-000000000001",
+      "default_guardrail_id": "gr_1",
+      "name": "Production",
+      "slug": "production",
+      "description": null,
+      "default_text_model": null,
+      "default_image_model": null,
+      "default_provider_sort": null,
+      "is_observability_io_logging_enabled": false,
+      "is_observability_broadcast_enabled": false,
+      "is_data_discount_logging_enabled": false,
+      "include_byok_in_budgets": true,
+      "io_logging_sampling_rate": 100,
+      "io_logging_api_key_ids": null,
+      "created_at": "2026-06-01T00:00:00.000Z",
+      "updated_at": null,
+      "created_by": "user_alice"
+    },
+    {
+      "id": "0f0e0d0c-0000-4000-8000-000000000002",
+      "default_guardrail_id": "gr_2",
+      "name": "Research",
+      "slug": "research",
+      "description": null,
+      "default_text_model": null,
+      "default_image_model": null,
+      "default_provider_sort": null,
+      "is_observability_io_logging_enabled": false,
+      "is_observability_broadcast_enabled": false,
+      "is_data_discount_logging_enabled": false,
+      "include_byok_in_budgets": true,
+      "io_logging_sampling_rate": 100,
+      "io_logging_api_key_ids": null,
+      "created_at": "2026-07-10T00:00:00.000Z",
+      "updated_at": null,
+      "created_by": "user_bob"
+    }
+  ],
+  "total_count": 2
+}

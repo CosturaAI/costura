@@ -1,0 +1,53 @@
+{
+  "data": [
+    {
+      "starting_at": "2026-08-03T00:00:00Z",
+      "ending_at": "2026-08-04T00:00:00Z",
+      "results": [
+        {
+          "amount": "10.5",
+          "context_window": "0-200k",
+          "cost_type": "tokens",
+          "currency": "USD",
+          "description": "Claude Opus 5 Usage - Input Tokens",
+          "inference_geo": "us",
+          "model": "claude-opus-5",
+          "service_tier": "batch",
+          "token_type": "uncached_input_tokens",
+          "workspace_id": "wrkspc_redacted_a"
+        },
+        {
+          "amount": "0.5",
+          "context_window": "0-200k",
+          "cost_type": "tokens",
+          "currency": "USD",
+          "description": "Claude Opus 5 Usage - Input Tokens",
+          "inference_geo": "us",
+          "model": "claude-opus-5",
+          "service_tier": "batch",
+          "token_type": "uncached_input_tokens",
+          "workspace_id": "wrkspc_redacted_a"
+        },
+        {
+          "amount": "5000",
+          "context_window": "200k-1M",
+          "cost_type": "tokens",
+          "currency": "USD",
+          "description": "Claude Sonnet 4.6 Usage - Cache Read Input Tokens",
+          "inference_geo": "us",
+          "model": "claude-sonnet-4-6",
+          "service_tier": "standard",
+          "token_type": "cache_read_input_tokens",
+          "workspace_id": "wrkspc_redacted_a"
+        }
+      ]
+    },
+    {
+      "starting_at": "2026-08-04T00:00:00Z",
+      "ending_at": "2026-08-05T00:00:00Z",
+      "results": []
+    }
+  ],
+  "has_more": false,
+  "next_page": null
+}

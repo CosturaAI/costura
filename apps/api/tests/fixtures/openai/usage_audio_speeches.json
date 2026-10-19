@@ -1,0 +1,23 @@
+{
+  "object": "page",
+  "data": [
+    {
+      "object": "bucket",
+      "start_time": 1785542400,
+      "end_time": 1785628800,
+      "results": [
+        {
+          "object": "organization.usage.audio_speeches.result",
+          "characters": 18000,
+          "num_model_requests": 6,
+          "project_id": "proj_a",
+          "user_id": "user_x",
+          "api_key_id": "key_a1",
+          "model": "tts-1"
+        }
+      ]
+    }
+  ],
+  "has_more": false,
+  "next_page": null
+}

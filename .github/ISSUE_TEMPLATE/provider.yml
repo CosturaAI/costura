@@ -1,0 +1,36 @@
+name: Provider connector
+description: Ask Costura to import spend from another AI provider
+labels: [enhancement]
+body:
+  - type: input
+    id: provider
+    attributes:
+      label: Provider
+      description: The product and plan, such as "Google Gemini API" or "Windsurf Teams"
+    validations:
+      required: true
+  - type: textarea
+    id: api
+    attributes:
+      label: Billing or usage API
+      description: >-
+        Link the official documentation of the read-only endpoint that reports cost or usage,
+        and the kind of key it needs. Costura only reads what an admin or management key
+        exposes; it does not proxy traffic.
+    validations:
+      required: true
+  - type: textarea
+    id: grain
+    attributes:
+      label: What it reports
+      description: >-
+        Money or only tokens, and per what: day, API key, workspace or project, user e-mail.
+    validations:
+      required: false
+  - type: checkboxes
+    id: access
+    attributes:
+      label: Testing
+      options:
+        - label: I can test a connector against a real account of this provider
+          required: false

@@ -1,0 +1,22 @@
+{
+  "teamMemberSpend": [
+    {
+      "email": "developer@example.com",
+      "monthlyLimitDollars": null,
+      "hardLimitOverrideDollars": null,
+      "effectivePerUserLimitDollars": 500,
+      "spendCents": 1000,
+      "includedSpendCents": 250
+    },
+    {
+      "email": "admin@example.com",
+      "monthlyLimitDollars": 100,
+      "hardLimitOverrideDollars": null,
+      "effectivePerUserLimitDollars": 100,
+      "spendCents": 400,
+      "includedSpendCents": 100
+    }
+  ],
+  "subscriptionCycleStart": 1788220800000,
+  "totalPages": 1
+}

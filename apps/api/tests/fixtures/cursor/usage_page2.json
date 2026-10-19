@@ -1,0 +1,34 @@
+{
+  "totalUsageEventsCount": 5,
+  "pagination": {
+    "numPages": 2,
+    "currentPage": 2,
+    "pageSize": 3,
+    "hasNextPage": false,
+    "hasPreviousPage": true
+  },
+  "usageEvents": [
+    {
+      "timestamp": "1785558600000",
+      "userEmail": "admin@example.com",
+      "serviceAccountId": "null",
+      "model": "claude-4-sonnet-thinking",
+      "kind": "Included in Business",
+      "isChargeable": false,
+      "chargedCents": 8
+    },
+    {
+      "timestamp": "1785630600000",
+      "userEmail": "new@example.com",
+      "serviceAccountId": "null",
+      "model": "composer-2",
+      "kind": "Included in Business",
+      "isChargeable": false,
+      "chargedCents": 0
+    }
+  ],
+  "period": {
+    "startDate": 1785542400000,
+    "endDate": 1785715199999
+  }
+}

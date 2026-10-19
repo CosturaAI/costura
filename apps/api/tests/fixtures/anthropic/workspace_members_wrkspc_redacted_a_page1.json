@@ -1,0 +1,19 @@
+{
+  "data": [
+    {
+      "type": "workspace_member",
+      "user_id": "user_redacted_alice",
+      "workspace_id": "wrkspc_redacted_a",
+      "workspace_role": "workspace_admin"
+    },
+    {
+      "type": "workspace_member",
+      "user_id": "user_redacted_bob",
+      "workspace_id": "wrkspc_redacted_a",
+      "workspace_role": "workspace_developer"
+    }
+  ],
+  "has_more": false,
+  "first_id": "user_redacted_alice",
+  "last_id": "user_redacted_bob"
+}

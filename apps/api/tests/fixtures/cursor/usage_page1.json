@@ -1,0 +1,67 @@
+{
+  "totalUsageEventsCount": 5,
+  "pagination": {
+    "numPages": 2,
+    "currentPage": 1,
+    "pageSize": 3,
+    "hasNextPage": true,
+    "hasPreviousPage": false
+  },
+  "usageEvents": [
+    {
+      "timestamp": "1785547800000",
+      "userEmail": "developer@example.com",
+      "serviceAccountId": "null",
+      "model": "claude-4.5-sonnet",
+      "kind": "Usage-based",
+      "isChargeable": true,
+      "tokenUsage": {
+        "inputTokens": 126,
+        "outputTokens": 450,
+        "cacheWriteTokens": 6112,
+        "cacheReadTokens": 11964,
+        "totalCents": 20.18232
+      },
+      "chargedCents": 21.36232,
+      "cursorTokenFee": 1.18
+    },
+    {
+      "timestamp": "1785551400000",
+      "userEmail": "developer@example.com",
+      "serviceAccountId": "null",
+      "model": "claude-4.5-sonnet",
+      "kind": "Usage-based",
+      "isChargeable": true,
+      "tokenUsage": {
+        "inputTokens": 5805,
+        "outputTokens": 311,
+        "cacheWriteTokens": 11964,
+        "cacheReadTokens": 0,
+        "totalCents": 40.167
+      },
+      "chargedCents": 40.167
+    },
+    {
+      "timestamp": "1785555000000",
+      "userEmail": "agent-runner@example.com",
+      "serviceAccountId": "sa_nightly",
+      "serviceAccountName": "Nightly CI Agent",
+      "model": "claude-4.5-sonnet",
+      "kind": "Usage-based",
+      "isChargeable": true,
+      "tokenUsage": {
+        "inputTokens": 126,
+        "outputTokens": 450,
+        "cacheWriteTokens": 6112,
+        "cacheReadTokens": 11964,
+        "totalCents": 20.18232
+      },
+      "chargedCents": 21.36232,
+      "cursorTokenFee": 1.18
+    }
+  ],
+  "period": {
+    "startDate": 1785542400000,
+    "endDate": 1785628799999
+  }
+}

@@ -1,0 +1,36 @@
+{
+  "data": {
+    "data": [
+      {
+        "date__day": "2026-08-01",
+        "total_usage": 16.75,
+        "credits_usage": 8.75,
+        "byok_usage": 8.0,
+        "usage_web": 0.25,
+        "tokens_prompt": "1450000",
+        "tokens_completion": "290000",
+        "cached_tokens": "400000",
+        "reasoning_tokens": "20000",
+        "request_count": "160"
+      },
+      {
+        "date__day": "2026-08-02",
+        "total_usage": 14.75,
+        "credits_usage": 5.75,
+        "byok_usage": 9.0,
+        "usage_web": 0,
+        "tokens_prompt": "1420000",
+        "tokens_completion": "260000",
+        "cached_tokens": "500000",
+        "reasoning_tokens": "15000",
+        "request_count": "153"
+      }
+    ],
+    "metadata": {
+      "query_time_ms": 40,
+      "row_count": 2,
+      "truncated": false
+    },
+    "cachedAt": 1786000000000
+  }
+}

@@ -1,0 +1,28 @@
+# Add only reviewed false positives. Never suppress a live credential.
+
+# Local Docker Compose placeholder (POSTGRES_PASSWORD=costura), not a credential.
+.env.example:generic-password:14
+
+# Ephemeral PostgreSQL started by `just db::up` in the CI jobs (POSTGRES_PASSWORD: costura),
+# reachable only inside the runner for the job's lifetime.
+.github/workflows/ci.yml:generic-password:82
+.github/workflows/ci.yml:generic-password:182
+
+# Disposable local Compose stacks used by `just smoke` and `just web::test-e2e-demo`
+# (same placeholder as .env.example).
+scripts/smoke-install.sh:generic-password:43
+scripts/demo-e2e.sh:generic-password:49
+
+# Synthetic env written by the production smoke, the same placeholder as .env.example.
+scripts/smoke-env.sh:generic-password:12
+scripts/smoke-env.sh:generic-password:14
+
+# The literal production startup and the app-role grant script reject (`costura`), not a
+# credential: apps/api/costura/config.py::_database_password and
+# apps/api/costura/ops/db_roles.py::grant_runtime_role.
+apps/api/costura/config.py:generic-password:216
+apps/api/costura/ops/db_roles.py:generic-password:22
+
+# Disposable role password used only by the db_roles integration test against a throwaway
+# PostgreSQL container.
+apps/api/tests/test_db_roles.py:generic-password:16

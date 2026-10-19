@@ -1,0 +1,7 @@
+{
+  "usageItems": [
+    {"date": "2026-08-01", "product": "Copilot", "sku": "copilot_for_business", "quantity": 2, "unitType": "UserMonths", "pricePerUnit": 19.0, "grossAmount": 1.2258, "discountAmount": 0.0, "netAmount": 1.2258, "organizationName": "acme-inc"},
+    {"date": "2026-08-01", "product": "Copilot", "sku": "copilot_ai_credit", "quantity": 400, "unitType": "credits", "pricePerUnit": 0.01, "grossAmount": 4.0, "discountAmount": 1.5, "netAmount": 2.5, "organizationName": "acme-inc"},
+    {"date": "2026-08-01", "product": "Actions", "sku": "Actions Linux", "quantity": 100, "unitType": "minutes", "pricePerUnit": 0.008, "grossAmount": 0.8, "discountAmount": 0, "netAmount": 0.8, "organizationName": "acme-inc", "repositoryName": "acme-inc/example"}
+  ]
+}

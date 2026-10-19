@@ -1,0 +1,25 @@
+{
+  "teamMembers": [
+    {
+      "id": "user_alex",
+      "name": "Alex Developer",
+      "email": "developer@example.com",
+      "role": "member",
+      "isRemoved": false
+    },
+    {
+      "id": "user_admin",
+      "name": "Sam Admin",
+      "email": "admin@example.com",
+      "role": "owner",
+      "isRemoved": false
+    },
+    {
+      "id": "user_removed",
+      "name": "Former Member",
+      "email": "former@example.com",
+      "role": "member",
+      "isRemoved": true
+    }
+  ]
+}

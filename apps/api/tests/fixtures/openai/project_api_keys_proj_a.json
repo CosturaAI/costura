@@ -1,0 +1,45 @@
+{
+  "object": "list",
+  "data": [
+    {
+      "object": "organization.project.api_key",
+      "redacted_value": "sk-abc...def1",
+      "name": "assistants-prod",
+      "created_at": 1780500000,
+      "last_used_at": 1785600000,
+      "id": "key_a1",
+      "owner": {
+        "type": "user",
+        "user": {
+          "object": "organization.project.user",
+          "id": "user_x",
+          "name": "Ada",
+          "email": "Alice@example.com",
+          "role": "owner",
+          "added_at": 1770000000
+        }
+      }
+    },
+    {
+      "object": "organization.project.api_key",
+      "redacted_value": "sk-abc...ef22",
+      "name": "nightly-eval",
+      "created_at": 1780600000,
+      "last_used_at": null,
+      "id": "key_a2",
+      "owner": {
+        "type": "service_account",
+        "service_account": {
+          "object": "organization.project.service_account",
+          "id": "svc_eval",
+          "name": "Eval bot",
+          "role": "member",
+          "created_at": 1780550000
+        }
+      }
+    }
+  ],
+  "first_id": "key_a1",
+  "last_id": "key_a2",
+  "has_more": false
+}

@@ -1,0 +1,31 @@
+{
+  "data": [
+    {
+      "id": "apikey_redacted_2",
+      "type": "api_key",
+      "name": "batch-ingest",
+      "workspace_id": "wrkspc_redacted_a",
+      "created_at": "2026-03-02T16:20:00Z",
+      "created_by": { "id": "user_redacted_bob", "type": "user" },
+      "principal": { "id": "user_redacted_bob", "type": "user" },
+      "partial_key_hint": "sk-ant-api03-...bbbb",
+      "status": "active",
+      "expires_at": "2027-03-02T16:20:00Z"
+    },
+    {
+      "id": "apikey_redacted_3",
+      "type": "api_key",
+      "name": "legacy-notebook",
+      "workspace_id": "wrkspc_redacted_archived",
+      "created_at": "2025-04-01T09:00:00Z",
+      "created_by": null,
+      "principal": null,
+      "partial_key_hint": "sk-ant-api03-...cccc",
+      "status": "archived",
+      "expires_at": null
+    }
+  ],
+  "has_more": false,
+  "first_id": "apikey_redacted_2",
+  "last_id": "apikey_redacted_3"
+}

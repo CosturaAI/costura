@@ -1,0 +1,404 @@
+name: CI
+
+on:
+  pull_request:
+    types: [opened, synchronize, reopened, ready_for_review]
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: none
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+jobs:
+  secret-history:
+    name: Secret scan of the git history
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    permissions:
+      contents: read
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+          fetch-depth: 0
+      - name: Set up mise
+        uses: jdx/mise-action@2d8d4cafcbd33be2ea37d2b6f5ad595363d1f1ca # v5.1.1
+        with:
+          install: true
+          cache: true
+      - name: Scan every commit
+        run: just quality::secrets-history
+
+  quality:
+    name: Application quality
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    permissions:
+      contents: read
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - name: Set up mise
+        uses: jdx/mise-action@2d8d4cafcbd33be2ea37d2b6f5ad595363d1f1ca # v5.1.1
+        with:
+          install: true
+          cache: true
+      - name: Cache uv and pnpm downloads
+        uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: |
+            ~/.cache/uv
+            ~/.local/share/pnpm/store
+          key: deps-${{ runner.os }}-${{ hashFiles('apps/api/uv.lock', 'apps/web/pnpm-lock.yaml') }}
+          restore-keys: deps-${{ runner.os }}-
+      - name: Install frozen application dependencies
+        run: |
+          just api::setup
+          just web::setup
+      - name: Run application quality checks
+        run: just check
+      - name: Run the API tests that need no database
+        run: just api::test-unit
+
+  application-tests:
+    name: API and web tests
+    runs-on: ubuntu-24.04
+    timeout-minutes: 25
+    permissions:
+      contents: read
+    env:
+      COSTURA_ENV: test
+      COSTURA_WEB_ORIGIN: http://127.0.0.1:3000
+      DATABASE_URL: postgresql+psycopg://costura:costura@localhost:5432/costura
+      POSTGRES_DB: costura
+      POSTGRES_PASSWORD: costura
+      POSTGRES_USER: costura
+      TEST_DATABASE_URL: postgresql+psycopg://costura:costura@localhost:5432/costura_test
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+          # diff-cover compares against the base branch, so the history must be present.
+          fetch-depth: 0
+      - name: Set up mise
+        uses: jdx/mise-action@2d8d4cafcbd33be2ea37d2b6f5ad595363d1f1ca # v5.1.1
+        with:
+          install: true
+          cache: true
+      - name: Cache uv and pnpm downloads
+        uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: |
+            ~/.cache/uv
+            ~/.local/share/pnpm/store
+          key: deps-${{ runner.os }}-${{ hashFiles('apps/api/uv.lock', 'apps/web/pnpm-lock.yaml') }}
+          restore-keys: deps-${{ runner.os }}-
+      - name: Install frozen application dependencies
+        run: |
+          just api::setup
+          just web::setup
+      - name: Run full API and web tests with coverage floors
+        run: |
+          just db::up
+          just coverage-core
+      - name: Require 90% coverage of the lines this pull request changes
+        if: github.event_name == 'pull_request'
+        env:
+          BASE_REF: ${{ github.base_ref }}
+        run: |
+          just api::diff-coverage "origin/$BASE_REF"
+          just web::diff-coverage "origin/$BASE_REF"
+      - name: Publish coverage reports
+        if: always()
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: coverage
+          path: |
+            apps/api/coverage.xml
+            apps/web/coverage/lcov.info
+          if-no-files-found: ignore
+          retention-days: 14
+
+  web-build:
+    name: Next.js production build
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    permissions:
+      contents: read
+    env:
+      COSTURA_API_URL: http://127.0.0.1:8000
+      COSTURA_ENV: test
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - name: Set up mise
+        uses: jdx/mise-action@2d8d4cafcbd33be2ea37d2b6f5ad595363d1f1ca # v5.1.1
+        with:
+          install: true
+          cache: true
+      - name: Cache uv and pnpm downloads
+        uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: |
+            ~/.cache/uv
+            ~/.local/share/pnpm/store
+          key: deps-${{ runner.os }}-${{ hashFiles('apps/api/uv.lock', 'apps/web/pnpm-lock.yaml') }}
+          restore-keys: deps-${{ runner.os }}-
+      - name: Install frozen web dependencies
+        run: just web::setup
+      - name: Build the production application
+        run: just web::build
+      - name: Pack the standalone build
+        run: tar -czf web-standalone.tgz -C apps/web .next/standalone
+      - name: Upload the standalone build for the browser jobs
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: web-standalone
+          path: web-standalone.tgz
+          if-no-files-found: error
+          retention-days: 1
+
+  migration-check:
+    name: Migration parity
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    permissions:
+      contents: read
+    env:
+      COSTURA_ENV: test
+      DATABASE_URL: postgresql+psycopg://costura:costura@localhost:5432/costura
+      POSTGRES_DB: costura
+      POSTGRES_PASSWORD: costura
+      POSTGRES_USER: costura
+      TEST_DATABASE_URL: postgresql+psycopg://costura:costura@localhost:5432/costura_test
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - name: Set up mise
+        uses: jdx/mise-action@2d8d4cafcbd33be2ea37d2b6f5ad595363d1f1ca # v5.1.1
+        with:
+          install: true
+          cache: true
+      - name: Cache uv and pnpm downloads
+        uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: |
+            ~/.cache/uv
+            ~/.local/share/pnpm/store
+          key: deps-${{ runner.os }}-${{ hashFiles('apps/api/uv.lock', 'apps/web/pnpm-lock.yaml') }}
+          restore-keys: deps-${{ runner.os }}-
+      - name: Install frozen API dependencies
+        run: just api::setup
+      - name: Verify migration parity
+        run: just api::migration-check
+
+  browser-tests:
+    name: Playwright browser tests
+    needs: web-build
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    permissions:
+      contents: read
+    env:
+      CI: "true"
+      COSTURA_API_URL: http://127.0.0.1:3200
+      COSTURA_ENV: test
+      COSTURA_WEB_ORIGIN: http://127.0.0.1:3100
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - name: Set up mise
+        uses: jdx/mise-action@2d8d4cafcbd33be2ea37d2b6f5ad595363d1f1ca # v5.1.1
+        with:
+          install: true
+          cache: true
+      - name: Cache uv and pnpm downloads
+        uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: |
+            ~/.cache/uv
+            ~/.local/share/pnpm/store
+          key: deps-${{ runner.os }}-${{ hashFiles('apps/api/uv.lock', 'apps/web/pnpm-lock.yaml') }}
+          restore-keys: deps-${{ runner.os }}-
+      - name: Install frozen web dependencies
+        run: just web::setup
+      - name: Download the standalone build
+        uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
+        with:
+          name: web-standalone
+      - name: Unpack the standalone build
+        run: tar -xzf web-standalone.tgz -C apps/web && rm web-standalone.tgz
+      - name: Run Chromium browser and visual tests
+        env:
+          COSTURA_WEB_PREBUILT: "1"
+        run: just web::test-e2e-docker
+      - name: Upload the Playwright HTML report
+        if: always()
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: playwright-report
+          path: apps/web/playwright-report
+          if-no-files-found: ignore
+          retention-days: 7
+      - name: Upload Playwright traces and screenshot diffs
+        if: failure()
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: playwright-traces
+          path: apps/web/test-results
+          if-no-files-found: ignore
+          retention-days: 7
+
+  demo-browser-tests:
+    name: Playwright sample organization
+    needs: web-build
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    permissions:
+      contents: read
+    env:
+      CI: "true"
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - name: Set up mise
+        uses: jdx/mise-action@2d8d4cafcbd33be2ea37d2b6f5ad595363d1f1ca # v5.1.1
+        with:
+          install: true
+          cache: true
+      - name: Cache uv and pnpm downloads
+        uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: |
+            ~/.cache/uv
+            ~/.local/share/pnpm/store
+          key: deps-${{ runner.os }}-${{ hashFiles('apps/api/uv.lock', 'apps/web/pnpm-lock.yaml') }}
+          restore-keys: deps-${{ runner.os }}-
+      - name: Install frozen application dependencies
+        run: |
+          just api::setup
+          just web::setup
+      - name: Download the standalone build
+        uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
+        with:
+          name: web-standalone
+      - name: Unpack the standalone build
+        run: tar -xzf web-standalone.tgz -C apps/web && rm web-standalone.tgz
+      - name: Run the seeded sample organization suite
+        env:
+          COSTURA_WEB_PREBUILT: "1"
+        run: just web::test-e2e-demo-docker
+      - name: Upload the sample suite Playwright HTML report
+        if: always()
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: playwright-report-demo
+          path: apps/web/playwright-report-demo
+          if-no-files-found: ignore
+          retention-days: 7
+      - name: Upload sample suite traces and screenshot diffs
+        if: failure()
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: playwright-demo-traces
+          path: apps/web/test-results-demo
+          if-no-files-found: ignore
+          retention-days: 7
+
+  package-install:
+    name: API package install
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    permissions:
+      contents: read
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - name: Set up mise
+        uses: jdx/mise-action@2d8d4cafcbd33be2ea37d2b6f5ad595363d1f1ca # v5.1.1
+        with:
+          install: true
+          cache: true
+      - name: Install the API wheel in a clean environment
+        run: just api::package-check
+
+  install-smoke:
+    name: Install smoke
+    needs: web-build
+    runs-on: ubuntu-24.04
+    timeout-minutes: 25
+    permissions:
+      contents: read
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - name: Set up mise
+        uses: jdx/mise-action@2d8d4cafcbd33be2ea37d2b6f5ad595363d1f1ca # v5.1.1
+        with:
+          install: true
+          cache: true
+      - name: Cache uv and pnpm downloads
+        uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: |
+            ~/.cache/uv
+            ~/.local/share/pnpm/store
+          key: deps-${{ runner.os }}-${{ hashFiles('apps/api/uv.lock', 'apps/web/pnpm-lock.yaml') }}
+          restore-keys: deps-${{ runner.os }}-
+      - name: Install frozen application dependencies
+        run: |
+          just api::setup
+          just web::setup
+      - name: Download the standalone build
+        uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
+        with:
+          name: web-standalone
+      - name: Unpack the standalone build
+        run: tar -xzf web-standalone.tgz -C apps/web && rm web-standalone.tgz
+      - name: Smoke Postgres, the API, Next and the demo overview
+        env:
+          COSTURA_WEB_PREBUILT: "1"
+        run: just smoke
+
+  security-scan:
+    name: Security scan
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    permissions:
+      contents: read
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - name: Scan the filesystem for fixed high and critical vulnerabilities
+        uses: aquasecurity/trivy-action@ed142fd0673e97e23eac54620cfb913e5ce36c25 # v0.36.0
+        with:
+          version: v0.75.0
+          scan-type: fs
+          scan-ref: .
+          scanners: vuln
+          severity: HIGH,CRITICAL
+          ignore-unfixed: true
+          exit-code: "1"

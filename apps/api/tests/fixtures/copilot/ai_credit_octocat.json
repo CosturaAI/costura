@@ -1,0 +1,8 @@
+{
+  "timePeriod": {"year": 2026, "month": 8, "day": 1},
+  "organization": "acme-inc",
+  "user": "octocat",
+  "usageItems": [
+    {"product": "Copilot", "sku": "copilot_ai_credit", "model": "Claude Sonnet 4.5", "unitType": "credits", "pricePerUnit": 0.01, "grossQuantity": 100, "grossAmount": 1.0, "discountQuantity": 50, "discountAmount": 0.5, "netQuantity": 50, "netAmount": 0.5}
+  ]
+}

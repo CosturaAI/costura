@@ -1,0 +1,5 @@
+allowBuilds:
+  sharp: false
+  unrs-resolver: false
+# No install cooldown: always resolve the newest package versions that satisfy the pins.
+minimumReleaseAge: 0

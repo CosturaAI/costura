@@ -1,0 +1,215 @@
+"""Exercise the baseline Alembic revision against a disposable PostgreSQL database."""
+
+from __future__ import annotations
+
+import os
+import uuid
+from pathlib import Path
+
+from alembic import command
+from alembic.config import Config
+from alembic.script import ScriptDirectory
+from sqlalchemy import create_engine, text
+from sqlalchemy.engine import URL, make_url
+
+API_ROOT = Path(__file__).resolve().parents[1]
+DEFAULT_TEST_DATABASE_URL = "postgresql+psycopg://costura:costura@localhost:5432/costura_test"
+
+# Tables this schema must create.
+CORE_TABLES = {
+    "organizations",
+    "worker_heartbeats",
+    "users",
+    "sessions",
+    "oidc_authorizations",
+    "organization_members",
+    "organization_invitations",
+    "provider_accounts",
+    "provider_credentials",
+    "scheduler_runs",
+    "provider_sync_runs",
+    "provider_report_pages",
+    "provider_workspaces",
+    "provider_users",
+    "provider_api_keys",
+    "provider_workspace_members",
+    "provider_models_seen",
+    "credit_prices",
+    "spend_cost_lines",
+    "spend_usage_lines",
+    "spend_activity_lines",
+    "spend_allocated_lines",
+    "spend_anomalies",
+    "anomaly_reads",
+    "signal_reads",
+    "signal_snoozes",
+    "webhook_destinations",
+    "webhook_deliveries",
+    "audit_events",
+    "anomaly_settings",
+    "spend_projections",
+    "spend_budgets",
+    "spend_budget_alerts",
+    "owner_assignments",
+}
+
+
+def _config() -> Config:
+    return Config(API_ROOT / "alembic.ini")
+
+
+def _database_urls() -> tuple[URL, URL, str]:
+    source = make_url(os.environ.get("TEST_DATABASE_URL", DEFAULT_TEST_DATABASE_URL))
+    database_name = f"costura_migration_check_{uuid.uuid4().hex[:12]}"
+    return source.set(database="postgres"), source.set(database=database_name), database_name
+
+
+def _create_database(admin_url: URL, database_name: str) -> None:
+    engine = create_engine(admin_url, isolation_level="AUTOCOMMIT")
+    try:
+        with engine.connect() as connection:
+            connection.execute(text(f'CREATE DATABASE "{database_name}"'))
+    finally:
+        engine.dispose()
+
+
+def _drop_database(admin_url: URL, database_name: str) -> None:
+    engine = create_engine(admin_url, isolation_level="AUTOCOMMIT")
+    try:
+        with engine.connect() as connection:
+            connection.execute(text(f'DROP DATABASE IF EXISTS "{database_name}" WITH (FORCE)'))
+    finally:
+        engine.dispose()
+
+
+def _assert_connected_chain(config: Config) -> str:
+    """One head, and every revision reachable by walking from the base to it.
+
+    A new revision is valid as long as it extends the single chain.
+    """
+    scripts = ScriptDirectory.from_config(config)
+    heads = scripts.get_heads()
+    if len(heads) != 1:
+        raise AssertionError(f"expected one Alembic head, found {heads}")
+    bases = scripts.get_bases()
+    if len(bases) != 1:
+        raise AssertionError(f"expected one Alembic base, found {bases}")
+    reachable = {
+        revision.revision for revision in scripts.walk_revisions(base="base", head="heads")
+    }
+    known = {revision.revision for revision in scripts.walk_revisions()}
+    orphans = known - reachable
+    if orphans:
+        raise AssertionError(f"revisions outside the base-to-head chain: {sorted(orphans)}")
+    return heads[0]
+
+
+def _table_names(database_url: URL) -> set[str]:
+    engine = create_engine(database_url)
+    try:
+        with engine.connect() as connection:
+            return set(
+                connection.execute(
+                    text(
+                        """
+                        SELECT table_name FROM information_schema.tables
+                        WHERE table_schema = current_schema() AND table_type = 'BASE TABLE'
+                        """
+                    )
+                ).scalars()
+            )
+    finally:
+        engine.dispose()
+
+
+def _assert_schema(database_url: URL) -> None:
+    names = _table_names(database_url)
+    missing = CORE_TABLES - names
+    if missing:
+        raise AssertionError(f"baseline is missing core tables: {sorted(missing)}")
+    engine = create_engine(database_url)
+    try:
+        with engine.connect() as connection:
+            org_count = connection.execute(text("SELECT count(*) FROM organizations")).scalar_one()
+            if org_count != 0:
+                raise AssertionError(
+                    f"a fresh database should have no organizations, got {org_count}"
+                )
+            queue_columns = set(
+                connection.execute(
+                    text(
+                        """
+                        SELECT column_name FROM information_schema.columns
+                        WHERE table_schema = current_schema()
+                          AND table_name = 'scheduler_runs'
+                        """
+                    )
+                ).scalars()
+            )
+            required = {
+                "idempotency_key",
+                "priority",
+                "attempt_count",
+                "max_attempts",
+                "lease_owner",
+                "lease_expires_at",
+                "heartbeat_at",
+            }
+            missing = required - queue_columns
+            if missing:
+                raise AssertionError(f"scheduler_runs is missing queue columns: {sorted(missing)}")
+            idempotent = connection.execute(
+                text(
+                    """
+                    SELECT 1 FROM pg_indexes
+                    WHERE schemaname = current_schema()
+                      AND tablename = 'scheduler_runs'
+                      AND indexname = 'uq_scheduler_runs_idempotency_key'
+                    """
+                )
+            ).scalar_one_or_none()
+            if idempotent is None:
+                raise AssertionError("scheduler_runs.idempotency_key is not unique")
+    finally:
+        engine.dispose()
+
+
+def _assert_empty(database_url: URL) -> None:
+    names = _table_names(database_url) - {"alembic_version"}
+    if names:
+        raise AssertionError(f"downgrade left tables behind: {sorted(names)}")
+
+
+def main() -> None:
+    admin_url, database_url, database_name = _database_urls()
+    created = False
+    try:
+        _create_database(admin_url, database_name)
+        created = True
+        os.environ["COSTURA_ENV"] = "test"
+        os.environ["DATABASE_URL"] = database_url.render_as_string(hide_password=False)
+
+        config = _config()
+        head = _assert_connected_chain(config)
+        print(f"one Alembic head: {head}")
+
+        command.upgrade(config, "head")
+        _assert_schema(database_url)
+        print("fresh empty-to-head upgrade: passed")
+
+        command.check(config)
+        print("ORM parity via alembic check: passed")
+
+        command.downgrade(config, "base")
+        _assert_empty(database_url)
+        command.upgrade(config, "head")
+        _assert_schema(database_url)
+        command.check(config)
+        print("full downgrade and re-upgrade: passed")
+    finally:
+        if created:
+            _drop_database(admin_url, database_name)
+
+
+if __name__ == "__main__":
+    main()

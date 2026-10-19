@@ -1,0 +1,23 @@
+{
+  "object": "page",
+  "data": [
+    {
+      "object": "bucket",
+      "start_time": 1785542400,
+      "end_time": 1785628800,
+      "results": [
+        {
+          "object": "organization.usage.embeddings.result",
+          "input_tokens": 25000,
+          "num_model_requests": 5,
+          "project_id": "proj_a",
+          "user_id": "user_x",
+          "api_key_id": "key_a1",
+          "model": "text-embedding-3-large"
+        }
+      ]
+    }
+  ],
+  "has_more": false,
+  "next_page": null
+}

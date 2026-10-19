@@ -1,0 +1,46 @@
+{
+  "data": [
+    {
+      "starting_at": "2026-09-01T00:00:00Z",
+      "ending_at": "2026-09-02T00:00:00Z",
+      "results": [
+        {
+          "amount": "158.456789",
+          "currency": "USD",
+          "list_amount": "196.320986",
+          "product": null,
+          "model": null,
+          "cost_type": null,
+          "token_type": null,
+          "speed": null,
+          "context_window": null,
+          "inference_geo": null,
+          "requests": 10
+        }
+      ]
+    },
+    {
+      "starting_at": "2026-09-02T00:00:00Z",
+      "ending_at": "2026-09-03T00:00:00Z",
+      "results": [
+        {
+          "amount": "200.000001",
+          "currency": "USD",
+          "list_amount": "250.000001",
+          "product": null,
+          "model": null,
+          "cost_type": null,
+          "token_type": null,
+          "speed": null,
+          "context_window": null,
+          "inference_geo": null,
+          "requests": 4
+        }
+      ]
+    }
+  ],
+  "data_refreshed_at": "2026-09-03T12:00:00Z",
+  "has_more": false,
+  "next_page": null,
+  "organization_id": "org_claude_ai"
+}

@@ -1,0 +1,263 @@
+"use client";
+
+import Link from "next/link";
+import { useMemo, useState } from "react";
+
+import { DataTable, type Column } from "@/components/data-table";
+import { StatusBadge } from "@/components/status-badge";
+import { Button } from "@/components/ui/button";
+import type { UsageRow } from "@/lib/api";
+import { BYOK_NOTE, hasByok } from "@/lib/byok";
+import {
+  DIMENSION_LABELS,
+  activeTokenTypes,
+  entityHref,
+  idHint,
+  splitLabel,
+} from "@/lib/dimensions";
+import { formatPercent, formatTokens, formatUsd } from "@/lib/format";
+import { hasAccountLabel, sourceLabel } from "@/lib/providers";
+import { cn } from "@/lib/utils";
+
+function secondary(dimension: string, row: UsageRow, id: string | null): string {
+  const d = row.details;
+  const parts: string[] = [];
+  if (dimension === "api_key") {
+    parts.push(
+      ...[splitLabel(d.workspace ?? "").name, d.created_by, d.hint].filter((part): part is string =>
+        Boolean(part),
+      ),
+    );
+  } else if (dimension === "workspace" && d.admins) {
+    parts.push(`admins: ${d.admins}`);
+  }
+  if (id && parts.length === 0) parts.push(idHint(id));
+  return parts.join(" - ");
+}
+
+function usageRowKey(row: UsageRow): string {
+  return `${row.provider ?? "scope"}:${row.key ?? row.label}`;
+}
+
+/**
+ * Ranked rows with an inline share bar. Amounts come first because that is what people read;
+ * token counters sit behind a toggle and only the counters with data appear. Rows link to the
+ * entity page of the key, account, workspace or model under the row's own provider; under the
+ * `all` scope (`showProvider`) a badge names that provider. The rank column keeps the order of
+ * the API (spend descending) whatever the current sort. A BYOK column appears once any row
+ * carries a non-zero `byok_amount`; that money is billed by the providers and is not in the
+ * amount column. `compact` is the overview card, about 330 px wide under the `all` scope: the
+ * figure columns size to their own content, the name column takes what is left and clips, and
+ * the provider and status badges sit on the secondary line instead of beside the name.
+ */
+export function AttributionTable({
+  rows,
+  dimension,
+  allocated,
+  currency = "USD",
+  compact = false,
+  tokensDefault = false,
+  showProvider = false,
+  caption,
+}: {
+  rows: UsageRow[];
+  dimension: string;
+  allocated: boolean;
+  currency?: string;
+  compact?: boolean;
+  tokensDefault?: boolean;
+  showProvider?: boolean;
+  caption?: string;
+}) {
+  const [showTokens, setShowTokens] = useState(tokensDefault);
+  const maxShare = rows.reduce((max, row) => Math.max(max, Number(row.share ?? 0)), 0);
+  const rank = useMemo(() => new Map(rows.map((row, i) => [usageRowKey(row), i + 1])), [rows]);
+  const tokenColumns = useMemo(
+    () => (showTokens ? activeTokenTypes(rows.map((row) => row.tokens)) : []),
+    [rows, showTokens],
+  );
+  const label = DIMENSION_LABELS[dimension] ?? dimension;
+  const badgeProvider = showProvider && dimension !== "provider";
+  const byokColumn = useMemo(() => hasByok(rows), [rows]);
+
+  const columns: Column<UsageRow>[] = [
+    {
+      id: "rank",
+      header: "#",
+      priority: "hide",
+      align: "right",
+      headClassName: "w-8",
+      className: "w-8 font-mono text-xs whitespace-nowrap text-muted-foreground",
+      render: (row) => rank.get(usageRowKey(row)),
+    },
+    {
+      id: "name",
+      header: label,
+      priority: "primary",
+      sortValue: (row) => splitLabel(row.label).name,
+      // Compact cards are narrow: the name column takes what the figures leave and clips.
+      className: compact ? "w-full max-w-0" : "min-w-40 max-w-md",
+      render: (row) => {
+        const href = entityHref(dimension, row.key, row.person);
+        const status = row.details.status ?? "";
+        const missing = status.endsWith(" [missing]");
+        const { name, id } = splitLabel(row.label);
+        const detail = secondary(dimension, row, id);
+        const badges = [
+          row.provider &&
+          (badgeProvider || hasAccountLabel(row.provider, row.provider_account_label)) ? (
+            <span key="provider" className="shrink-0">
+              <StatusBadge tone="neutral">
+                {sourceLabel(row.provider, row.provider_account_label)}
+              </StatusBadge>
+            </span>
+          ) : null,
+          missing ? (
+            <span key="missing" className="shrink-0">
+              <StatusBadge tone="warning">missing</StatusBadge>
+            </span>
+          ) : null,
+          status && !missing && status !== "active" ? (
+            <span key="status" className="shrink-0">
+              <StatusBadge tone="neutral">{status}</StatusBadge>
+            </span>
+          ) : null,
+        ].filter(Boolean);
+        return (
+          <>
+            <div className="flex items-center gap-2">
+              {href ? (
+                <Link
+                  href={href}
+                  className="min-w-0 font-medium break-words text-foreground hover:text-primary hover:underline"
+                  title={row.label}
+                >
+                  {name}
+                </Link>
+              ) : (
+                <span
+                  className="min-w-0 font-medium break-words text-secondary-foreground"
+                  title={row.label}
+                >
+                  {name}
+                </span>
+              )}
+              {compact ? null : badges}
+            </div>
+            {detail || (compact && badges.length > 0) ? (
+              <div className="flex flex-wrap items-center gap-2">
+                {detail ? (
+                  <p className="min-w-0 text-xs break-words text-muted-foreground">{detail}</p>
+                ) : null}
+                {compact ? badges : null}
+              </div>
+            ) : null}
+          </>
+        );
+      },
+    },
+    ...(allocated
+      ? ([
+          {
+            id: "amount",
+            header: currency,
+            priority: "summary",
+            align: "right",
+            className: "font-mono whitespace-nowrap",
+            sortValue: (row) => Number(row.amount ?? 0),
+            render: (row) => formatUsd(row.amount),
+          },
+          {
+            id: "share",
+            header: "share",
+            priority: "summary",
+            headClassName: compact ? undefined : "w-40",
+            sortValue: (row) => Number(row.share ?? 0),
+            render: (row) => {
+              const share = Number(row.share ?? 0);
+              return (
+                <div className="flex items-center gap-2 whitespace-nowrap">
+                  <span
+                    className={cn(
+                      "h-1.5 overflow-hidden rounded-full bg-muted",
+                      compact ? "w-10" : "flex-1",
+                    )}
+                  >
+                    <span
+                      className="block h-full rounded-full bg-primary"
+                      style={{ width: `${maxShare > 0 ? (share / maxShare) * 100 : 0}%` }}
+                    />
+                  </span>
+                  <span
+                    className={cn(
+                      "text-right font-mono text-xs text-muted-foreground",
+                      compact ? "w-12" : "w-14",
+                    )}
+                  >
+                    {formatPercent(row.share)}
+                  </span>
+                </div>
+              );
+            },
+          },
+        ] satisfies Column<UsageRow>[])
+      : []),
+    ...(byokColumn
+      ? ([
+          {
+            id: "byok",
+            header: <abbr title={BYOK_NOTE}>BYOK</abbr>,
+            align: "right",
+            className: "font-mono whitespace-nowrap text-muted-foreground",
+            sortValue: (row) => Number(row.byok_amount ?? 0),
+            render: (row) => formatUsd(row.byok_amount),
+          },
+        ] satisfies Column<UsageRow>[])
+      : []),
+    ...tokenColumns.map((column): Column<UsageRow> => ({
+      id: column.key,
+      header: column.short.toLowerCase(),
+      align: "right",
+      className: "font-mono text-xs text-muted-foreground",
+      sortValue: (row) => row.tokens[column.key] ?? 0,
+      render: (row) => formatTokens(row.tokens[column.key] ?? 0),
+    })),
+    ...(compact
+      ? []
+      : ([
+          {
+            id: "tokens",
+            header: "tokens",
+            priority: "detail",
+            align: "right",
+            className: "font-mono text-muted-foreground",
+            sortValue: (row) => row.total_tokens,
+            render: (row) => formatTokens(row.total_tokens),
+          },
+        ] satisfies Column<UsageRow>[])),
+  ];
+
+  return (
+    <DataTable
+      rows={rows}
+      columns={columns}
+      rowKey={usageRowKey}
+      caption={caption ?? `Spend by ${label.toLowerCase()}`}
+      pageSize={compact ? rows.length || 1 : undefined}
+      rowClassName={() => cn(!compact && "hover:bg-background")}
+      toolbar={
+        compact ? undefined : (
+          <Button
+            type="button"
+            size="sm"
+            variant="ghost"
+            aria-pressed={showTokens}
+            onClick={() => setShowTokens((v) => !v)}
+          >
+            {showTokens ? "Hide token counters" : "Show token counters"}
+          </Button>
+        )
+      }
+    />
+  );
+}

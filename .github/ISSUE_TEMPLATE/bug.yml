@@ -1,0 +1,80 @@
+name: Bug
+description: Something Costura does that it should not
+labels: [bug]
+body:
+  - type: textarea
+    id: what
+    attributes:
+      label: What happened
+    validations:
+      required: true
+  - type: textarea
+    id: expected
+    attributes:
+      label: What you expected
+    validations:
+      required: true
+  - type: dropdown
+    id: affected
+    attributes:
+      label: What is affected
+      multiple: true
+      options:
+        - Overview
+        - Analyze
+        - Anomalies and signals
+        - Budgets
+        - Reconciliation
+        - Inventory
+        - Settings
+        - API
+        - Worker or scheduler
+        - "Provider connector: Anthropic"
+        - "Provider connector: OpenAI"
+        - "Provider connector: OpenRouter"
+        - "Provider connector: Cursor"
+        - "Provider connector: GitHub Copilot"
+        - "Provider connector: Claude.ai or Codex seats"
+        - Install or compose
+        - Documentation
+    validations:
+      required: true
+  - type: input
+    id: version
+    attributes:
+      label: COSTURA_VERSION
+      description: The value of COSTURA_VERSION in .env, or the contents of version.txt on a checkout
+      placeholder: 0.1.0
+    validations:
+      required: true
+  - type: input
+    id: environment
+    attributes:
+      label: Environment
+      description: COSTURA_ENV, and the provider if the bug is a sync
+    validations:
+      required: true
+  - type: textarea
+    id: repro
+    attributes:
+      label: Steps to reproduce
+    validations:
+      required: true
+  - type: textarea
+    id: logs
+    attributes:
+      label: Redacted logs
+      description: Remove provider keys, session cookies, COSTURA_SECRET_KEY, and the contents of .env before pasting.
+  - type: dropdown
+    id: topology
+    attributes:
+      label: How you run it
+      options:
+        - Local just dev
+        - docker-compose.prod.yml
+        - Other
+    validations:
+      required: true
+  - type: markdown
+    attributes:
+      value: Do not paste secrets. A vulnerability report does not belong in this form. Use SECURITY.md.

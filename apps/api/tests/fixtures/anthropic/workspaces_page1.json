@@ -1,0 +1,16 @@
+{
+  "data": [
+    {
+      "id": "wrkspc_redacted_a",
+      "type": "workspace",
+      "name": "Platform",
+      "created_at": "2025-11-02T14:03:00Z",
+      "archived_at": null,
+      "display_color": "#6C5BB9",
+      "tags": { "team": "platform", "env": "production" }
+    }
+  ],
+  "has_more": true,
+  "first_id": "wrkspc_redacted_a",
+  "last_id": "wrkspc_redacted_a"
+}

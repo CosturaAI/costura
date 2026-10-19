@@ -1,0 +1,6 @@
+{
+  "error": {
+    "message": "Workspace members can only be listed for organization accounts",
+    "code": 403
+  }
+}

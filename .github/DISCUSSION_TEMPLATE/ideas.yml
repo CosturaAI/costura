@@ -1,0 +1,23 @@
+body:
+  - type: textarea
+    attributes:
+      label: Goals
+      description: Short list of what the idea aims to address
+      value: |
+        1.
+        2.
+        3.
+    validations:
+      required: true
+  - type: textarea
+    attributes:
+      label: Background
+      description: Who hits this today, what they do instead, and any prior art
+    validations:
+      required: true
+  - type: textarea
+    attributes:
+      label: Proposal
+      description: How it could work in Costura, and whether you want to contribute it
+    validations:
+      required: true

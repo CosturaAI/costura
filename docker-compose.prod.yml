@@ -1,0 +1,272 @@
+# Supported single-node topology. One replica of each unit:
+# Postgres, a one-shot migration, the API, the worker, the scheduler, the web
+# app, and Caddy. Rate limits live in the API process and the worker runs one
+# organization at a time; do not scale any unit past one replica.
+#
+# Secrets stay in the repo-root .env (gitignored). The API receives the
+# operator secret and the Google client secret. The worker and the scheduler
+# do not. The migration receives only the database owner and the app role. Images are ghcr.io/costuraai/costura-*:${COSTURA_VERSION}; .env names an
+# exact release. `latest` exists in the registry but is not a supported install.
+# `build:` remains for local rebuilds (`just prod::up-local`) and the smoke.
+# This file forces COSTURA_ENV=production.
+#
+# The API port is not published. COSTURA_TRUSTED_PROXIES defaults to the
+# Compose subnet below (COSTURA_SUBNET). Do not publish port 8000.
+#
+# Local trial: COSTURA_SITE_ADDRESS=http://localhost (plain HTTP). A public
+# hostname turns on Caddy's automatic HTTPS. Install and upgrade: docs/operations/.
+
+name: costura-prod
+
+x-api-image: &api-image
+  image: ghcr.io/costuraai/costura-api:${COSTURA_VERSION:?set COSTURA_VERSION in .env}
+  build:
+    context: .
+    dockerfile: apps/api/Dockerfile
+
+x-logging: &logging
+  driver: json-file
+  options:
+    max-size: "50m"
+    max-file: "5"
+
+x-app: &app
+  security_opt:
+    - no-new-privileges:true
+  cap_drop:
+    - ALL
+  read_only: true
+  pids_limit: 256
+  tmpfs:
+    - /tmp
+  logging: *logging
+
+# The API, worker, scheduler and the `just prod::*` commands that run in the api image
+# connect as POSTGRES_APP_USER: rows only, no DDL. The migration job connects as
+# POSTGRES_USER, owns the schema, and re-applies that role's grants after every upgrade.
+x-runtime: &runtime
+  COSTURA_ENV: production
+  DATABASE_URL: "postgresql+psycopg://${POSTGRES_APP_USER:?set POSTGRES_APP_USER in .env}:${POSTGRES_APP_PASSWORD:?set POSTGRES_APP_PASSWORD in .env}@${COSTURA_DATABASE_HOST:-postgres}:${COSTURA_DATABASE_PORT:-5432}/${POSTGRES_DB:?set POSTGRES_DB in .env}?${COSTURA_DATABASE_OPTIONS:-sslmode=prefer}"
+  COSTURA_SECRET_KEY: ${COSTURA_SECRET_KEY:?set COSTURA_SECRET_KEY in .env}
+  COSTURA_SECRET_KEY_PREVIOUS: ${COSTURA_SECRET_KEY_PREVIOUS:-}
+  PYTHONDONTWRITEBYTECODE: "1"
+  COSTURA_TRUSTED_PROXIES: ${COSTURA_TRUSTED_PROXIES:-${COSTURA_SUBNET:-172.28.0.0/24}}
+  COSTURA_SCHEDULE_AT: ${COSTURA_SCHEDULE_AT:-06:00}
+  COSTURA_LOG_LEVEL: ${COSTURA_LOG_LEVEL:-INFO}
+  COSTURA_DEMO_REFRESH: ${COSTURA_DEMO_REFRESH:-false}
+  COSTURA_WEBHOOK_HOSTS: ${COSTURA_WEBHOOK_HOSTS:-}
+  COSTURA_BACKFILL_MONTHS: ${COSTURA_BACKFILL_MONTHS:-}
+  COSTURA_ORG: ${COSTURA_ORG:-default}
+  COSTURA_WEB_ORIGIN: ${COSTURA_WEB_ORIGIN:-http://localhost}
+  COSTURA_WEB_PUBLIC_URL: ${COSTURA_WEB_PUBLIC_URL:-}
+  COSTURA_SIGN_UP: ${COSTURA_SIGN_UP:-}
+  COSTURA_ALLOWED_EMAIL_DOMAINS: ${COSTURA_ALLOWED_EMAIL_DOMAINS:-}
+  ANTHROPIC_ADMIN_KEY: ${ANTHROPIC_ADMIN_KEY:-}
+  ANTHROPIC_BASE_URL: ${ANTHROPIC_BASE_URL:-}
+  CLAUDE_AI_API_KEY: ${CLAUDE_AI_API_KEY:-}
+  CLAUDE_AI_BASE_URL: ${CLAUDE_AI_BASE_URL:-}
+  CODEX_ADMIN_KEY: ${CODEX_ADMIN_KEY:-}
+  CODEX_BASE_URL: ${CODEX_BASE_URL:-}
+  CODEX_WORKSPACE_ID: ${CODEX_WORKSPACE_ID:-}
+  OPENROUTER_ADMIN_KEY: ${OPENROUTER_ADMIN_KEY:-}
+  OPENROUTER_BASE_URL: ${OPENROUTER_BASE_URL:-}
+  OPENAI_ADMIN_KEY: ${OPENAI_ADMIN_KEY:-}
+  OPENAI_BASE_URL: ${OPENAI_BASE_URL:-}
+  CURSOR_API_KEY: ${CURSOR_API_KEY:-}
+  CURSOR_BASE_URL: ${CURSOR_BASE_URL:-}
+  COPILOT_GITHUB_TOKEN: ${COPILOT_GITHUB_TOKEN:-}
+  COPILOT_ORG: ${COPILOT_ORG:-}
+  COPILOT_BASE_URL: ${COPILOT_BASE_URL:-}
+  COSTURA_RATE_LIMIT_AUTH: ${COSTURA_RATE_LIMIT_AUTH:-}
+  COSTURA_RATE_LIMIT_WRITE: ${COSTURA_RATE_LIMIT_WRITE:-}
+  COSTURA_RATE_LIMIT_DEMO: ${COSTURA_RATE_LIMIT_DEMO:-}
+  COSTURA_RATE_LIMIT_READ: ${COSTURA_RATE_LIMIT_READ:-}
+  COSTURA_RATE_LIMIT_CONNECT: ${COSTURA_RATE_LIMIT_CONNECT:-}
+  COSTURA_RAW_PAGE_RETENTION_DAYS: ${COSTURA_RAW_PAGE_RETENTION_DAYS:-}
+  COSTURA_RUN_RETENTION_DAYS: ${COSTURA_RUN_RETENTION_DAYS:-}
+
+services:
+  postgres:
+    image: postgres:18-alpine@sha256:77f585114c32fbca283dc835b0596f4e52b51b4c6662d7810b2f4084f60a1873
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:?set POSTGRES_DB in .env}
+      POSTGRES_USER: ${POSTGRES_USER:?set POSTGRES_USER in .env}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?set POSTGRES_PASSWORD in .env}
+      POSTGRES_INITDB_ARGS: --data-checksums
+    volumes:
+      - costura_prod_pgdata:/var/lib/postgresql
+    mem_limit: 1g
+    # One process per connection: the default 100 connections plus the server's own workers.
+    pids_limit: 512
+    logging: *logging
+    security_opt:
+      - no-new-privileges:true
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U \"$$POSTGRES_USER\" -d \"$$POSTGRES_DB\""]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+      start_period: 5s
+    restart: unless-stopped
+
+  # No provider keys, no Fernet key, no sign-in secrets: it only changes the schema.
+  migrate:
+    <<: [*app, *api-image]
+    environment:
+      COSTURA_ENV: production
+      PYTHONDONTWRITEBYTECODE: "1"
+      DATABASE_URL: "postgresql+psycopg://${POSTGRES_USER:?set POSTGRES_USER in .env}:${POSTGRES_PASSWORD:?set POSTGRES_PASSWORD in .env}@${COSTURA_DATABASE_HOST:-postgres}:${COSTURA_DATABASE_PORT:-5432}/${POSTGRES_DB:?set POSTGRES_DB in .env}?${COSTURA_DATABASE_OPTIONS:-sslmode=prefer}"
+      POSTGRES_APP_USER: ${POSTGRES_APP_USER:?set POSTGRES_APP_USER in .env}
+      POSTGRES_APP_PASSWORD: ${POSTGRES_APP_PASSWORD:?set POSTGRES_APP_PASSWORD in .env}
+    command: ["sh", "-c", "alembic upgrade head && python -m costura.ops.db_roles"]
+    healthcheck:
+      disable: true
+    depends_on:
+      postgres:
+        condition: service_healthy
+    restart: "no"
+    mem_limit: 512m
+
+  api:
+    <<: [*app, *api-image]
+    environment:
+      <<: *runtime
+      COSTURA_OPERATOR_EMAIL: ${COSTURA_OPERATOR_EMAIL:-}
+      COSTURA_OPERATOR_SECRET: ${COSTURA_OPERATOR_SECRET:-}
+      GOOGLE_CLIENT_ID: ${GOOGLE_CLIENT_ID:-}
+      GOOGLE_CLIENT_SECRET: ${GOOGLE_CLIENT_SECRET:-}
+    depends_on:
+      postgres:
+        condition: service_healthy
+      migrate:
+        condition: service_completed_successfully
+    mem_limit: 512m
+    healthcheck:
+      test:
+        [
+          "CMD",
+          "python",
+          "-c",
+          "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8000/ready', timeout=3)",
+        ]
+      interval: 10s
+      timeout: 5s
+      retries: 12
+      start_period: 20s
+    restart: unless-stopped
+
+  worker:
+    <<: [*app, *api-image]
+    environment:
+      <<: *runtime
+    command: ["python", "-m", "costura.ops.worker"]
+    depends_on:
+      postgres:
+        condition: service_healthy
+      migrate:
+        condition: service_completed_successfully
+    mem_limit: 1g
+    stop_grace_period: 120s
+    healthcheck:
+      test: ["CMD", "python", "-m", "costura.ops.heartbeat", "--role", "worker", "--max-age", "45"]
+      interval: 15s
+      timeout: 5s
+      retries: 3
+      start_period: 30s
+    restart: unless-stopped
+
+  scheduler:
+    <<: [*app, *api-image]
+    environment:
+      <<: *runtime
+    command: ["python", "-m", "costura.ops.scheduler"]
+    depends_on:
+      postgres:
+        condition: service_healthy
+      migrate:
+        condition: service_completed_successfully
+    mem_limit: 512m
+    healthcheck:
+      test:
+        ["CMD", "python", "-m", "costura.ops.heartbeat", "--role", "scheduler", "--max-age", "45"]
+      interval: 15s
+      timeout: 5s
+      retries: 3
+      start_period: 30s
+    restart: unless-stopped
+
+  web:
+    <<: *app
+    image: ghcr.io/costuraai/costura-web:${COSTURA_VERSION:?set COSTURA_VERSION in .env}
+    build:
+      context: .
+      dockerfile: apps/web/Dockerfile
+    environment:
+      COSTURA_API_URL: http://api:8000
+      COSTURA_THEME: ${COSTURA_THEME:-costura}
+      COSTURA_COLOR_SCHEME: ${COSTURA_COLOR_SCHEME:-light}
+      COSTURA_BRAND_NAME: ${COSTURA_BRAND_NAME:-Costura}
+    depends_on:
+      api:
+        condition: service_healthy
+    mem_limit: 512m
+    tmpfs:
+      - /tmp
+      - /app/.next/cache
+    healthcheck:
+      test:
+        [
+          "CMD",
+          "node",
+          "-e",
+          "fetch('http://127.0.0.1:3000/').then((r)=>process.exit(r.status<500?0:1)).catch(()=>process.exit(1))",
+        ]
+      interval: 10s
+      timeout: 5s
+      retries: 12
+      start_period: 20s
+    restart: unless-stopped
+
+  proxy:
+    build:
+      context: ./deploy
+      dockerfile: proxy.Dockerfile
+    image: ghcr.io/costuraai/costura-proxy:${COSTURA_VERSION:?set COSTURA_VERSION in .env}
+    environment:
+      COSTURA_SITE_ADDRESS: ${COSTURA_SITE_ADDRESS:-http://localhost}
+    ports:
+      - "${COSTURA_HTTP_PORT:-80}:80"
+      - "${COSTURA_HTTPS_PORT:-443}:443"
+    volumes:
+      - ./deploy/Caddyfile:/etc/caddy/Caddyfile:ro
+      - costura_caddy_data:/data
+      - costura_caddy_config:/config
+    logging: *logging
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
+    cap_add:
+      - NET_BIND_SERVICE
+    read_only: true
+    tmpfs:
+      - /tmp
+    mem_limit: 256m
+    pids_limit: 256
+    depends_on:
+      api:
+        condition: service_healthy
+      web:
+        condition: service_healthy
+    restart: unless-stopped
+
+networks:
+  default:
+    ipam:
+      config:
+        - subnet: ${COSTURA_SUBNET:-172.28.0.0/24}
+
+volumes:
+  costura_prod_pgdata:
+  costura_caddy_data:
+  costura_caddy_config:

@@ -1,0 +1,68 @@
+{
+  "object": "page",
+  "data": [
+    {
+      "object": "workspace.codex.usage.result",
+      "start_time": 1789689600,
+      "end_time": 1789776000,
+      "actor": {
+        "type": "ACCOUNT_USER",
+        "user_id": "3f0f5aaf-1e2b-4f10-bb50-111111111111",
+        "email": "alex@example.com"
+      },
+      "user_id": "3f0f5aaf-1e2b-4f10-bb50-111111111111",
+      "totals": {
+        "threads": 8,
+        "turns": 30,
+        "credits": 12.5,
+        "cost_usd": null,
+        "estimated_cost_usd": 0.88,
+        "uncached_text_input_tokens": 1000,
+        "cached_text_input_tokens": 250,
+        "text_output_tokens": 400,
+        "text_total_tokens": 1650
+      },
+      "clients": [
+        {
+          "client_id": "CODEX_WEB",
+          "threads": 8,
+          "turns": 30,
+          "credits": 12.5,
+          "cost_usd": null,
+          "estimated_cost_usd": 0.88,
+          "uncached_text_input_tokens": 1000,
+          "cached_text_input_tokens": 250,
+          "text_output_tokens": 400,
+          "text_total_tokens": 1650
+        }
+      ],
+      "models": [
+        {
+          "model": "gpt-5.4",
+          "speed": "standard",
+          "credits": 10,
+          "cost_usd": null,
+          "estimated_cost_usd": 0.7,
+          "uncached_text_input_tokens": 800,
+          "cached_text_input_tokens": 200,
+          "text_output_tokens": 300,
+          "text_total_tokens": 1300
+        },
+        {
+          "model": "gpt-5.5",
+          "speed": "fast",
+          "credits": 2.5,
+          "cost_usd": null,
+          "estimated_cost_usd": 0.18,
+          "uncached_text_input_tokens": 200,
+          "cached_text_input_tokens": 50,
+          "text_output_tokens": 100,
+          "text_total_tokens": 350
+        }
+      ],
+      "code_attribution": null
+    }
+  ],
+  "has_more": false,
+  "next_page": null
+}

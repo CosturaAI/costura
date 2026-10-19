@@ -1,0 +1,47 @@
+/* Light theme. Values match the previous globals.css palette. */
+:root {
+  color-scheme: light;
+  --background: #fbfaf5;
+  --foreground: #111827;
+  --card: #ffffff;
+  --card-foreground: #111827;
+  --popover: #ffffff;
+  --popover-foreground: #111827;
+  --primary: #5b2d2d;
+  --primary-hover: #4a2424;
+  --primary-active: #3b1c1c;
+  --primary-foreground: #ffffff;
+  --secondary: #f8f6f0;
+  --secondary-foreground: #374151;
+  --muted: #f8f6f0;
+  --muted-foreground: #656b78;
+  --subtle: #ecece5;
+  --faint-foreground: #6b7280;
+  --accent: #faf5f5;
+  --accent-foreground: #2d1515;
+  --destructive: #b91c1c;
+  --border: #ecece5;
+  --input: #d1d5db;
+  --ring: #8b4f4f;
+  --on-solid: #ffffff;
+  --critical: #b91c1c;
+  --critical-bg: #fef2f2;
+  --warning: #b45309;
+  --warning-bg: #fffbeb;
+  --info: #2563eb;
+  --info-bg: #eff6ff;
+  --success: #15803d;
+  --success-bg: #f0fdf4;
+  --chart-1: #5b2d2d;
+  --chart-2: #6369e5;
+  --chart-3: #8fe036;
+  --chart-4: #c9a3a3;
+  --chart-5: #2563eb;
+  --chart-6: #d97706;
+  --chart-7: #a87070;
+  --chart-8: #16a34a;
+  --chart-other: #9ca3af;
+  --chart-projection: #a87070;
+  --radius: 0.5rem;
+  --scrollbar: #d1d5db;
+}

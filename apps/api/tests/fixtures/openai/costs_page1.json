@@ -1,0 +1,104 @@
+{
+  "object": "page",
+  "has_more": true,
+  "next_page": "page_costs_2",
+  "data": [
+    {
+      "object": "bucket",
+      "start_time": 1785542400,
+      "end_time": 1785628800,
+      "results": [
+        {
+          "object": "organization.costs.result",
+          "amount": {
+            "value": 1.25,
+            "currency": "usd"
+          },
+          "line_item": "gpt-4o-mini-2024-07-18, input",
+          "project_id": "proj_a",
+          "api_key_id": "key_a1"
+        },
+        {
+          "object": "organization.costs.result",
+          "amount": {
+            "value": 0.4,
+            "currency": "usd"
+          },
+          "line_item": "gpt-4o-mini-2024-07-18, cached input",
+          "project_id": "proj_a",
+          "api_key_id": "key_a1"
+        },
+        {
+          "object": "organization.costs.result",
+          "amount": {
+            "value": 2.35,
+            "currency": "usd"
+          },
+          "line_item": "gpt-4o-mini-2024-07-18, output",
+          "project_id": "proj_a",
+          "api_key_id": "key_a1"
+        },
+        {
+          "object": "organization.costs.result",
+          "amount": {
+            "value": 0.5,
+            "currency": "usd"
+          },
+          "line_item": "gpt-4o-mini-2024-07-18, input",
+          "project_id": "proj_a",
+          "api_key_id": "key_a2"
+        },
+        {
+          "object": "organization.costs.result",
+          "amount": {
+            "value": 0.1,
+            "currency": "usd"
+          },
+          "line_item": "gpt-4o-mini-2024-07-18, cache writes",
+          "project_id": "proj_a",
+          "api_key_id": "key_a2"
+        },
+        {
+          "object": "organization.costs.result",
+          "amount": {
+            "value": 0.06,
+            "currency": "usd"
+          },
+          "line_item": "text-embedding-3-large",
+          "project_id": "proj_a",
+          "api_key_id": "key_a2"
+        },
+        {
+          "object": "organization.costs.result",
+          "amount": {
+            "value": 3.0,
+            "currency": "usd"
+          },
+          "line_item": "gpt-4o-2024-08-06, input, long context",
+          "project_id": "proj_b",
+          "api_key_id": "key_b1"
+        },
+        {
+          "object": "organization.costs.result",
+          "amount": {
+            "value": 6.0,
+            "currency": "usd"
+          },
+          "line_item": "gpt-4o-2024-08-06, output, long context",
+          "project_id": "proj_b",
+          "api_key_id": "key_b1"
+        },
+        {
+          "object": "organization.costs.result",
+          "amount": {
+            "value": 0.8,
+            "currency": "usd"
+          },
+          "line_item": "web search tool calls",
+          "project_id": "proj_b",
+          "api_key_id": "key_b1"
+        }
+      ]
+    }
+  ]
+}

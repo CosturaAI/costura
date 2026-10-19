@@ -1,0 +1,82 @@
+[project]
+name = "costura-api"
+version = "0.0.0"
+description = "Costura API: self-hosted AI spend attribution."
+readme = "README.md"
+license = "Apache-2.0"
+authors = [{ name = "Costura contributors" }]
+requires-python = ">=3.14,<3.15"
+dependencies = [
+    "alembic==1.20.0",
+    "cryptography==50.0.2",
+    "fastapi==0.143.0",
+    "httpx==0.28.1",
+    "psycopg[binary]==3.3.6",
+    "pydantic-settings==2.15.0",
+    "sqlalchemy==2.1.4",
+    "uvicorn[standard]==0.54.0",
+]
+
+[dependency-groups]
+dev = [
+    "diff-cover==10.6.0",
+    "pre-commit==4.6.2",
+    "pytest==9.1.1",
+    "pytest-cov==7.1.0",
+    "ruff==0.17.0",
+    "ty==0.0.86",
+]
+
+[project.urls]
+Homepage = "https://github.com/CosturaAI/costura"
+Repository = "https://github.com/CosturaAI/costura"
+
+[build-system]
+requires = ["uv_build==0.13.0"]
+build-backend = "uv_build"
+
+[tool.uv.build-backend]
+module-name = "costura"
+module-root = ""
+
+[tool.ruff]
+line-length = 100
+target-version = "py314"
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "B", "UP", "C90", "PLR0913", "PLR0915", "SIM", "RUF"]
+
+[tool.ruff.lint.mccabe]
+max-complexity = 12
+
+[tool.ruff.lint.pylint]
+# Query routes and provider run helpers carry one parameter per request knob.
+max-args = 12
+max-statements = 50
+
+[tool.ruff.lint.per-file-ignores]
+# Tests assemble fixtures inline; the complexity limits above guard production code.
+"tests/**" = ["PLR0913", "PLR0915", "C901"]
+# A baseline revision creates every table in one function.
+"alembic/versions/**" = ["PLR0915"]
+
+[tool.ruff.lint.isort]
+# The local alembic/ directory shadows the package name for isort classification.
+known-third-party = ["alembic"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+addopts = "-q"
+markers = [
+    "unit: needs no PostgreSQL; added by conftest to every test that is not integration",
+    "integration: reaches PostgreSQL; added by conftest to every test that uses the database",
+]
+
+[tool.coverage.run]
+source = ["costura"]
+branch = true
+
+[tool.coverage.report]
+skip_covered = true
+show_missing = true
+fail_under = 92

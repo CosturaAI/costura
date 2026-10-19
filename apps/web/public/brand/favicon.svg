@@ -1,0 +1,10 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="512" height="512" role="img" aria-label="Costura">
+  <rect width="512" height="512" rx="104" fill="#5b2d2d"/>
+  <g fill="#fbfaf5">
+    <rect x="80" y="288" width="96" height="152" rx="20"/>
+    <rect x="336" y="136" width="96" height="304" rx="20"/>
+  </g>
+  <path d="M40 336 C 110 268, 170 392, 256 312 S 380 188, 468 92"
+        fill="none" stroke="#a9acf6" stroke-width="36" stroke-linecap="round"/>
+  <rect x="208" y="216" width="96" height="224" rx="20" fill="#fbfaf5"/>
+</svg>

@@ -1,0 +1,17 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="512" height="512" role="img" aria-label="Costura">
+  <!-- Three spend bars tied by one running-stitch thread. Brand burgundy #5b2d2d, accent indigo #6369e5. -->
+  <!-- Draw order makes the weave: thread in front of bars 1 and 3, behind bar 2. -->
+  <g fill="#5b2d2d">
+    <rect x="84" y="262" width="66" height="146" rx="12"/>
+    <rect x="276" y="150" width="66" height="258" rx="12"/>
+  </g>
+  <path d="M40 318 C 90 268, 130 366, 180 330 S 270 262, 309 220 S 360 150, 402 118"
+        fill="none" stroke="#6369e5" stroke-width="10" stroke-linecap="round" stroke-dasharray="20 16"/>
+  <rect x="180" y="206" width="66" height="202" rx="12" fill="#5b2d2d"/>
+  <!-- Needle at the thread end, eye toward the thread, point up and right. -->
+  <g transform="translate(416 106) rotate(40)">
+    <line x1="0" y1="16" x2="0" y2="-40" stroke="#5b2d2d" stroke-width="12" stroke-linecap="round"/>
+    <line x1="0" y1="-36" x2="0" y2="-80" stroke="#5b2d2d" stroke-width="5" stroke-linecap="round"/>
+    <ellipse cx="0" cy="4" rx="3.5" ry="9" fill="#fbfaf5"/>
+  </g>
+</svg>

@@ -1,0 +1,65 @@
+{
+  "object": "page",
+  "has_more": true,
+  "next_page": "page_usage_2",
+  "data": [
+    {
+      "object": "bucket",
+      "start_time": 1785542400,
+      "end_time": 1785628800,
+      "results": [
+        {
+          "object": "organization.usage.completions.result",
+          "input_tokens": 10000,
+          "output_tokens": 4000,
+          "input_cached_tokens": 2000,
+          "input_cache_write_tokens": 0,
+          "input_uncached_tokens": 8000,
+          "input_audio_tokens": 0,
+          "output_audio_tokens": 0,
+          "num_model_requests": 50,
+          "project_id": "proj_a",
+          "user_id": "user_x",
+          "api_key_id": "key_a1",
+          "model": "gpt-4o-mini-2024-07-18",
+          "batch": null,
+          "service_tier": null
+        },
+        {
+          "object": "organization.usage.completions.result",
+          "input_tokens": 5000,
+          "output_tokens": 2000,
+          "input_cached_tokens": 0,
+          "input_cache_write_tokens": 1000,
+          "input_uncached_tokens": 4000,
+          "input_audio_tokens": 0,
+          "output_audio_tokens": 0,
+          "num_model_requests": 20,
+          "project_id": "proj_a",
+          "user_id": "svc_eval",
+          "api_key_id": "key_a2",
+          "model": "gpt-4o-mini-2024-07-18",
+          "batch": null,
+          "service_tier": null
+        },
+        {
+          "object": "organization.usage.completions.result",
+          "input_tokens": 8000,
+          "output_tokens": 3000,
+          "input_cached_tokens": 0,
+          "input_cache_write_tokens": 0,
+          "input_uncached_tokens": 8000,
+          "input_audio_tokens": 0,
+          "output_audio_tokens": 0,
+          "num_model_requests": 30,
+          "project_id": "proj_b",
+          "user_id": "user_x",
+          "api_key_id": "key_b1",
+          "model": "gpt-4o-2024-08-06",
+          "batch": null,
+          "service_tier": null
+        }
+      ]
+    }
+  ]
+}

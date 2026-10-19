@@ -1,0 +1,178 @@
+name: Images
+
+on:
+  push:
+    branches: [main]
+  schedule:
+    - cron: "20 7 * * 1"
+  pull_request:
+    types: [opened, synchronize, reopened, ready_for_review]
+    paths:
+      - "apps/api/**"
+      - "apps/web/**"
+      - "deploy/**"
+      - "docker-compose.prod.yml"
+      - "mise.lock"
+      - "mise.toml"
+      - "scripts/smoke-env.sh"
+      - "scripts/smoke-prod.sh"
+      - ".just/prod.just"
+      - ".github/workflows/images.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: none
+
+concurrency:
+  group: images-${{ github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+jobs:
+  catalog-freshness:
+    name: Model catalog freshness
+    if: ${{ github.event_name == 'schedule' || github.event_name == 'workflow_dispatch' }}
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    permissions:
+      contents: read
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - name: Set up mise
+        uses: jdx/mise-action@2d8d4cafcbd33be2ea37d2b6f5ad595363d1f1ca # v5.1.1
+        with:
+          install: true
+          cache: true
+      - name: Install frozen API dependencies
+        run: just api::setup
+      - name: Check that the model catalog snapshot is under ninety days old
+        env:
+          COSTURA_CHECK_CATALOG_FRESHNESS: "1"
+        run: just api::test-unit tests/test_taxonomy.py::test_catalog_snapshot_is_not_older_than_ninety_days
+
+  api-image:
+    name: API image scan (${{ matrix.platform }})
+    runs-on: ubuntu-24.04
+    strategy:
+      fail-fast: false
+      matrix:
+        platform: [linux/amd64, linux/arm64]
+    timeout-minutes: 45
+    permissions:
+      contents: read
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - name: Set up QEMU
+        uses: docker/setup-qemu-action@99012661954931238ded8c8b007157a8430204e1 # v4.4.0
+      - name: Set up Buildx
+        uses: docker/setup-buildx-action@f87e5991a6d7451dcb8d9637bfbc97413f497069 # v4.4.1
+      - name: Build the API image
+        run: docker buildx build --load --platform "${{ matrix.platform }}" --file apps/api/Dockerfile --tag costura-api:ci .
+      - name: Check license files in the API image
+        run: docker run --rm --entrypoint python costura-api:ci -c "from pathlib import Path; root=Path('/app/licenses'); assert (root/'LICENSE').is_file(); assert (root/'NOTICE').is_file(); assert (root/'third-party'/'psycopg-LGPL-3.0.txt').is_file(); assert (root/'third-party'/'psycopg-GPL-3.0.txt').is_file()"
+      - name: Scan the API image for fixed high and critical vulnerabilities
+        uses: aquasecurity/trivy-action@ed142fd0673e97e23eac54620cfb913e5ce36c25 # v0.36.0
+        env:
+          TRIVY_PLATFORM: ${{ matrix.platform }}
+        with:
+          version: v0.75.0
+          scan-type: image
+          image-ref: costura-api:ci
+          scanners: vuln
+          severity: HIGH,CRITICAL
+          ignore-unfixed: true
+          exit-code: "1"
+
+  web-image:
+    name: Web image scan (${{ matrix.platform }})
+    runs-on: ubuntu-24.04
+    strategy:
+      fail-fast: false
+      matrix:
+        platform: [linux/amd64, linux/arm64]
+    timeout-minutes: 60
+    permissions:
+      contents: read
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - name: Set up QEMU
+        uses: docker/setup-qemu-action@99012661954931238ded8c8b007157a8430204e1 # v4.4.0
+      - name: Set up Buildx
+        uses: docker/setup-buildx-action@f87e5991a6d7451dcb8d9637bfbc97413f497069 # v4.4.1
+      - name: Build the web image
+        run: docker buildx build --load --platform "${{ matrix.platform }}" --file apps/web/Dockerfile --tag costura-web:ci .
+      - name: Check license files in the web image
+        run: docker run --rm --user 0 --entrypoint node costura-web:ci -e "const fs=require('fs'); for (const name of ['/app/licenses/LICENSE','/app/licenses/NOTICE','/app/licenses/third-party/shadcn-MIT.txt','/app/licenses/third-party/fonts-OFL-1.1.txt']) fs.accessSync(name); if (!fs.readFileSync('/app/licenses/third-party/npm-THIRD-PARTY.txt','utf8').includes('cmdk ')) process.exit(1)"
+      - name: Scan the web image for fixed high and critical vulnerabilities
+        uses: aquasecurity/trivy-action@ed142fd0673e97e23eac54620cfb913e5ce36c25 # v0.36.0
+        env:
+          TRIVY_PLATFORM: ${{ matrix.platform }}
+        with:
+          version: v0.75.0
+          scan-type: image
+          image-ref: costura-web:ci
+          scanners: vuln
+          severity: HIGH,CRITICAL
+          ignore-unfixed: true
+          exit-code: "1"
+
+  proxy-image:
+    name: Proxy image scan (${{ matrix.platform }})
+    runs-on: ubuntu-24.04
+    strategy:
+      fail-fast: false
+      matrix:
+        platform: [linux/amd64, linux/arm64]
+    timeout-minutes: 45
+    permissions:
+      contents: read
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - name: Set up QEMU
+        uses: docker/setup-qemu-action@99012661954931238ded8c8b007157a8430204e1 # v4.4.0
+      - name: Set up Buildx
+        uses: docker/setup-buildx-action@f87e5991a6d7451dcb8d9637bfbc97413f497069 # v4.4.1
+      - name: Build the proxy image
+        run: docker buildx build --load --platform "${{ matrix.platform }}" --file deploy/proxy.Dockerfile --tag costura-proxy:ci deploy
+      - name: Scan the proxy image for fixed high and critical vulnerabilities
+        uses: aquasecurity/trivy-action@ed142fd0673e97e23eac54620cfb913e5ce36c25 # v0.36.0
+        env:
+          TRIVY_PLATFORM: ${{ matrix.platform }}
+        with:
+          version: v0.75.0
+          scan-type: image
+          image-ref: costura-proxy:ci
+          scanners: vuln
+          severity: HIGH,CRITICAL
+          ignore-unfixed: true
+          exit-code: "1"
+
+  production-smoke:
+    name: Production smoke
+    runs-on: ubuntu-24.04
+    timeout-minutes: 45
+    permissions:
+      contents: read
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - name: Set up mise
+        uses: jdx/mise-action@2d8d4cafcbd33be2ea37d2b6f5ad595363d1f1ca # v5.1.1
+        with:
+          install: true
+          cache: true
+      - name: Smoke the production Compose stack
+        run: just prod::smoke

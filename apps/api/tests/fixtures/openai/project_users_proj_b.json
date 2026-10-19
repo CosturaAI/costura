@@ -1,0 +1,16 @@
+{
+  "object": "list",
+  "data": [
+    {
+      "object": "organization.project.user",
+      "id": "user_x",
+      "name": "Ada",
+      "email": "Alice@example.com",
+      "role": "owner",
+      "added_at": 1770000000
+    }
+  ],
+  "first_id": "user_x",
+  "last_id": "user_x",
+  "has_more": false
+}

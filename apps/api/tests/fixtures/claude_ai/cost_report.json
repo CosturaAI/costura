@@ -1,0 +1,91 @@
+{
+  "data": [
+    {
+      "starting_at": "2026-09-01T00:00:00Z",
+      "ending_at": "2026-09-02T00:00:00Z",
+      "results": [
+        {
+          "amount": "100.123456",
+          "currency": "USD",
+          "list_amount": "125.154320",
+          "product": "chat",
+          "model": "claude-opus-5",
+          "cost_type": "tokens",
+          "token_type": "uncached_input_tokens",
+          "speed": "standard",
+          "context_window": "0-200k",
+          "inference_geo": "global",
+          "requests": null
+        },
+        {
+          "amount": "23.333333",
+          "currency": "USD",
+          "list_amount": "29.166666",
+          "product": "chat",
+          "model": "claude-opus-5",
+          "cost_type": "tokens",
+          "token_type": "output_tokens",
+          "speed": "standard",
+          "context_window": "0-200k",
+          "inference_geo": "global",
+          "requests": null
+        },
+        {
+          "amount": "25.000000",
+          "currency": "USD",
+          "list_amount": "30.000000",
+          "product": "claude_code",
+          "model": null,
+          "cost_type": "web_search",
+          "token_type": null,
+          "speed": null,
+          "context_window": null,
+          "inference_geo": null,
+          "requests": null
+        }
+      ]
+    },
+    {
+      "starting_at": "2026-09-02T00:00:00Z",
+      "ending_at": "2026-09-03T00:00:00Z",
+      "results": [
+        {
+          "amount": "200.000001",
+          "currency": "USD",
+          "list_amount": "250.000001",
+          "product": "claude_code",
+          "model": "claude-sonnet-4-6",
+          "cost_type": "tokens",
+          "token_type": "output_tokens",
+          "speed": "fast",
+          "context_window": "0-200k",
+          "inference_geo": "us",
+          "requests": null
+        }
+      ]
+    },
+    {
+      "starting_at": "2026-09-03T00:00:00Z",
+      "ending_at": "2026-09-04T00:00:00Z",
+      "results": [
+        {
+          "amount": "999.000000",
+          "currency": "USD",
+          "list_amount": "999.000000",
+          "product": "chat",
+          "model": "claude-opus-5",
+          "cost_type": "tokens",
+          "token_type": "output_tokens",
+          "speed": "standard",
+          "context_window": "0-200k",
+          "inference_geo": "global",
+          "requests": null
+        }
+      ]
+    }
+  ],
+  "data_refreshed_at": "2026-09-03T12:00:00Z",
+  "has_more": false,
+  "next_page": null,
+  "organization_id": "org_claude_ai"
+}

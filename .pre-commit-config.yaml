@@ -1,0 +1,38 @@
+repos:
+  - repo: https://github.com/pre-commit/pre-commit-hooks
+    rev: 3e8a8703264a2f4a69428a0aa4dcb512790b2c8c # v6.0.0
+    hooks:
+      - id: check-yaml
+        # pnpm 12 writes the lockfile as a multi-document YAML stream.
+        exclude: ^apps/web/pnpm-lock\.yaml$
+      - id: check-toml
+      - id: end-of-file-fixer
+      - id: trailing-whitespace
+  - repo: local
+    hooks:
+      - id: ruff-check
+        name: Ruff check (apps/api)
+        entry: uv run --project apps/api ruff check --fix
+        language: system
+        types: [python]
+        files: ^apps/api/
+        pass_filenames: true
+      - id: ruff-format
+        name: Ruff format (apps/api)
+        entry: uv run --project apps/api ruff format
+        language: system
+        types: [python]
+        files: ^apps/api/
+        pass_filenames: true
+      - id: prettier-web
+        name: Prettier (apps/web)
+        entry: pnpm --dir apps/web format:check
+        language: system
+        files: ^apps/web/
+        pass_filenames: false
+      - id: betterleaks
+        name: Scan staged changes for secrets
+        entry: bash scripts/betterleaks-pre-commit.sh
+        language: system
+        pass_filenames: false
+        always_run: true
