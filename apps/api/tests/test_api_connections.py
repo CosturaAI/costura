@@ -667,7 +667,7 @@ def test_providers_route_lists_registry_and_connection_state(
     assert openrouter["label"] == "OpenRouter" and openrouter["key_prefix"] == "sk-or-v1-"
     assert openrouter["connected"] is False and openrouter["source"] is None
     assert openrouter["last_run"] is None and openrouter["attribution"] == "direct"
-    assert openrouter["console_url"].startswith("https://openrouter.ai")
+    assert openrouter["console_url"] == "https://openrouter.ai/settings/management-keys"
     assert "sk-ant-admin01-env9" not in str(body)
 
 
