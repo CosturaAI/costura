@@ -12,7 +12,9 @@ pull request titled `chore(main): release X.Y.Z` that bumps
 [`.env.example`](../.env.example), the skill version in
 [`skills/costura/SKILL.md`](../skills/costura/SKILL.md), and [`CHANGELOG.md`](../CHANGELOG.md).
 Nobody edits those versions or the changelog by hand. Before the first release they read
-`0.0.0`; the first `feat:` on `main` makes the release pull request for `0.1.0`.
+`0.0.0` and `CHANGELOG.md` is empty; `initial-version` in
+[`release-please-config.json`](../release-please-config.json) makes the first release `0.1.0`,
+and release-please writes the changelog heading with that first section.
 
 ## Cut a release
 
@@ -55,9 +57,12 @@ Nobody edits those versions or the changelog by hand. Before the first release t
 release-please writes the Release body and the `CHANGELOG.md` section from the squash
 commit titles, grouped by Conventional Commit type.
 
-Before `1.0.0`, `feat` commits bump the minor version and `fix` commits bump the patch
-(`bump-minor-pre-major` / `bump-patch-for-minor-pre-major` in
-[`release-please-config.json`](../release-please-config.json)).
+Before `1.0.0`, `feat` commits bump the minor version, `fix` commits bump the patch, and a
+breaking change bumps the minor (`bump-minor-pre-major` in
+[`release-please-config.json`](../release-please-config.json)). While the project is in beta,
+`prerelease` in that file marks every GitHub Release as a pre-release; delete it for `1.0.0`.
+A pre-release still fires `release: published`, so the images publish the same way, but
+GitHub does not show it as the latest release.
 
 ## Bumps Dependabot does not make
 

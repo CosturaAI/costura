@@ -21,6 +21,10 @@ month that the stored total matches what the provider itself reports. It runs on
 infrastructure with Docker Compose. There is no hosted service, and nothing is sent to the
 maintainers.
 
+Costura is in beta. Every `0.x` release is marked as a pre-release, and interfaces, the API
+and the configuration can change between minor versions until `1.0`. Each change is listed
+in [CHANGELOG.md](CHANGELOG.md).
+
 ![Overview of the sample organization: one month of spend across four providers](docs/assets/screens/overview.png)
 
 ## Features
@@ -144,7 +148,6 @@ just smoke
 `just coverage-core` starts PostgreSQL and runs the API and web suites with the coverage
 floors CI enforces. `just smoke` boots the whole stack once and checks it over HTTP. The workflow, the commit format and the review expectations are in
 [CONTRIBUTING.md](CONTRIBUTING.md).
-Interfaces can change before 1.0; each release is in [CHANGELOG.md](CHANGELOG.md).
 
 ## Support and security
 
