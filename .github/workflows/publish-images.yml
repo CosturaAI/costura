@@ -8,18 +8,12 @@ name: Publish images
 on:
   release:
     types: [published]
-  workflow_dispatch:
-    inputs:
-      version:
-        description: Existing release version without the leading v (for example 0.1.0)
-        required: true
-        type: string
 
 permissions:
   contents: none
 
 concurrency:
-  group: publish-images-${{ github.event.release.tag_name || inputs.version }}
+  group: publish-images-${{ github.event.release.tag_name }}
   cancel-in-progress: false
 
 env:
@@ -42,14 +36,11 @@ jobs:
         id: version
         shell: bash
         env:
-          EVENT: ${{ github.event_name }}
           RELEASE_TAG: ${{ github.event.release.tag_name }}
-          INPUT_VERSION: ${{ inputs.version }}
         run: |
           set -euo pipefail
-          if [[ "$EVENT" == "release" ]]; then raw="$RELEASE_TAG"; else raw="$INPUT_VERSION"; fi
-          version="${raw#v}"
-          [[ "$version" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]] || { echo "not a release version: $raw" >&2; exit 1; }
+          version="${RELEASE_TAG#v}"
+          [[ "$version" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]] || { echo "not a release version: $RELEASE_TAG" >&2; exit 1; }
           echo "version=$version" >> "$GITHUB_OUTPUT"
           echo "ref=refs/tags/v$version" >> "$GITHUB_OUTPUT"
       - name: Check out the release tag
