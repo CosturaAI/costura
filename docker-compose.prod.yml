@@ -135,6 +135,8 @@ services:
       COSTURA_OPERATOR_SECRET: ${COSTURA_OPERATOR_SECRET:-}
       GOOGLE_CLIENT_ID: ${GOOGLE_CLIENT_ID:-}
       GOOGLE_CLIENT_SECRET: ${GOOGLE_CLIENT_SECRET:-}
+      COSTURA_DEMO_CACHE_MB: ${COSTURA_DEMO_CACHE_MB:-64}
+      COSTURA_DEMO_WARM_URL: ${COSTURA_DEMO_WARM_URL:-}
     depends_on:
       postgres:
         condition: service_healthy
@@ -206,6 +208,7 @@ services:
       COSTURA_THEME: ${COSTURA_THEME:-costura}
       COSTURA_COLOR_SCHEME: ${COSTURA_COLOR_SCHEME:-light}
       COSTURA_BRAND_NAME: ${COSTURA_BRAND_NAME:-Costura}
+      COSTURA_PUBLIC_DEMO_HOME: ${COSTURA_PUBLIC_DEMO_HOME:-false}
     depends_on:
       api:
         condition: service_healthy

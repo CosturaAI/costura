@@ -1,6 +1,7 @@
+import asyncio
 import logging
 from collections.abc import AsyncGenerator
-from contextlib import asynccontextmanager
+from contextlib import asynccontextmanager, suppress
 
 from fastapi import APIRouter, FastAPI, HTTPException, Request
 from fastapi.encoders import jsonable_encoder
@@ -13,6 +14,7 @@ from sqlalchemy.exc import SQLAlchemyError
 from costura import __version__
 from costura.api import router as api_router
 from costura.api.access import access_middleware
+from costura.api.demo_cache import DemoCache, demo_cache_middleware, warm_forever
 from costura.api.deps import SettingsDep
 from costura.api.ratelimit import rate_limit_middleware
 from costura.config import Settings, get_settings, production_warnings, require_production_config
@@ -31,7 +33,16 @@ async def lifespan(app: FastAPI) -> AsyncGenerator[None]:
     configure_logging()
     for warning in production_warnings(settings):
         logging.getLogger("costura.startup").warning(warning)
-    yield
+    if app.state.demo_cache is None or not settings.costura_demo_warm_url:
+        yield
+        return
+    warming = asyncio.create_task(warm_forever(app, settings.costura_demo_warm_url))
+    try:
+        yield
+    finally:
+        warming.cancel()
+        with suppress(asyncio.CancelledError):
+            await warming
 
 
 def create_app(settings: Settings | None = None) -> FastAPI:
@@ -40,6 +51,11 @@ def create_app(settings: Settings | None = None) -> FastAPI:
     settings = settings or get_settings()
     app = FastAPI(title="Costura", version=__version__, lifespan=lifespan)
     app.state.settings = settings
+    app.state.demo_cache = (
+        DemoCache(settings.costura_demo_cache_mb * 1024 * 1024)
+        if settings.costura_demo_cache_mb
+        else None
+    )
     if settings is not get_settings():
         app.dependency_overrides[get_settings] = lambda: settings
     app.add_middleware(
@@ -48,6 +64,7 @@ def create_app(settings: Settings | None = None) -> FastAPI:
         allow_methods=["GET", "PUT", "POST", "PATCH", "DELETE"],
         allow_headers=["*"],
     )
+    app.middleware("http")(demo_cache_middleware)
     app.middleware("http")(rate_limit_middleware)
     app.middleware("http")(access_middleware)
     app.include_router(api_router, prefix="/api/v1")

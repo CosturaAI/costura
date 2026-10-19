@@ -75,6 +75,8 @@ class Settings(BaseSettings):
     # Rebuild the public sample organization at each daily pass when it is stale
     # (`costura.demo.refresh_if_stale`). Off by default; needs no provider key.
     costura_demo_refresh: bool = False
+    costura_demo_cache_mb: int = Field(default=64, ge=0)
+    costura_demo_warm_url: str = ""
 
     # Organization that may use the environment fallback provider keys above.
     costura_org: str = "default"

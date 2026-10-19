@@ -1,6 +1,6 @@
 import { redirect } from "next/navigation";
 
-import { api, type Organization } from "@/lib/api";
+import { DEMO_ORG, api, type Organization } from "@/lib/api";
 import { readSessionToken } from "@/lib/session-cookie";
 import { readViewCookie } from "@/lib/view-cookie";
 import { landingHref, openOrgHref } from "@/lib/setup";
@@ -20,14 +20,16 @@ function homeOrganization(organizations: Organization[]): Organization | null {
 }
 
 /**
- * `/` -> `/sign-in` without a session, `/join` for someone invited but not yet a member of
- * anything, `/new` without either. With a view cookie naming an organization the caller is
- * still a member of, the welcome page while it has no key, else the overview. Otherwise the
- * first owned organization is opened through `/o/{slug}`, which writes the cookie (a page
- * cannot) and lands the same way.
+ * `/` -> `/sign-in` without a session (`/o/demo` when `COSTURA_PUBLIC_DEMO_HOME=true`), `/join`
+ * for someone invited but not yet a member of anything, `/new` without either. With a view
+ * cookie naming an organization the caller is still a member of, the welcome page while it has
+ * no key, else the overview. Otherwise the first owned organization is opened through
+ * `/o/{slug}`, which writes the cookie (a page cannot) and lands the same way.
  */
 export default async function Home() {
-  if ((await readSessionToken()) === null) redirect("/sign-in");
+  if ((await readSessionToken()) === null) {
+    redirect(process.env.COSTURA_PUBLIC_DEMO_HOME === "true" ? `/o/${DEMO_ORG}` : "/sign-in");
+  }
   const [me, view] = await Promise.all([api.me(), readViewCookie()]);
   const remembered =
     view === null ? null : (me.organizations.find((org) => org.slug === view.org) ?? null);

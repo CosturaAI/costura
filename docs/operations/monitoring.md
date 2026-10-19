@@ -99,6 +99,9 @@ production each line is one JSON object with `ts`, `level`, `logger` and `messag
   organization whose pass raised writes a `costura.delivery` line, `webhook delivery failed
   org_id=`, with the traceback.
   Neither line contains the webhook URL.
+- The sample warm-up writes one `costura.demo_cache` line each time it renders the pages,
+  `demo cache warmed: N of 8 pages`, or `demo cache warm-up failed` at `WARNING` with the
+  reason; a failed pass is retried 30 seconds later.
 
 ```sh
 docker compose -f docker-compose.prod.yml logs worker | grep '"logger": "costura.sync"'

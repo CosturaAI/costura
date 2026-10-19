@@ -195,6 +195,15 @@ def fresh_rate_limits() -> Iterator[None]:
 
 
 @pytest.fixture(autouse=True)
+def fresh_demo_cache() -> Iterator[None]:
+    from costura.main import app
+
+    app.state.demo_cache.clear()
+    yield
+    app.state.demo_cache.clear()
+
+
+@pytest.fixture(autouse=True)
 def no_optional_provider_env_keys(monkeypatch: pytest.MonkeyPatch) -> None:
     """Provider keys from the repo-root `.env` are absent unless a test opts in."""
     from costura.config import get_settings

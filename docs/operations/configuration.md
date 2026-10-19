@@ -65,6 +65,8 @@ The three URL variables must name the same origin. `just prod::init` sets them t
 | --------------------------------- | --------------- | --------------- | ----------------------------------------------------------------------- |
 | `COSTURA_SCHEDULE_AT`             | scheduler       | `06:00`         | Daily sync time, UTC, `HH:MM`.                                          |
 | `COSTURA_DEMO_REFRESH`            | scheduler       | `false`         | Rebuild a stale public sample on the daily pass.                        |
+| `COSTURA_DEMO_CACHE_MB`           | api             | `64`            | Memory for anonymous sample reads, per dataset and UTC day. `0`: off.   |
+| `COSTURA_DEMO_WARM_URL`           | api             | empty           | Web address (`http://web:3000`) the API renders sample pages through.   |
 | `COSTURA_BACKFILL_MONTHS`         | worker          | `3`             | Months a new connection imports, current included; daily runs read two. |
 | `COSTURA_WEBHOOK_HOSTS`           | api, worker     | empty           | Hosts a signal webhook may post to (`hooks.slack.com`). Empty: off.     |
 | `COSTURA_RAW_PAGE_RETENTION_DAYS` | worker          | `90`            | Days to keep raw provider pages. `0` keeps them.                        |
@@ -104,11 +106,12 @@ production each one must start with `https://`, or every process refuses to star
 
 ## Appearance
 
-| Variable               | Read by | Compose default | Notes                                       |
-| ---------------------- | ------- | --------------- | ------------------------------------------- |
-| `COSTURA_THEME`        | web     | `costura`       | Theme file stem in `apps/web/src/themes`.   |
-| `COSTURA_COLOR_SCHEME` | web     | `light`         | `light`, `dark` or `system`.                |
-| `COSTURA_BRAND_NAME`   | web     | `Costura`       | Name in the sidebar and the document title. |
+| Variable                   | Read by | Compose default | Notes                                                                 |
+| -------------------------- | ------- | --------------- | --------------------------------------------------------------------- |
+| `COSTURA_THEME`            | web     | `costura`       | Theme file stem in `apps/web/src/themes`.                             |
+| `COSTURA_COLOR_SCHEME`     | web     | `light`         | `light`, `dark` or `system`.                                          |
+| `COSTURA_BRAND_NAME`       | web     | `Costura`       | Name in the sidebar and the document title.                           |
+| `COSTURA_PUBLIC_DEMO_HOME` | web     | `false`         | `true` sends `/` without a session to the public sample, not sign-in. |
 
 ## Development only
 

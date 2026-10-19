@@ -41,6 +41,9 @@ The sample organization is generated, not imported from a provider. It stores no
 built from another version, or not generated through yesterday. `python -m costura.ops.demo_seed`
 accepts `--today YYYY-MM-DD` to build or check it as of another day. An organization already
 named `demo` that is not the sample is left alone.
+Anonymous reads of the sample are served from memory per dataset, members and UTC day
+(`costura/api/demo_cache.py`, `COSTURA_DEMO_CACHE_MB`); with `COSTURA_DEMO_WARM_URL` the API
+renders the sample's pages through the web app to fill that cache before the first visitor.
 
 ## Boundaries
 

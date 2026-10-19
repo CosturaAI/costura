@@ -56,6 +56,11 @@ that organization's spend to anyone who can open the site. The spend is generate
 credential is stored, and every write answers 403 once a session exists. A refresh builds the
 next dataset aside and swaps it in; a failed build leaves the published sample unchanged.
 `COSTURA_DEMO_REFRESH` (off by default) rebuilds a stale sample on the daily scheduler pass.
+The API caches only GET reads of that organization that carry no `Authorization` and no
+`Origin` header, keyed by path, query, dataset, members and UTC day; a read with a session,
+any other organization, and a non-200 answer bypass it, and the per-client sample rate limit
+still counts every cached answer (`apps/api/costura/api/demo_cache.py`). The warm-up
+requests go only to `COSTURA_DEMO_WARM_URL`, which the operator sets; empty sends none.
 
 ## What a database backup contains
 

@@ -109,6 +109,18 @@ describe("/", () => {
     expect(mocked.me).not.toHaveBeenCalled();
   });
 
+  it("opens the public sample without a session cookie when the deployment asks for it", async () => {
+    vi.stubEnv("COSTURA_PUBLIC_DEMO_HOME", "true");
+    try {
+      await expect(Home()).rejects.toThrow("NEXT_REDIRECT /o/demo");
+      expect(mocked.me).not.toHaveBeenCalled();
+      signedIn();
+      await expect(Home()).rejects.toThrow("NEXT_REDIRECT /o/acme?next=%2Foverview");
+    } finally {
+      vi.unstubAllEnvs();
+    }
+  });
+
   it("sends a user without an organization to /new, ignoring the sample one", async () => {
     signedIn();
     mocked.me.mockResolvedValue(noOrgs);

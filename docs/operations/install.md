@@ -190,6 +190,15 @@ disabled. Sign in links to it. Writes are refused. A failed rebuild leaves the p
 sample in place and the next refresh deletes the abandoned build. Set
 `COSTURA_DEMO_REFRESH=true` to rebuild a stale sample on the daily scheduler pass.
 
+The API keeps anonymous reads of the sample in memory (`COSTURA_DEMO_CACHE_MB`, 64 by
+default) until the dataset, its members or the UTC day change, and serves the next identical
+read from there; the response carries `X-Costura-Cache: hit` or `miss`. A signed-in read
+never uses it. With `COSTURA_DEMO_WARM_URL=http://web:3000`, the API renders the sample's
+main pages through the web app when it starts, then checks every 30 seconds and renders them
+again when one of those three changes, so the first visitor reads a filled cache. A host
+that exists to show the sample sets `COSTURA_PUBLIC_DEMO_HOME=true`: `/` without a session
+then opens the sample instead of the sign-in page.
+
 `just prod::tieout-report --org <slug> [--months N]` prints each provider's reconciliation
 verdicts for the newest months as percentages, with no amount, key, workspace or e-mail, so
 it can be shared where the figures cannot.

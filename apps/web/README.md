@@ -189,8 +189,9 @@ apps/web/
 and Explore read), so a drift from the API fails here too. Explore loads its measures with
 `GET /orgs/{org}/queries`.
 
-Environment: `COSTURA_API_URL`, plus the optional `COSTURA_THEME`, `COSTURA_COLOR_SCHEME` and
-`COSTURA_BRAND_NAME`. Google sign-in additionally needs `GOOGLE_CLIENT_ID`,
-`GOOGLE_CLIENT_SECRET` and `COSTURA_WEB_PUBLIC_URL` on the API; the web callback is
-`/api/auth/google/callback`. The web app reads no `COSTURA_ORG`: the root redirect follows
-the session and the view cookie.
+Environment: `COSTURA_API_URL`, plus the optional `COSTURA_THEME`, `COSTURA_COLOR_SCHEME`,
+`COSTURA_BRAND_NAME` and `COSTURA_PUBLIC_DEMO_HOME`. Google sign-in additionally needs
+`GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET` and `COSTURA_WEB_PUBLIC_URL` on the API; the web
+callback is `/api/auth/google/callback`. The web app reads no `COSTURA_ORG`: the root redirect
+follows the session and the view cookie, and without a session it opens `/sign-in`, or
+`/o/demo` when `COSTURA_PUBLIC_DEMO_HOME=true`.
