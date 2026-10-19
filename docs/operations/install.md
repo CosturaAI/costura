@@ -1,8 +1,5 @@
 # Install
 
-> Pre-release: the `v0.1.0` tag and the `ghcr.io/costuraai/costura-*` images are not
-> published yet. Until they are, build from a checkout with `just prod::up-local`.
-
 Single-node. One replica of each unit: Postgres, the API, the worker, the scheduler,
 the web app, and Caddy. `docker-compose.yml` is only the local development database.
 This install is `docker-compose.prod.yml`.

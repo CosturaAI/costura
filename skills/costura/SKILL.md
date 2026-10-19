@@ -39,8 +39,6 @@ without printing it. Saving a provider key needs `COSTURA_SECRET_KEY`;
 
 Production is `docker-compose.prod.yml`: Postgres, a one-shot migration, API, worker,
 scheduler, web and Caddy, one replica each. `COSTURA_VERSION` in `.env` names the release.
-Until the `v0.1.0` images are published, `just prod::up-local` builds them from the checkout
-in place of `just prod::up`.
 
 ```
 just prod::init --email you@example.com --host costura.example.com

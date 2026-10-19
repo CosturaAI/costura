@@ -90,10 +90,6 @@ rebuilds it through today.
 
 ## Production
 
-> Pre-release: the `v0.1.0` tag and the `ghcr.io/costuraai/costura-*` images are not
-> published yet. Until they are, use `just prod::up-local`, which builds the images from
-> this checkout, in place of `just prod::up`.
-
 ```
 just prod::init --email you@example.com
 just prod::up
