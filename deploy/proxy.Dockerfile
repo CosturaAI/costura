@@ -1,7 +1,7 @@
 # Caddy rebuilt with the builder's Go toolchain and a current golang.org/x/net, so the binary
 # does not wait on an upstream image rebuild for Go security fixes. Runs as a non-root user.
 # The healthcheck uses BusyBox wget from the base image.
-FROM --platform=$BUILDPLATFORM caddy:2.11.7-builder-alpine@sha256:aa705b1e8e4bce41a7a30de934c1e00f6821667c1d1206424465065c92cb7674 AS build
+FROM --platform=$BUILDPLATFORM caddy:2.11.7-builder-alpine@sha256:d6161a2c82fd58b3205048958fb6246d0c5d892beee8a47e90944610c4efd100 AS build
 ARG TARGETOS
 ARG TARGETARCH
 RUN GOOS=$TARGETOS GOARCH=$TARGETARCH CGO_ENABLED=0 xcaddy build v2.11.7 --replace golang.org/x/net=golang.org/x/net@v0.61.0 --output /usr/bin/caddy \
