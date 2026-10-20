@@ -14,7 +14,7 @@ _root := justfile_directory()
 default:
     @just --list --list-submodules
 
-# Check required tools, create .env, install dependencies, install pre-commit.
+# Check required tools, create .env with a COSTURA_SECRET_KEY, install dependencies and pre-commit.
 setup:
     #!/usr/bin/env bash
     set -euo pipefail
@@ -26,23 +26,28 @@ setup:
     fi
     just api::setup
     just web::setup
+    if grep -qx 'COSTURA_SECRET_KEY=' .env; then
+      key=$(uv run --project apps/api python -m costura.ops.secret generate)
+      sed -i.bak "s|^COSTURA_SECRET_KEY=\$|COSTURA_SECRET_KEY=${key}|" .env
+      rm -f .env.bak
+      echo "generated COSTURA_SECRET_KEY in .env"
+    fi
     uv run --project apps/api pre-commit install
-    echo "setup complete: run 'just dev'"
+    echo "setup complete"
 
 # COSTURA_DEV_SCHEDULER=1 also starts the scheduler.
-# Start PostgreSQL, migrate, seed the demo, then the API (:8000), worker, and web app (:3000).
+# Run setup and doctor, then PostgreSQL, migrations, the demo seed, the API (:8000), worker, and web app (:3000).
 dev:
     #!/usr/bin/env bash
     set -euo pipefail
     cd "{{_root}}"
-    just _require-tools
-    for port in 8000 3000; do
-      if lsof -nP -iTCP:"$port" -sTCP:LISTEN >/dev/null 2>&1; then
-        echo "error: port $port is already in use:"
-        lsof -nP -iTCP:"$port" -sTCP:LISTEN
-        exit 1
-      fi
-    done
+    if [[ ! -f .env ]]; then
+      just setup
+      exec just dev
+    fi
+    just setup
+    [[ -n "${COSTURA_SECRET_KEY:-}" ]] || unset COSTURA_SECRET_KEY
+    bash scripts/doctor.sh
     just db::up
     just api::migrate
     just api::demo-seed || echo "warning: demo seed failed; the sample organization is unavailable"
@@ -50,9 +55,10 @@ dev:
     web_pid=""
     worker_pid=""
     sched_pid=""
+    ready_pid=""
     stop() {
       trap - EXIT INT TERM
-      kill -TERM $api_pid $web_pid $worker_pid $sched_pid 2>/dev/null || true
+      kill -TERM $api_pid $web_pid $worker_pid $sched_pid $ready_pid 2>/dev/null || true
       sleep 1
       # Ports were free at start, so anything still listening belongs to this run.
       for port in 8000 3000; do
@@ -70,6 +76,22 @@ dev:
     if [ "${COSTURA_DEV_SCHEDULER:-0}" = "1" ]; then
       (cd apps/api && exec uv run python -m costura.ops.scheduler) &
       sched_pid=$!
+    fi
+    if command -v curl >/dev/null 2>&1; then
+      (
+        for _ in $(seq 1 180); do
+          if curl -fsS -o /dev/null http://127.0.0.1:8000/live 2>/dev/null &&
+            curl -fsS -o /dev/null http://127.0.0.1:3000/sign-in 2>/dev/null; then
+            printf '\nCostura is running\n'
+            printf '  web   http://127.0.0.1:3000 (sign in with any e-mail, or open the sample organization)\n'
+            printf '  api   http://127.0.0.1:8000/docs\n'
+            printf '  stop  Ctrl-C\n\n'
+            exit 0
+          fi
+          sleep 1
+        done
+      ) &
+      ready_pid=$!
     fi
     # Stop the stack when the API, web app, or worker exits (bash 3.2 has no wait -n).
     while kill -0 "$api_pid" 2>/dev/null && kill -0 "$web_pid" 2>/dev/null && kill -0 "$worker_pid" 2>/dev/null; do

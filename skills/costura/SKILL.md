@@ -26,16 +26,16 @@ Compose v2):
 
 ```
 mise install
-just setup
 just dev
 ```
 
-`just setup` copies `.env.example` to `.env` when missing and installs dependencies.
-`just dev` starts PostgreSQL, migrates, seeds the read-only `demo` organization and serves
-the API at `http://127.0.0.1:8000` and the web app at `http://127.0.0.1:3000`. On a local
-stack `/sign-in` accepts any e-mail. `just doctor` checks tools, ports and the `.env` key
-without printing it. Saving a provider key needs `COSTURA_SECRET_KEY`;
-`just api::secret-generate` prints one.
+`just dev` runs `just setup` (copies `.env.example` to `.env` when missing, generates
+`COSTURA_SECRET_KEY` when empty, installs dependencies), then `just doctor`, which stops on a
+tool at another version than `mise.toml`, Docker down, port 8000, 3000 or 5432 taken, or a
+running `next dev` from the same checkout. It then starts PostgreSQL, migrates, seeds the
+read-only `demo` organization and serves the API at `http://127.0.0.1:8000` and the web app at
+`http://127.0.0.1:3000`. On a local stack `/sign-in` accepts any e-mail. Without mise
+activated in the shell, run `mise exec -- just dev`.
 
 Production is `docker-compose.prod.yml`: Postgres, a one-shot migration, API, worker,
 scheduler, web and Caddy, one replica each. `COSTURA_VERSION` in `.env` names the release.

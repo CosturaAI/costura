@@ -1,9 +1,27 @@
 # Troubleshooting
 
-Start with `just doctor`. It checks that the tools are on `PATH` at the versions in
-`mise.toml`, that the Docker daemon answers, that ports 8000, 3000 and 5432 are free, and the
-`.env` key, without printing a secret. An empty `COSTURA_SECRET_KEY` is a warning: `just dev`
-runs without it. Then find the symptom below.
+Start with `just doctor`. It prints one line per problem, without printing a secret: a tool
+missing from `PATH` or at another version than `mise.toml` (a different `just` is a warning),
+the Docker daemon down, port 8000 or 3000 taken, port 5432 held by anything other than this
+checkout's PostgreSQL, a `next dev` from this checkout still running, and an invalid
+`COSTURA_SECRET_KEY`. `just dev` runs it before starting anything. Then find the symptom
+below.
+
+## Local development
+
+`just dev` stops on the first `just doctor` error. Each message names its fix:
+
+- `node is 22.x, mise.toml pins ...` (or `uv`, `pnpm`): the shell resolves tools outside
+  mise. Activate mise (`eval "$(mise activate zsh)"`) or run `mise exec -- just dev`.
+- `just: command not found`: mise is not active; `mise exec -- just dev` works without it.
+- `port 8000 is already in use` or `port 3000`: another stack runs. `lsof -nP -iTCP:3000
+  -sTCP:LISTEN` names the process.
+- `a next dev server from this checkout is running at ... (pid N)`: Next.js allows one dev
+  server per directory, whatever its port, so a second one exits and takes the stack down.
+  Stop it with the `kill N` the message prints.
+- `port 5432 is held by the container costura-postgres (started from <path>)`: another
+  checkout or worktree runs its PostgreSQL under the same container name. Stop it there
+  (`docker stop costura-postgres`) or run `just dev` in that checkout.
 
 ## `just prod::up` stops before starting the stack
 

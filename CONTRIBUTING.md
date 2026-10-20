@@ -18,19 +18,22 @@ contributor and CI run the same ones.
 Without mise, install those versions by hand; the `just` recipes are the same.
 [Activate mise](https://mise.jdx.dev/getting-started.html#activate-mise) in your shell
 (`eval "$(mise activate zsh)"`, or `bash`) so those versions are on `PATH`, including for
-the git hooks. `just doctor` reports a tool that resolves to another version. Then:
+the git hooks; otherwise run `mise exec -- just dev`. Then:
 
 ```
 mise install
-just doctor
-just setup
 just dev
 ```
 
-`just setup` also installs the pre-commit hooks (`just quality::pre-commit` runs them on
-every file). `just dev` migrates the database, seeds the `demo` organization, and starts
-the API, the worker, and the web app. Sign in at `http://127.0.0.1:3000/sign-in` with any
-e-mail on a local stack.
+`just dev` runs `just setup` (`.env` from `.env.example`, a generated `COSTURA_SECRET_KEY`
+when empty, the dependencies and the pre-commit hooks; `just quality::pre-commit` runs them on
+every file), then `just doctor`, which stops the run on a tool at another version than
+`mise.toml`, a stopped Docker daemon, port 8000, 3000 or 5432 in use, or a `next dev` from
+this checkout still running. It then migrates the database, seeds the `demo` organization,
+starts the API, the worker, and the web app, and prints the addresses once they answer.
+Sign in at `http://127.0.0.1:3000/sign-in` with any e-mail on a local stack.
+[Troubleshooting](docs/operations/troubleshooting.md#local-development) covers each doctor
+message.
 
 Fork the repository, branch from `main`, and rebase on `main` before asking for review.
 One pull request is one change.
@@ -44,7 +47,8 @@ just smoke
 ```
 
 `just check` is actionlint, ruff, `ty`, ESLint, Prettier, TypeScript, the generated OpenAPI
-types, and the secret scan. `just coverage-core` starts PostgreSQL and runs `just test` with the coverage floors CI
+types, and the secret scan. It needs no Docker and takes about 25 seconds on a laptop.
+`just coverage-core` needs Docker for PostgreSQL and takes about 5 minutes. `just coverage-core` starts PostgreSQL and runs `just test` with the coverage floors CI
 enforces; `just quality::vulnerabilities` is the CI filesystem scan. `just api::test-unit` runs the fast API layer,
 `just api::test-integration` runs tests marked for PostgreSQL/provider integration, and
 `just api::test` plus `just web::test` run the complete suites. `just web::test-e2e-docker` runs the

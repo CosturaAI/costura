@@ -53,9 +53,12 @@ Operational scripts that span the API and the web app.
 - `betterleaks-pre-commit.sh` is the pre-commit hook that scans staged files with betterleaks.
   Without betterleaks on `PATH` it warns and lets the commit through; `just check` runs the
   same scan in CI.
-- `doctor.sh` (`just doctor`) checks that the tools are on `PATH` at the `mise.toml`
-  versions, the Docker daemon answers, ports 8000, 3000 and 5432 are free, and the `.env` key
-  is a Fernet key when set, without printing a secret. An empty key is a warning.
+- `doctor.sh` (`just doctor`, and the first step of `just dev`) checks that `just`, `uv`,
+  `pnpm` and Node.js are on `PATH` at the `mise.toml` versions (a different `just` is a
+  warning), the Docker daemon answers, ports 8000 and 3000 are free, port 5432 is free or
+  held by this checkout's PostgreSQL, no `next dev` from this checkout holds
+  `apps/web/.next/dev/lock`, and the `.env` key is a Fernet key when set, without printing a
+  secret. A missing `.env` or an empty key is a warning.
 - `check-coverage.py` (`just coverage-core`) enforces the branch-coverage floors and fails on
   source files missing from the coverage reports.
 - `check-api-package.py` (`just api::package-check`) installs the built wheel in a clean

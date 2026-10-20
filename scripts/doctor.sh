@@ -12,6 +12,12 @@ note() {
   fail=1
 }
 
+warn() {
+  echo "warning: $*"
+}
+
+activate_hint='activate mise in your shell (eval "$(mise activate zsh)" or bash), or run: mise exec -- just dev'
+
 listening() {
   if command -v lsof >/dev/null 2>&1; then
     lsof -nP -iTCP:"$1" -sTCP:LISTEN >/dev/null 2>&1
@@ -28,15 +34,20 @@ if ! command -v mise >/dev/null 2>&1; then
   note "mise is not installed: https://mise.jdx.dev/getting-started.html"
 fi
 for tool in just uv pnpm node; do
-  command -v "$tool" >/dev/null 2>&1 || note "$tool is not on PATH; run: mise install, then activate mise in your shell (eval \"\$(mise activate zsh)\" or bash)"
-done
-if command -v node >/dev/null 2>&1; then
-  want=$(pinned node)
-  have=$(node --version | sed 's/^v//')
-  if [[ -n "$want" && "$have" != "$want" ]]; then
-    note "node is $have, mise.toml pins $want; activate mise in your shell (eval \"\$(mise activate zsh)\" or bash)"
+  if ! command -v "$tool" >/dev/null 2>&1; then
+    note "$tool is not on PATH; run: mise install, then $activate_hint"
+    continue
   fi
-fi
+  want=$(pinned "$tool")
+  have=$("$tool" --version 2>/dev/null | grep -oE '[0-9]+\.[0-9]+\.[0-9]+' | head -n 1 || true)
+  if [[ -n "$want" && "$have" != "$want" ]]; then
+    if [[ "$tool" == just ]]; then
+      warn "just is $have, mise.toml pins $want; $activate_hint"
+    else
+      note "$tool is $have, mise.toml pins $want; $activate_hint"
+    fi
+  fi
+done
 
 if ! command -v docker >/dev/null 2>&1; then
   note "Docker is not installed"
@@ -51,15 +62,28 @@ for port in 8000 3000; do
     note "port $port is already in use"
   fi
 done
+lock=apps/web/.next/dev/lock
+if [[ -s "$lock" ]] && command -v node >/dev/null 2>&1; then
+  read -r pid url < <(node -e 'try { const i = JSON.parse(require("fs").readFileSync(process.argv[1], "utf8")); console.log(`${i.pid ?? ""} ${i.appUrl ?? ""}`); } catch { console.log(""); }' "$lock") || true
+  if [[ -n "${pid:-}" ]] && ps -p "$pid" -o command= 2>/dev/null | grep -q next; then
+    note "a next dev server from this checkout is running at ${url:-an unknown URL} (pid $pid); stop it with: kill $pid"
+  fi
+fi
 if docker info >/dev/null 2>&1 && listening 5432; then
   if ! docker compose ps --status running --services 2>/dev/null | grep -qx postgres; then
-    note "port 5432 is in use by another PostgreSQL; stop it before just dev"
+    holder=$(docker ps --filter publish=5432 --format '{{.Names}} {{.Label "com.docker.compose.project.working_dir"}}' 2>/dev/null | head -n 1)
+    if [[ -n "$holder" ]]; then
+      name=${holder%% *}
+      note "port 5432 is held by the container $name (started from ${holder#* }); stop it with: docker stop $name"
+    else
+      note "port 5432 is in use by another PostgreSQL; stop it before just dev"
+    fi
   fi
 fi
 
 if [[ ! -f .env ]]; then
-  note "no .env: run just setup"
-else
+  warn "no .env yet; just dev or just setup creates it"
+elif command -v uv >/dev/null 2>&1; then
   uv run --project apps/api python - <<'PY' || fail=1
 import sys
 
@@ -68,7 +92,7 @@ from costura.config import get_settings
 
 secret = get_settings().costura_secret_key
 if secret is None or not secret.get_secret_value().strip():
-    print("warning: COSTURA_SECRET_KEY is empty; just dev runs, saving a provider key needs one: just api::secret-generate")
+    print("warning: COSTURA_SECRET_KEY is empty; just setup generates one")
     sys.exit(0)
 try:
     Fernet(secret.get_secret_value().encode("ascii"))

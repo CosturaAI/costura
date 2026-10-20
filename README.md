@@ -74,19 +74,19 @@ pinned `just`, `uv`, `pnpm` and Node.js are on `PATH`. Then:
 
 ```
 mise install
-just doctor
-just setup
 just dev
 ```
 
-`just setup` copies `.env.example` to `.env` and installs dependencies. `just dev` starts
-PostgreSQL, runs the migrations, seeds the sample organization and serves the API at
-`http://127.0.0.1:8000` and the web app at `http://127.0.0.1:3000`. On a local stack,
-`/sign-in` accepts any e-mail, and `GET /docs` on the API is the route reference.
+Without activating mise, the second command is `mise exec -- just dev`.
 
-Saving a provider key needs `COSTURA_SECRET_KEY`; `just api::secret-generate` prints one for
-`.env`. `just doctor` checks the tool versions, the Docker daemon, the ports and that key
-without printing it.
+`just dev` runs `just setup` first: it copies `.env.example` to `.env` when missing, generates
+`COSTURA_SECRET_KEY` when it is empty, and installs the dependencies and the git hooks. It
+then runs `just doctor`, which stops the run with one line per problem: a tool at another
+version than `mise.toml`, the Docker daemon down, port 8000, 3000 or 5432 taken, or a
+`next dev` from this checkout still running. Then it starts PostgreSQL, runs the migrations,
+seeds the sample organization, serves the API at `http://127.0.0.1:8000` and the web app at
+`http://127.0.0.1:3000`, and prints both addresses once they answer. On a local stack,
+`/sign-in` accepts any e-mail, and `GET /docs` on the API is the route reference.
 
 The sample organization is a fictional company, Acme Analytics: thirteen months of synthetic
 spend across Anthropic, OpenRouter, OpenAI and Cursor, read-only, with no provider credential
@@ -133,8 +133,8 @@ with no amount, key, workspace or e-mail, so the output can go into a public iss
 - `npx skills add CosturaAI/costura` installs the agent skill in
   [skills/costura/SKILL.md](skills/costura/SKILL.md): install, the `just` recipes, the API
   query model and the tie-out report, in the [Agent Skills](https://agentskills.io) format.
-- On a running `just dev`, the API serves `http://localhost:8000/openapi.json` and the route
-  reference at `http://localhost:8000/docs`.
+- On a running `just dev`, the API serves `http://127.0.0.1:8000/openapi.json` and the route
+  reference at `http://127.0.0.1:8000/docs`.
 - [llms.txt](llms.txt) lists every documentation page with one line each.
 - [AGENTS.md](AGENTS.md) is the entry point for an agent working on the code.
 
