@@ -11,9 +11,10 @@ This install is `docker-compose.prod.yml`.
   file caps the services at 3.8 GB together (Postgres 1 GB, worker 1 GB, migration, API,
   scheduler and web 512 MB each, Caddy 256 MB); the migration exits before the rest start,
   and a sync on a 2 GB host can be killed before reaching those caps.
-- `git` to check out a release tag, and `openssl` or the API image to generate secrets.
+- `git` to check out a release tag, or only `curl` and `tar` for the Docker-only bundle
+  below, and `openssl` or the API image to generate secrets.
 - `python3` for `scripts/prod-password.sh`, which `just prod::up`, `backup` and `restore`
-  run first.
+  run first, and for `scripts/prod-init.sh` and `scripts/prod-doctor.sh`.
 - For a public hostname: DNS pointing at the host and ports 80 and 443 open, so Caddy can
   obtain the certificate.
 - `just` is optional; the compose commands below are the same thing.
@@ -36,6 +37,32 @@ version.
 - There is no supported Alembic downgrade. Restore a backup.
 
 ## Configure
+
+### Docker only
+
+Releases from 0.3.0 on attach `costura-X.Y.Z.tar.gz` to the
+[GitHub Release](https://github.com/CosturaAI/costura/releases): the production compose
+file, `.env.example`, `LICENSE`, and the init, doctor and password scripts. The images come
+from GHCR, so the host needs no clone, no `just` and no development tools:
+
+<!-- x-release-please-start-version -->
+
+```
+v=0.2.1
+curl -fsSLO "https://github.com/CosturaAI/costura/releases/download/v$v/costura-$v.tar.gz"
+curl -fsSLO "https://github.com/CosturaAI/costura/releases/download/v$v/costura-$v.tar.gz.sha256"
+sha256sum -c "costura-$v.tar.gz.sha256" && tar -xzf "costura-$v.tar.gz" && cd "costura-$v"
+bash scripts/prod-init.sh --email you@example.com --host costura.example.com
+bash scripts/prod-doctor.sh
+```
+
+<!-- x-release-please-end -->
+
+Then start it with the compose commands under [Start](#start) ("Without `just`"). Every
+`just prod::*` recipe in these pages is a `docker compose -f docker-compose.prod.yml`
+command, listed in [`.just/prod.just`](../../.just/prod.just).
+
+### From a checkout
 
 From a checkout of the release tag:
 
@@ -163,10 +190,18 @@ Settings, Connections are stored encrypted per organization and need none of thi
 ## Start
 
 ```
+just prod::doctor
 just prod::up
 ```
 
-That checks the database passwords, pulls the published images for `COSTURA_VERSION`,
+`just prod::doctor` (`scripts/prod-doctor.sh`, needs only Docker and `python3`) prints one
+line per problem and changes nothing: Docker, Compose v2 and at least 4 GB of memory, ports
+80 and 443 free, the public hostname resolving, `COSTURA_VERSION` set to a release, the three
+URL variables naming the origin Caddy serves, a sign-in method someone can use first, the
+database passwords, `docker compose config`, and, once the API image is pulled, the settings
+the API itself refuses to start with. It never prints a secret.
+
+`just prod::up` checks the database passwords, pulls the published images for `COSTURA_VERSION`,
 migrates, grants the runtime role, and starts the stack. To build from this checkout
 instead: `just prod::up-local`.
 

@@ -6,6 +6,11 @@ _compose := env("COSTURA_COMPOSE", "docker compose -f docker-compose.prod.yml")
 init *args:
     cd "{{_root}}" && bash scripts/prod-init.sh {{args}}
 
+# Docker, memory, ports 80 and 443, DNS, the release, the URLs, sign-in, passwords, API settings.
+# Check the host and the production .env without changing anything or printing a secret.
+doctor:
+    bash "{{_root}}/scripts/prod-doctor.sh"
+
 # Pull published images, apply migrations, and start the single-node stack.
 up:
     #!/usr/bin/env bash
@@ -28,6 +33,43 @@ up-local:
     {{_compose}} up -d --wait postgres
     {{_compose}} run --rm --build migrate
     {{_compose}} up -d --build --wait --remove-orphans
+
+# Runs prod::doctor, a backup next to .env, the COSTURA_VERSION change, prod::up and
+# secret-check. Check out the new tag first. Asks once; COSTURA_ASSUME_YES=1 skips it.
+# Move to the release this checkout is at (version.txt).
+upgrade:
+    #!/usr/bin/env bash
+    set -euo pipefail
+    cd "{{_root}}"
+    source scripts/prod.sh
+    env_file="${COSTURA_ENV_FILE:-.env}"
+    [[ -f "$env_file" ]] || { echo "error: $env_file does not exist; write it with just prod::init" >&2; exit 1; }
+    from=$(sed -n 's/^COSTURA_VERSION=//p' "$env_file" | tail -n 1)
+    to=$(tr -d '[:space:]' < version.txt)
+    if [[ "$from" == "$to" ]]; then
+      echo "COSTURA_VERSION is already $to; check out a newer tag first (git fetch --tags && git checkout vX.Y.Z)"
+      exit 0
+    fi
+    if [[ -n "$from" && "$(printf '%s\n%s\n' "$from" "$to" | sort -V | tail -n 1)" != "$to" ]]; then
+      echo "error: $to is older than $from; there is no downgrade, restore a backup instead (docs/operations/upgrade.md#rollback)" >&2
+      exit 1
+    fi
+    names() { sed -n 's/^\([A-Z][A-Z0-9_]*\)=.*/\1/p' "$1" | sort -u; }
+    known() { sed -n 's/^#\{0,1\} \{0,1\}\([A-Z][A-Z0-9_]*\)[=:].*/\1/p' "$1" | sort -u; }
+    added=$(comm -13 <(known "$env_file") <(names .env.example) | tr '\n' ' ')
+    [[ -z "$added" ]] || echo "variables in .env.example that $env_file does not set (read CHANGELOG.md): $added"
+    bash scripts/prod-doctor.sh
+    confirm_or_exit "Upgrade from ${from:-an unknown release} to $to? A backup is taken first."
+    recipient="${COSTURA_BACKUP_AGE_RECIPIENT:-$(sed -n 's/^COSTURA_BACKUP_AGE_RECIPIENT=//p' "$env_file" | tail -n 1)}"
+    dump="$(dirname "$env_file")/costura-${from:-unknown}-$(date -u +%Y%m%dT%H%M%SZ).dump${recipient:+.age}"
+    just prod::backup "$dump"
+    trap 'echo "the upgrade stopped; to roll back set COSTURA_VERSION=$from in $env_file, check out v$from and run: just prod::restore $dump" >&2' ERR
+    sed -i.bak "s/^COSTURA_VERSION=.*/COSTURA_VERSION=$to/" "$env_file"
+    rm -f "$env_file.bak"
+    export COSTURA_VERSION="$to"
+    just prod::up
+    just prod::secret-check
+    echo "upgraded from ${from:-an unknown release} to $to; backup $dump"
 
 # Apply Alembic migrations against the production database.
 migrate:

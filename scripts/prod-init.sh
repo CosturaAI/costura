@@ -108,7 +108,8 @@ env.write_text("\n".join(lines) + "\n")
 env.chmod(0o600)
 print(f"wrote .env for {origin} (mode 600)")
 print(f"operator secret for {email}: {operator_secret}")
-print("keep a copy of COSTURA_SECRET_KEY outside this host; next: just prod::up")
+print("keep a copy of COSTURA_SECRET_KEY outside this host")
+print("next: just prod::doctor, then just prod::up (without just: docs/operations/install.md#start)")
 PY
 
 bash scripts/prod-password.sh

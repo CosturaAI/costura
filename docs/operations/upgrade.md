@@ -9,7 +9,27 @@ release applies every revision in between. Each release is tested only from the 
 before it, so take a backup first and read every skipped entry for steps that are not
 migrations, such as a new required variable.
 
-From the repository root:
+From the repository root, check out the release and run one recipe:
+
+<!-- x-release-please-start-version -->
+
+```
+git fetch --tags && git checkout v0.2.1
+just prod::upgrade
+```
+
+<!-- x-release-please-end -->
+
+`just prod::upgrade` reads the target release from the checkout's `version.txt` and refuses
+an older one. It lists the variables `.env.example` names that `.env` does not set (read
+the changelog for each), runs `just prod::doctor`, asks once (`COSTURA_ASSUME_YES=1` skips
+the question), writes a backup next to `.env` (`.dump.age` when
+`COSTURA_BACKUP_AGE_RECIPIENT` is set), sets `COSTURA_VERSION`, runs `just prod::up` and
+`just prod::secret-check`, and prints the backup's path. When a step after the backup fails
+it prints the rollback: the previous `COSTURA_VERSION`, its tag and the `just prod::restore`
+command for that backup.
+
+The same steps by hand, with the provenance check the recipe does not run:
 
 <!-- x-release-please-start-version -->
 

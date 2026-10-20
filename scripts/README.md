@@ -35,6 +35,17 @@ Operational scripts that span the API and the web app.
   `COSTURA_COMPOSE` and `COSTURA_ENV_FILE` (also read by `prod-password.sh`) and
   `just --dotenv-path`. `COSTURA_SUBNET` moves the network when `172.28.0.0/24` is taken. `smoke-env.sh` also prints the
   variable names the caller unsets so the repo-root `.env` does not override that file.
+- `prod-doctor.sh` (`just prod::doctor`) checks a production host and `.env` without
+  changing anything or printing a secret: Docker, Compose v2, memory, ports 80 and 443, the
+  password rules (`prod-password.sh`), `docker compose config`, and the API settings in the
+  pulled API image (`docker run --network none`). `prod-doctor-env.py` holds the `.env`
+  rules: `COSTURA_VERSION` is a release, the URL variables name the origin
+  `COSTURA_SITE_ADDRESS` serves, a public hostname resolves, and a sign-in method can let
+  someone in first.
+- `release-bundle.sh <version> <out-dir>` writes `costura-<version>.tar.gz` and its `.sha256`
+  for the Docker-only install: `docker-compose.prod.yml`, `.env.example`, `LICENSE` and the
+  prod init, doctor and password scripts. It refuses a version `.env.example` does not name.
+  The release workflow attaches the result to the GitHub Release.
 - `prod-password.sh` runs before the production recipes. It refuses the example database
   passwords, a runtime role password shorter than 12 characters or equal to the owner's,
   and characters that break the database URL.

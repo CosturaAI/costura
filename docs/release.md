@@ -54,6 +54,11 @@ and release-please writes the changelog heading with that first section.
    builds nothing: a red run means the published images do not start together. Rerun that
    job from the Actions tab after a GHCR outage; a failure that reproduces is a reason to pull
    the Release and the tags before announcing them.
+6. The "Attach the Docker-only bundle" job runs after the smoke passes. It packs
+   `costura-X.Y.Z.tar.gz` with `scripts/release-bundle.sh` (the production compose file,
+   `.env.example`, `LICENSE` and the prod init, doctor and password scripts) and uploads it
+   and its `.sha256` to the Release, for the
+   [Docker-only install](operations/install.md#docker-only).
 
 ## Release notes
 

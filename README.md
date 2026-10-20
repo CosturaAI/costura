@@ -98,10 +98,12 @@ rebuilds it through today.
 
 ```
 just prod::init --email you@example.com
+just prod::doctor
 just prod::up
 ```
 
-`just prod::init` writes `.env` with generated secrets. `just prod::up` starts PostgreSQL, a
+`just prod::init` writes `.env` with generated secrets. `just prod::doctor` checks the host
+and that `.env` without printing a secret. `just prod::up` starts PostgreSQL, a
 one-shot migration, the API, the worker, the scheduler, the web app and a Caddy proxy, one
 replica each, from `docker-compose.prod.yml`.
 

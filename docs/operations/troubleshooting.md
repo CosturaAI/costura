@@ -1,6 +1,9 @@
 # Troubleshooting
 
-Start with `just doctor`. It prints one line per problem, without printing a secret: a tool
+On a production host, start with `just prod::doctor`: Docker, memory, ports 80 and 443, DNS,
+`COSTURA_VERSION`, the URL variables, sign-in, the passwords and the API settings, one line
+each, without printing a secret. On a development checkout, start with `just doctor`. It
+prints one line per problem, without printing a secret: a tool
 missing from `PATH` or at another version than `mise.toml` (a different `just` is a warning),
 the Docker daemon down, port 8000 or 3000 taken, port 5432 held by anything other than this
 checkout's PostgreSQL, a `next dev` from this checkout still running, and an invalid

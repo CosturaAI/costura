@@ -4,6 +4,7 @@ name: Publish images
 # Both architectures are scanned and attested. The release tags (X.Y.Z and latest) move in
 # one promote job after every image passed, so a release never points at a partial set.
 # The smoke job then starts those tags with `just prod::up`, the recipe an operator runs.
+# The bundle job then attaches costura-X.Y.Z.tar.gz, the Docker-only install, to the release.
 
 on:
   release:
@@ -256,3 +257,29 @@ jobs:
           [[ -n "${env_file:-}" ]] || exit 0
           docker compose --env-file "$env_file" -p "$COSTURA_SMOKE_PROJECT" -f docker-compose.prod.yml down -v --remove-orphans || true
           rm -f "$env_file"
+
+  bundle:
+    name: Attach the Docker-only bundle
+    needs: [resolve, smoke]
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    permissions:
+      contents: write
+    steps:
+      - name: Check out the release tag
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ needs.resolve.outputs.ref }}
+          persist-credentials: false
+      - name: Build the bundle and attach it to the release
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+          VERSION: ${{ needs.resolve.outputs.version }}
+          TAG: ${{ github.event.release.tag_name }}
+        run: |
+          set -euo pipefail
+          out=$(mktemp -d)
+          bash scripts/release-bundle.sh "$VERSION" "$out"
+          gh release upload "$TAG" "$out/costura-$VERSION.tar.gz" "$out/costura-$VERSION.tar.gz.sha256" \
+            --clobber --repo "$GITHUB_REPOSITORY"
