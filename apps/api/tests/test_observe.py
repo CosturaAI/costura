@@ -13,6 +13,7 @@ from sqlalchemy.orm import Session
 from costura import __version__
 from costura.metrics import http_requests
 from costura.models import ProviderSyncRun, SchedulerRun, SpendAnomaly
+from costura.models.heartbeat import WorkerHeartbeat
 from costura.ops.heartbeat import beat
 from costura.telemetry import JsonFormatter, request_id_var, resolve_request_id
 from tests.conftest import ORG_ID
@@ -129,6 +130,25 @@ def test_detection_lag_counts_hours_after_the_anomaly_day(db_session: Session) -
 
     count, total = _detection_lag(db_session, now=detected + timedelta(days=5))
     assert count == 2 and total == 2 * 30.0
+
+
+def test_metrics_count_live_processes_by_release(client: TestClient, db_session: Session) -> None:
+    beat("worker", owner="worker-new")
+    beat("scheduler", owner="scheduler-new")
+    db_session.add(
+        WorkerHeartbeat(
+            owner="worker-before-the-upgrade",
+            role="worker",
+            last_seen_at=datetime.now(UTC) - timedelta(minutes=10),
+            version="0.0.1",
+        )
+    )
+    db_session.commit()
+
+    body = client.get("/metrics").text
+    assert f'costura_processes{{role="worker",version="{__version__}"}} 1' in body
+    assert f'costura_processes{{role="scheduler",version="{__version__}"}} 1' in body
+    assert 'version="0.0.1"' not in body
 
 
 def test_metrics_export_heartbeats_and_the_last_success_per_provider(

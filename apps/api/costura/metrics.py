@@ -24,6 +24,7 @@ from costura.models.organization import Organization
 from costura.ops.purge import COMPLETED_SYNC_STATUSES, TERMINAL_SCHEDULER_STATUSES
 
 LAG_WINDOW_DAYS = 30
+PROCESS_FRESH_SECONDS = 300
 
 log = logging.getLogger("costura.metrics")
 
@@ -156,6 +157,20 @@ def database_samples(session: Session) -> list[str]:
         ]
         if seen is not None:
             lines.append(_line(f"costura_{role}_last_seen_seconds", {}, int(seen.timestamp())))
+    lines += [
+        "# HELP costura_processes Worker and scheduler processes with a heartbeat in the last"
+        f" {PROCESS_FRESH_SECONDS} seconds, by release",
+        "# TYPE costura_processes gauge",
+    ]
+    since = datetime.now(UTC) - timedelta(seconds=PROCESS_FRESH_SECONDS)
+    processes = session.execute(
+        select(WorkerHeartbeat.role, WorkerHeartbeat.version, func.count())
+        .where(WorkerHeartbeat.last_seen_at >= since)
+        .group_by(WorkerHeartbeat.role, WorkerHeartbeat.version)
+        .order_by(WorkerHeartbeat.role, WorkerHeartbeat.version)
+    ).all()
+    for role, version, count in processes:
+        lines.append(_line("costura_processes", {"role": role, "version": version}, count))
     lines += [
         "# HELP costura_provider_last_success_timestamp_seconds Unix time the newest succeeded"
         " sync of an organization's provider finished",

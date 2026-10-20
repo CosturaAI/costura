@@ -37,6 +37,15 @@ groups:
           summary: No Costura scheduler heartbeat for five minutes; the daily runs will not be enqueued.
           description: Check `docker compose -f docker-compose.prod.yml logs scheduler`.
 
+      - alert: CosturaMixedReleases
+        expr: count(count by (version) (costura_build_info or costura_processes)) > 1
+        for: 15m
+        labels:
+          severity: ticket
+        annotations:
+          summary: The Costura API, worker and scheduler have run different releases for 15 minutes.
+          description: Run `docker compose -f docker-compose.prod.yml ps` and `just prod::up` with one COSTURA_VERSION.
+
       - alert: CosturaQueueStuck
         expr: costura_scheduler_queue_depth{status="queued"} > 0
         for: 1h

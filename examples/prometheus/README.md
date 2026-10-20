@@ -14,8 +14,8 @@ scrape_configs:
 ```
 
 `severity: page` needs someone now (API, database, worker or scheduler down);
-`severity: ticket` can wait for working hours (a stuck queue, a failed sync, a provider
-silent for 36 hours, a failed webhook, sustained 429s). Route them in Alertmanager.
+`severity: ticket` can wait for working hours (mixed releases after an upgrade, a stuck
+queue, a failed sync, a provider silent for 36 hours, a failed webhook, sustained 429s). Route them in Alertmanager.
 
 Check the file with the Prometheus image's `promtool` before loading it:
 

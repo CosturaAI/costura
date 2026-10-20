@@ -52,6 +52,7 @@ PostgreSQL at scrape time, so they include the worker's and the scheduler's work
 | `costura_scheduler_last_seen_seconds`     | gauge     | none                      |
 | `costura_provider_last_success_timestamp_seconds` | gauge | `org`, `provider`   |
 | `costura_build_info`                      | gauge     | `version`                 |
+| `costura_processes`                       | gauge     | `role` (`worker`, `scheduler`), `version` |
 | `costura_anomaly_detection_lag_hours_sum` | gauge     | none                      |
 | `costura_anomaly_detection_lag_hours_count`| gauge    | none                      |
 | `costura_webhook_deliveries`              | gauge     | `status` (`pending`, `sent`, `failed`, `skipped`) |
@@ -72,9 +73,11 @@ has them as Prometheus rules:
 - `time() - costura_provider_last_success_timestamp_seconds > 129600` (36 hours): a provider
   of that organization has not synced since the last daily pass. The Setup page names the
   failed step.
-- `costura_build_info{version}` names the release the API process runs, the same `version`
-  as `/health`. The worker and the scheduler do not export theirs; after an upgrade,
-  `docker compose -f docker-compose.prod.yml ps` shows the image each service runs.
+- `count(count by (version) (costura_build_info or costura_processes)) > 1` for 15 minutes:
+  the API, the worker and the scheduler run different releases, such as after an upgrade
+  that did not restart every service. `costura_build_info` is the API's release (the same
+  `version` as `/health`); `costura_processes` counts the worker and scheduler processes with
+  a heartbeat in the last five minutes, by release.
 - `costura_scheduler_queue_depth{status="queued"} > 0` for an hour: rows wait and no worker claims them.
 - An increase of `costura_scheduler_runs{status="failed"}`: a sync cycle failed. The run's
   steps are on the Setup page and in the worker log.
