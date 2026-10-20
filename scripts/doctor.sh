@@ -73,7 +73,7 @@ db_port=${COSTURA_DEV_DB_PORT:-5432}
 for name in DATABASE_URL TEST_DATABASE_URL; do
   url=${!name:-}
   if [[ "$url" =~ @(localhost|127\.0\.0\.1):([0-9]+)/ && "${BASH_REMATCH[2]}" != "$db_port" ]]; then
-    note "$name uses port ${BASH_REMATCH[2]}, the development PostgreSQL listens on $db_port (COSTURA_DEV_DB_PORT)"
+    note "$name uses port ${BASH_REMATCH[2]}, the development PostgreSQL listens on $db_port (COSTURA_DEV_DB_PORT); run: just db::port $db_port"
   fi
 done
 if docker info >/dev/null 2>&1 && listening "$db_port"; then
@@ -81,9 +81,9 @@ if docker info >/dev/null 2>&1 && listening "$db_port"; then
     holder=$(docker ps --filter publish="$db_port" --format '{{.Names}} {{.Label "com.docker.compose.project.working_dir"}}' 2>/dev/null | head -n 1)
     if [[ -n "$holder" ]]; then
       name=${holder%% *}
-      note "port $db_port is held by the container $name (started from ${holder#* }); stop it with: docker stop $name, or set COSTURA_DEV_DB_PORT (.env.example)"
+      note "port $db_port is held by the container $name (started from ${holder#* }); stop it with: docker stop $name, or move this checkout: just db::port $((db_port + 1))"
     else
-      note "port $db_port is in use by another PostgreSQL; stop it, or set COSTURA_DEV_DB_PORT (.env.example)"
+      note "port $db_port is in use by another PostgreSQL; stop it, or move this checkout: just db::port $((db_port + 1))"
     fi
   fi
 fi

@@ -24,11 +24,12 @@ below.
   Stop it with the `kill N` the message prints.
 - `port 5432 is held by the container <name> (started from <path>)`: another checkout or
   worktree runs its PostgreSQL. Stop it with the `docker stop` the message prints, or give
-  this checkout its own port: `COSTURA_DEV_DB_PORT=5433` in `.env`, and the same port in
-  `DATABASE_URL` and `TEST_DATABASE_URL`. Each checkout's container is named after its
-  directory (`<directory>-postgres-1`) and keeps its own data volume.
-- `DATABASE_URL uses port 5432, the development PostgreSQL listens on 5433`: `.env` sets
-  `COSTURA_DEV_DB_PORT` without the matching port in that URL.
+  this checkout its own port with the `just db::port 5433` it prints: that sets
+  `COSTURA_DEV_DB_PORT` and the port of `DATABASE_URL` and `TEST_DATABASE_URL` in `.env`.
+  Each checkout's container is named after its directory (`<directory>-postgres-1`) and keeps
+  its own data volume.
+- `DATABASE_URL uses port 5432, the development PostgreSQL listens on 5433`: `.env` was
+  edited by hand; `just db::port 5433` puts the same port in all three.
 
 ## `just prod::up` stops before starting the stack
 

@@ -119,5 +119,5 @@ production each one must start with `https://`, or every process refuses to star
 `COSTURA_API_URL` are set by `.env.example` for `just dev` and `just test`. Development
 accepts any e-mail at `/sign-in` on a loopback stack; production refuses that.
 `COSTURA_DEV_DB_PORT` (default `5432`) is the host port of the development PostgreSQL in
-`docker-compose.yml`; a second checkout that runs its own sets another one and the same port
-in `DATABASE_URL` and `TEST_DATABASE_URL`.
+`docker-compose.yml`; `just db::port <port>` sets it and the same port in `DATABASE_URL` and
+`TEST_DATABASE_URL`, for a second checkout that runs its own.
