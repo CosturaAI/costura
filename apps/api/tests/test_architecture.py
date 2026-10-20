@@ -21,7 +21,7 @@ def test_routers_do_not_translate_value_errors() -> None:
         for number, line in enumerate(path.read_text().splitlines(), start=1)
         if "except ValueError" in line or "except (ValueError" in line
     ]
-    assert offenders == []
+    assert offenders == [], "raise a DomainError subclass from the domain module instead"
 
 
 def test_routers_leave_the_commit_to_the_request_session() -> None:
@@ -33,7 +33,7 @@ def test_routers_leave_the_commit_to_the_request_session() -> None:
         for number, line in enumerate(path.read_text().splitlines(), start=1)
         if ".commit()" in line
     ]
-    assert offenders == []
+    assert offenders == [], "remove the commit; get_session commits when the route returns"
 
 
 REQUEST_PATH_COMMITS = {
@@ -109,7 +109,9 @@ def test_request_path_domain_modules_do_not_commit() -> None:
         for function, line in _commits(path)
         if (path.name, function) not in REQUEST_PATH_COMMITS | WORKER_STEPS
     )
-    assert offenders == []
+    assert offenders == [], (
+        "let get_session commit, or add the function to REQUEST_PATH_COMMITS or WORKER_STEPS"
+    )
 
 
 def test_routes_never_call_a_worker_step() -> None:
@@ -120,7 +122,7 @@ def test_routes_never_call_a_worker_step() -> None:
         for number, line in enumerate(path.read_text().splitlines(), start=1)
         if any(re.search(rf"\b{name}\b", line) for name in names)
     ]
-    assert offenders == []
+    assert offenders == [], "enqueue a SchedulerRun for the worker instead of calling the step"
 
 
 CONNECTORS = ("anthropic", "openai", "openrouter", "cursor", "copilot", "claude_ai", "codex")
@@ -147,7 +149,7 @@ def test_only_provider_packages_compare_provider_names() -> None:
         for number, line in enumerate(path.read_text().splitlines(), start=1)
         if any(pattern.search(line) for pattern in patterns)
     ]
-    assert offenders == []
+    assert offenders == [], "read a ProviderSpec flag (costura/providers/spec.py) instead"
 
 
 FOUNDATION = {"config", "db", "errors", "secrets", "telemetry"}
@@ -183,7 +185,7 @@ def test_rules_and_tables_import_downward_only() -> None:
         for line, name in _costura_imports(path)
         if name.split(".")[1] not in allowed | FOUNDATION
     )
-    assert offenders == []
+    assert offenders == [], "move the shared code down into models, spend or providers"
 
 
 def test_presenters_and_schemas_stay_below_the_routers() -> None:
@@ -196,4 +198,4 @@ def test_presenters_and_schemas_stay_below_the_routers() -> None:
         for line, name in _costura_imports(path)
         if name.startswith("costura.api.") and name.split(".")[2] in ROUTER_SIDE
     )
-    assert offenders == []
+    assert offenders == [], "pass the data in as arguments instead of importing the router side"

@@ -1,8 +1,8 @@
 """The provider registry: every connector's `ProviderSpec`, and the `all` scope.
 
 Credentials, the scheduler, the API scope and the reconcile control total dispatch through
-`PROVIDERS[name]`. Adding a provider means a package under providers/ with its own `spec.py`
-and one entry here.
+`PROVIDERS[name]`. Adding a provider starts with a package under providers/ with its own
+`spec.py` and one entry here; CONTRIBUTING.md ("Adding a provider") lists the rest.
 """
 
 from collections.abc import Iterator, Sequence

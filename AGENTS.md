@@ -19,7 +19,9 @@ that it cites only recipes and paths that exist.
 ## Reach these when the change matches
 
 - The API import direction and the pinned tool versions:
-  `apps/api/tests/test_architecture.py` and `mise.toml`.
+  `apps/api/tests/test_architecture.py`, explained under "Boundaries" in
+  [apps/api/README.md](apps/api/README.md), and `mise.toml`.
+- A new provider: "Adding a provider" in [CONTRIBUTING.md](CONTRIBUTING.md).
 - Trust boundaries, credentials, sessions, backups, or
   [docker-compose.prod.yml](docker-compose.prod.yml):
   [docs/security/threat-model.md](docs/security/threat-model.md).
@@ -29,7 +31,7 @@ that it cites only recipes and paths that exist.
   on a running `just dev` and commit the images under `docs/assets/screens/`. The product
   behavior each screen states there is the behavior the change must leave true.
 - A schema change: a new revision under `apps/api/alembic/versions` that extends the
-  single chain (`just api::revision "message"`). A revision already in that directory
+  single chain (`just api::revision "message"`, with PostgreSQL up and migrated). A revision already in that directory
   stays as applied databases recorded it. `just api::migration-check` requires one
   base and one head. The revision recipe rewrites the inventory in
   [apps/api/README.md](apps/api/README.md).

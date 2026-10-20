@@ -31,9 +31,10 @@ def test_openapi_document_matches_the_snapshot() -> None:
     if os.environ.get("UPDATE_OPENAPI_SNAPSHOT") == "1":
         SNAPSHOT.parent.mkdir(exist_ok=True)
         SNAPSHOT.write_text(_dump(current))
-    assert SNAPSHOT.exists(), "run with UPDATE_OPENAPI_SNAPSHOT=1 to create the snapshot"
+    assert SNAPSHOT.exists(), "run: just api::openapi"
     expected = json.loads(SNAPSHOT.read_text())
     expected["info"]["version"] = PINNED_VERSION
     assert current == expected, (
-        "the OpenAPI document changed; regenerate the snapshot only for an intended change"
+        "the OpenAPI document changed; for an intended change run `just api::openapi` and "
+        "`just web::api-types`, then review both diffs"
     )

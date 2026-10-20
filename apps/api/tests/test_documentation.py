@@ -31,7 +31,9 @@ def test_documented_migration_inventories_match_alembic() -> None:
     actual = _alembic_inventory()
 
     assert actual, "the migration chain is empty"
-    assert _documented_inventory(API_ROOT / "README.md") == actual
+    assert _documented_inventory(API_ROOT / "README.md") == actual, (
+        "run: just api::migration-inventory"
+    )
 
 
 def test_documented_revision_counts_match_alembic() -> None:
@@ -39,16 +41,22 @@ def test_documented_revision_counts_match_alembic() -> None:
     path = API_ROOT / "README.md"
     counts = REVISION_COUNT_PATTERN.findall(path.read_text())
     assert counts, f"{path} states no revision count"
-    assert set(counts) == {expected}, f"{path} states {counts}, chain has {expected}"
+    assert set(counts) == {expected}, (
+        f"{path} states {counts}, chain has {expected}; run: just api::migration-inventory"
+    )
 
 
 # Documents that describe how to run the project today.
 LIVING_DOCS = (
     "README.md",
+    "AGENTS.md",
     "CONTRIBUTING.md",
     "SECURITY.md",
     "apps/api/README.md",
     "apps/web/README.md",
+    "apps/web/AGENTS.md",
+    "docs/architecture/overview.md",
+    "docs/product/screens.md",
     "skills/costura/SKILL.md",
 )
 RECIPE_REFERENCE = re.compile(r"\bjust ([a-z]+)::([a-z][a-z0-9-]*)")

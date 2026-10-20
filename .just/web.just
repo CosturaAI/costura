@@ -22,6 +22,10 @@ lint:
 format-check:
     cd "{{_web}}" && pnpm format:check
 
+# Rewrite src/lib/api/generated.ts from the OpenAPI snapshot (after `just api::openapi`).
+api-types:
+    cd "{{_web}}" && pnpm api:types && pnpm exec prettier --write src/lib/api/generated.ts >/dev/null
+
 # Regenerate the OpenAPI types and fail when that rewrite changes the file.
 api-types-check:
     #!/usr/bin/env bash
@@ -30,9 +34,11 @@ api-types-check:
     copy="$(mktemp)"
     trap 'rm -f "$copy"' EXIT
     cp src/lib/api/generated.ts "$copy"
-    pnpm api:types
-    pnpm exec prettier --write src/lib/api/generated.ts >/dev/null
-    diff -q "$copy" src/lib/api/generated.ts
+    just web::api-types
+    if ! diff -q "$copy" src/lib/api/generated.ts >/dev/null; then
+      echo "error: apps/web/src/lib/api/generated.ts did not match the OpenAPI snapshot; it is rewritten now, review and commit it" >&2
+      exit 1
+    fi
 
 # Type check with tsc (runs next typegen first).
 typecheck:
@@ -63,8 +69,7 @@ test-e2e *args:
     cd "{{_web}}" && pnpm build && pnpm test:e2e:install && pnpm test:e2e {{args}}
 
 # COSTURA_WEB_PREBUILT=1 reuses an existing `.next/standalone` build instead of building.
-# Build on the host, then run the Playwright suite inside the pinned Playwright image, the same
-# Linux Chromium that writes the committed screenshots. CI runs this recipe.
+# Build on the host, then run Playwright in the pinned image whose Chromium writes the screenshots.
 test-e2e-docker *args:
     cd "{{_web}}" && { [ -n "${COSTURA_WEB_PREBUILT:-}" ] || pnpm build; }
     docker run --rm \
@@ -74,14 +79,14 @@ test-e2e-docker *args:
         bash -c "corepack enable && npx playwright test {{args}}"
 
 # COSTURA_WEB_PREBUILT=1 reuses an existing `.next/standalone` build instead of building.
-# Sample organization suite with the browser inside the pinned Playwright image. CI runs this.
+# Sample organization suite with the browser inside the pinned Playwright image, as CI runs it.
 test-e2e-demo-docker *args:
     cd "{{_web}}" && { [ -n "${COSTURA_WEB_PREBUILT:-}" ] || pnpm build; }
     COSTURA_PLAYWRIGHT_DOCKER_IMAGE="{{_playwright_image}}" \
         bash "{{justfile_directory()}}/scripts/demo-e2e.sh" {{args}}
 
-# Sample organization suite against PostgreSQL, the API and a seeded sample (needs Docker).
 # Pass `--update-snapshots` to replace its snapshots.
+# Sample organization suite against PostgreSQL, the API and a seeded sample (needs Docker).
 test-e2e-demo *args:
     cd "{{_web}}" && pnpm build && pnpm test:e2e:install
     bash "{{justfile_directory()}}/scripts/demo-e2e.sh" {{args}}
@@ -90,9 +95,8 @@ test-e2e-demo *args:
 test-visual *args:
     cd "{{_web}}" && pnpm build && pnpm test:e2e:install && pnpm test:e2e e2e/visual.spec.ts {{args}}
 
-# Regenerate every committed Playwright screenshot (visual.spec.ts and e2e-demo/demo.spec.ts)
-# using the official Playwright Docker image, so the Linux Chromium pixels match CI regardless
-# of the host OS. Needs Docker; the demo half also needs just, uv and pnpm on the host.
+# visual.spec.ts and e2e-demo/demo.spec.ts; the demo half also needs just, uv and pnpm on the host.
+# Regenerate every committed Playwright screenshot in the pinned Playwright image (needs Docker).
 snapshots:
     cd "{{_web}}" && pnpm build
     docker run --rm \

@@ -68,7 +68,7 @@ operating or changing Costura:
 | `just fix` | Apply the formatters |
 | `just api::test-unit`, `just api::test-integration` | Fast API tests; PostgreSQL and provider tests |
 | `just api::lint`, `just api::typecheck`, `just api::format-check` | Ruff, ty, Ruff format |
-| `just api::openapi` | Rewrite the OpenAPI snapshot; then `just web::api-types-check` |
+| `just api::openapi` | Rewrite the OpenAPI snapshot; then `just web::api-types` |
 | `just api::revision "message"`, `just api::migration-check` | New Alembic revision; one base and one head |
 | `just api::migrate`, `just api::db-current` | Apply migrations; print the current revision |
 | `just api::worker --once`, `just api::scheduler --once` | Drain queued syncs; enqueue the daily cycle and drain |

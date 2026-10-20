@@ -24,10 +24,12 @@ From the repository root:
 | `just api::demo-status` | Print the dataset version and freshness; exits 1 when a refresh would change it. `--json` prints one JSON object with the same fields and exit code |
 | `just api::tieout-report --org <slug>` | Pass or fail and percent deltas per provider and month, no amounts. `--json` prints the same rows as one JSON object |
 
-Tests may be marked `unit`, `integration`, or `contract`. A test that requests the database
+Tests may be marked `unit` or `integration`. A test that requests the database
 (`db_session`, `client`, or any fixture built on `migrated_database`) is marked `integration`
 at collection, so the unit recipe never needs PostgreSQL. `just api::coverage` enforces line and branch
 measurement, while root `just coverage-core` also rejects missing or stale report entries.
+
+One file or one test: `just api::test tests/test_config.py -k secret`.
 
 `just --list` shows the rest (lint, typecheck, coverage, secrets). `just prod::up` is the
 single-node install (Postgres, migration, API, worker, scheduler, web, Caddy). Install,
@@ -49,11 +51,50 @@ renders the sample's pages through the web app to fill that cache before the fir
 
 | Package | |
 | --- | --- |
-| `costura/api/` | Routers, schemas, and access checks |
-| `costura/providers/` | One read-only connector per provider, registered in one place |
-| `costura/spend/` | Ledger, allocation, anomalies, and queries |
-| `costura/ops/` | Processes `just` starts outside a signed-in session |
-| `costura/models/` | Tables |
+| `costura/api/routers/` | One `APIRouter` per slice of `/api/v1`; `costura/api/routes.py` composes them |
+| `costura/api/deps.py`, `guard.py` | The request session, the signed-in user and the organization dependencies; the write guard |
+| `costura/api/presenters/` | Turn rows and `costura.spend` results into response objects; the webhook delivery reuses them |
+| `costura/api/schemas/` | Pydantic response shapes, the source of `tests/snapshots/openapi.json` |
+| `costura/api/access.py`, `ratelimit.py`, `demo_cache.py` | Request id and access log, per-client limits, the sample organization's read cache |
+| `costura/providers/` | One read-only connector per provider, registered in `registry.py`; shared paging, upsert and run records |
+| `costura/spend/` | Provider-independent rules: ledger, allocation, anomalies, budgets, projections, queries |
+| `costura/models/` | Tables; importing the package registers each one on `Base.metadata` |
+| `costura/ops/` | Processes `just` starts outside a signed-in session (`python -m costura.ops.<name>`) |
+| `costura/demo/` | The synthetic sample organization and the fake provider clients that build it |
+| `costura/legal/` | License texts shipped inside the wheel |
+
+The modules directly under `costura/` are the services between the routers and the rules:
+
+| Module | |
+| --- | --- |
+| `config`, `db`, `errors`, `secrets`, `telemetry` | Settings, the engine and session, the `DomainError` base, credential encryption, logging; every layer imports them |
+| `main` | `create_app()`: mounts `/api/v1`, the technical routes and the one `DomainError` handler |
+| `orgs`, `members`, `auth`, `google_oidc`, `identity_policy` | Organizations, membership and invitations, users and sessions, Google sign-in, who may sign up |
+| `accounts`, `credentials`, `connections`, `account_settings`, `credit_prices`, `entities` | Provider accounts, their stored keys, connecting and queueing a sync, per-account settings, Codex credit prices, which account an id belongs to |
+| `setup_state`, `run_state`, `signal_history`, `audit` | The getting-started card, the latest runs per provider, signal open and close history, security events |
+| `scheduler`, `scheduler_queue`, `scheduler_lock`, `sync_cycle` | The worker side: the daily enqueue, the queue, per-organization locks, one sync cycle step by step |
+| `delivery`, `digest`, `metrics` | Webhook delivery, the scheduled summary, the `/metrics` text |
+
+A request travels `costura.main` -> `costura/api/routes.py` -> a router in
+`costura/api/routers/` -> its dependencies (`SessionDep`, `OrgDep` or a stricter organization
+dependency, and `VerifiedWriteDep` on a write) -> a service module or `costura.spend` -> a
+presenter that builds a `costura/api/schemas` object. `get_session` commits once when the
+route returns, and a `DomainError` raised anywhere below becomes the HTTP error in
+`costura.main`. A sync never runs in a request: the route inserts a `queued`
+`scheduler_runs` row, and `costura.ops.worker` runs `costura.sync_cycle` on it.
+
+`tests/test_architecture.py` enforces the direction of those arrows:
+
+- `costura/models` imports only models; `costura/spend` and `costura/providers` import each
+  other and models. None of the three imports a service module, a presenter or a router.
+  The foundation modules are open to every layer.
+- A presenter or schema never imports a router, `deps`, `guard`, `ratelimit` or `access`.
+- A router neither catches `ValueError` nor commits; a domain refusal is a `DomainError`
+  subclass.
+- A module a route imports does not commit, except the functions listed in
+  `REQUEST_PATH_COMMITS`; a route never calls a function in `WORKER_STEPS`.
+- Outside `costura/providers` and `costura/demo`, code never compares a connector name; it
+  reads a `ProviderSpec` flag (`costura/providers/spec.py`).
 
 Connectors: `anthropic`, `claude_ai`, `codex`, `cursor`, `openai`, `openrouter`, and
 `copilot` (experimental).

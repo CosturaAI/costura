@@ -41,20 +41,42 @@ Containers or GitHub Codespaces build it (Ubuntu 24.04, Docker in Docker, mise),
 terminal.
 
 Fork the repository, branch from `main`, and rebase on `main` before asking for review.
-One pull request is one change.
+One pull request is one change. Add the main repository as `upstream` so the rebase and the
+changed-line coverage compare against it, not against your fork's copy of `main`:
+
+```
+git remote add upstream https://github.com/CosturaAI/costura.git
+git fetch upstream
+git rebase upstream/main
+```
 
 ## Checks
 
+These are the commands the required CI checks run on a pull request:
+
 ```
 just check
-just coverage-core
-just smoke
+just docs::check-llms
+just coverage upstream/main
 ```
 
 `just check` is actionlint, ruff, `ty`, ESLint, Prettier, TypeScript, the generated OpenAPI
 types, and the secret scan. It needs no Docker and takes about 25 seconds on a laptop.
-`just coverage-core` needs Docker for PostgreSQL and takes about 5 minutes. `just coverage-core` starts PostgreSQL and runs `just test` with the coverage floors CI
-enforces; `just quality::vulnerabilities` is the CI filesystem scan. `just api::test-unit` runs the fast API layer,
+`just docs::check-llms` fails when a documentation edit left `llms.txt` stale; `just
+docs::llms` rewrites it. `just coverage upstream/main` needs Docker for PostgreSQL and takes
+about 5 minutes: it runs `just coverage-core` (`just test` with the coverage floors CI
+enforces) and then requires 90% coverage of the lines changed since `upstream/main`. `just
+smoke` boots the stack and checks it over HTTP, as the "Install smoke" job does.
+`just quality::vulnerabilities` is the CI filesystem scan.
+
+One test while iterating:
+
+```
+just api::test tests/test_config.py -k secret
+just web::test src/lib/format.test.ts
+```
+
+`just api::test-unit` runs the fast API layer,
 `just api::test-integration` runs tests marked for PostgreSQL/provider integration, and
 `just api::test` plus `just web::test` run the complete suites. `just web::test-e2e-docker` runs the
 Playwright smoke and visual suites, and `just web::test-e2e-demo-docker` runs the sample
@@ -68,8 +90,14 @@ checks branch coverage and rejects source files missing from the reports. `just 
 the formatters. A pull request also needs the CI checks in `.github/workflows/` to pass. Do not add a secret, a
 private URL, or a workflow that calls a private service. A pull request that changes only
 documentation (`docs/`, `llms.txt`, Markdown outside `apps/`, the issue and discussion
-templates) runs the quality, secret, title and dependency checks; the test, build, scan and
-CodeQL jobs report as skipped (`scripts/ci-changes.sh`).
+templates) runs the quality, secret, title and dependency checks; the CI test, build and
+scan jobs report as skipped, and the CodeQL jobs pass with their analysis steps skipped
+(`scripts/ci-changes.sh`).
+
+Without Docker, the screenshots cannot be regenerated locally. Push the change: a failing
+"Playwright browser tests" job uploads the `playwright-traces` artifact with the new
+screenshots and their diffs, and a reviewer can run `just web::snapshots` and push the
+reviewed PNGs to the branch.
 
 ## Issues
 
@@ -85,8 +113,8 @@ Other recipes (`just --list` prints all of them):
 
 | Recipe                                                                     | Does                                                                                 |
 | -------------------------------------------------------------------------- | ------------------------------------------------------------------------------------ |
-| `just coverage`                                                            | Coverage plus changed-line coverage against `origin/main`                            |
-| `just api::openapi`                                                        | Rewrite the OpenAPI snapshot; then `just web::api-types-check`                       |
+| `just coverage [base]`                                                     | Coverage plus changed-line coverage against `base` (default `origin/main`)           |
+| `just api::openapi`                                                        | Rewrite the OpenAPI snapshot; then `just web::api-types`                             |
 | `just api::revision "message"`                                             | New Alembic revision on the single chain                                             |
 | `just api::db-current`, `just api::migration-check`                        | Current revision; one base and one head                                              |
 | `just db::up`, `db::down`, `db::logs`, `db::psql`, `db::reset`             | Local PostgreSQL                                                                     |
@@ -116,6 +144,11 @@ and [release-please](docs/release.md) builds the changelog from it.
 
 Examples: `feat: add openrouter credit prices`, `fix: reject empty operator secret`.
 
+On a first pull request to this repository, the workflows wait until a maintainer approves
+the run; after the first merged pull request they start on every push. A pull request
+merges only when its branch contains the latest `main`, so rebase on `upstream/main` and
+push again when the checks report the branch as out of date.
+
 A small bug fix goes straight to a pull request. A change that adds surface (a new
 provider, a new route, or a new table) starts with an issue so the scope is agreed before
 the code.
@@ -129,6 +162,31 @@ the fork-safe form, which yields an empty string on a pull request from a fork:
 ```
 ${{ (github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository) && secrets.X || '' }}
 ```
+
+## Adding a provider
+
+A new connector starts with an issue. Then, in one pull request:
+
+1. `apps/api/costura/providers/<name>/` with its client, normalization, sync and a
+   `spec.py` that builds the `ProviderSpec` (`apps/api/costura/providers/spec.py`), plus one
+   entry in `PROVIDERS` in `apps/api/costura/providers/registry.py`.
+2. The settings an environment key or base URL needs in `apps/api/costura/config.py`, with
+   the commented lines in `.env.example` and the rows in
+   [docs/operations/configuration.md](docs/operations/configuration.md).
+3. A `<name>_client` fixture in `apps/api/tests/conftest.py` and the provider in `FIXTURED`
+   (`apps/api/tests/test_provider_contract.py`), which runs the second-sync idempotency
+   check; the name in `provider_names()` (`apps/api/tests/test_registry.py`) and in
+   `CONNECTORS` (`apps/api/tests/test_architecture.py`).
+4. An account for it in the sample organization (`apps/api/costura/demo/`);
+   `apps/api/tests/test_demo.py` requires one per provider.
+5. A `## <Provider>` section in [docs/security/provider-keys.md](docs/security/provider-keys.md)
+   with every request the client sends, and the name in `SECTIONS`
+   (`apps/api/tests/test_provider_keys_doc.py`).
+6. The web tables `PROVIDER_LABELS` (`apps/web/src/lib/providers.ts`) and `KEY_HINTS` and
+   `KEY_ACCESS` (`apps/web/src/lib/setup.ts`); `apps/api/tests/test_provider_checklist.py`
+   fails until each one names the provider.
+7. The connector list in [README.md](README.md) and [apps/api/README.md](apps/api/README.md),
+   and `just api::openapi` plus `just web::api-types` when a response shape changed.
 
 ## Decisions
 

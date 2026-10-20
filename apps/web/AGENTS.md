@@ -8,7 +8,7 @@ Read these before changing `apps/web`. The Next.js block below is generated; lea
   actions call it; client components receive data as props or call a server action.
 - Response types come from `src/lib/api/generated.ts` through `Schema<"...Out">`. Narrow a
   `string` field to a literal union with `Omit<Schema<...>, "field"> & { field: Union }`;
-  do not restate a schema by hand. Regenerate with `pnpm api:types` after `just api::openapi`.
+  do not restate a schema by hand. Regenerate with `just web::api-types` after `just api::openapi`.
 - Independent reads of one render start together (`Promise.all`, `settledRecord` in
   `src/lib/loaders.ts`). `transport.ts` dedupes identical GETs per render, so two callers that
   need the same rows must ask with the same URL.

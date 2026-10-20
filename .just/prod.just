@@ -22,8 +22,8 @@ up:
     {{_compose}} run --rm migrate
     {{_compose}} up -d --wait --remove-orphans
 
-# Build images locally, apply migrations, and start the stack (no registry pull).
 # The local images are tagged COSTURA_VERSION from .env, or `local` when it is unset.
+# Build images locally, apply migrations, and start the stack (no registry pull).
 up-local:
     #!/usr/bin/env bash
     set -euo pipefail
@@ -87,8 +87,9 @@ logs:
 ps:
     cd "{{_root}}" && {{_compose}} ps
 
-# First owner of an organization with no members. `--create` creates it first, which is how
-# the operator opens the COSTURA_ORG organization the web app refuses: just prod::claim-owner default me@example.com --create
+# `--create` creates the organization first, which is how the operator opens the COSTURA_ORG
+# organization the web app refuses.
+# First owner of an organization with no members: just prod::claim-owner default me@example.com --create
 claim-owner slug email *args:
     cd "{{_root}}" && {{_compose}} run --rm --no-deps api python -m costura.ops.claim_owner {{slug}} {{email}} {{args}}
 
