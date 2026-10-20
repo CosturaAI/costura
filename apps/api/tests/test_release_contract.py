@@ -19,6 +19,24 @@ def test_version_matches_across_packages() -> None:
     assert package["engines"]["node"] == ">=26 <27"
 
 
+def test_operator_docs_name_the_current_release() -> None:
+    version = json.loads((ROOT / ".release-please-manifest.json").read_text())["."]
+    config = json.loads((ROOT / "release-please-config.json").read_text())
+    generic = {
+        item["path"] for item in config["packages"]["."]["extra-files"] if item["type"] == "generic"
+    }
+    for path in ("docs/operations/install.md", "docs/operations/upgrade.md"):
+        assert path in generic
+        text = (ROOT / path).read_text()
+        blocks = re.findall(
+            r"x-release-please-start-version(.*?)x-release-please-end", text, flags=re.S
+        )
+        assert blocks
+        for block in blocks:
+            assert set(re.findall(r"\d+\.\d+\.\d+", block)) == {version}
+    assert f"git checkout v{version}\n" in (ROOT / "docs/operations/install.md").read_text()
+
+
 def test_packaged_licenses_match_the_repository_copies() -> None:
     legal = ROOT / "apps/api/costura/legal"
     assert (legal / "LICENSE").read_bytes() == (ROOT / "LICENSE").read_bytes()

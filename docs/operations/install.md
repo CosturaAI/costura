@@ -18,9 +18,13 @@ This install is `docker-compose.prod.yml`.
   obtain the certificate.
 - `just` is optional; the compose commands below are the same thing.
 
+<!-- x-release-please-start-version -->
+
 Published images live at `ghcr.io/costuraai/costura-{api,web,proxy}`, one tag per release
-(`0.1.0`). `latest` follows the newest release and is not a supported install: pin the
+(`0.2.1`). `latest` follows the newest release and is not a supported install: pin the
 version.
+
+<!-- x-release-please-end -->
 
 ## Limits
 
@@ -35,18 +39,26 @@ version.
 
 From a checkout of the release tag:
 
+<!-- x-release-please-start-version -->
+
 ```
 git clone https://github.com/CosturaAI/costura.git && cd costura
-git checkout v0.1.0
+git checkout v0.2.1
 just prod::init --email you@example.com                          # http://localhost trial
 just prod::init --email you@example.com --host costura.example.com
 ```
 
+<!-- x-release-please-end -->
+
 `prod::init` (`scripts/prod-init.sh`, needs only `python3`) writes `.env` from
 `.env.example` with mode 600: it generates the four secrets below, sets the deployment
 administrator to that e-mail, sets `COSTURA_WEB_ORIGIN`, `COSTURA_WEB_PUBLIC_URL` and
-`COSTURA_SITE_ADDRESS` to one consistent origin, prints the administrator secret once, and
-refuses to overwrite an existing `.env`. Then go to [Start](#start). The rest of this section
+`COSTURA_SITE_ADDRESS` to one consistent origin, leaves `COSTURA_ENV`, `DATABASE_URL`,
+`TEST_DATABASE_URL` and `COSTURA_API_URL` commented out because the compose file sets them,
+prints the administrator secret once, and refuses to overwrite an existing `.env`. With
+`--google-client-id <id>` it also writes the Google client; the secret comes from
+`GOOGLE_CLIENT_SECRET` in the environment or a hidden prompt, so it stays out of the shell
+history. Then go to [Start](#start). The rest of this section
 is what it does, for a `.env` written by hand (`cp .env.example .env`).
 
 `COSTURA_VERSION` in `.env.example` is already the release of that tag. Generate the
@@ -116,7 +128,8 @@ Pick one sign-in method. Production refuses to start without one.
   `COSTURA_WEB_ORIGIN=http://localhost`, and `COSTURA_WEB_PUBLIC_URL=http://localhost`.
   Sign in with that e-mail and secret, then create the organization. This is not a public
   sign-up.
-- Google. Set `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET`, and `COSTURA_WEB_PUBLIC_URL` to the
+- Google. `just prod::init --host <name> --google-client-id <id>` sets all of this. By hand:
+  set `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET`, and `COSTURA_WEB_PUBLIC_URL` to the
   https origin browsers use (`https://costura.example.com`). The callback is
   `{COSTURA_WEB_PUBLIC_URL}/api/auth/google/callback`. Set `COSTURA_SITE_ADDRESS` to that
   hostname with no scheme. Caddy obtains the certificate itself. `COSTURA_WEB_ORIGIN` is the

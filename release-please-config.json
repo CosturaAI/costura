@@ -30,6 +30,14 @@
         {
           "type": "generic",
           "path": "skills/costura/SKILL.md"
+        },
+        {
+          "type": "generic",
+          "path": "docs/operations/install.md"
+        },
+        {
+          "type": "generic",
+          "path": "docs/operations/upgrade.md"
         }
       ]
     }

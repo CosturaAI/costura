@@ -11,23 +11,27 @@ migrations, such as a new required variable.
 
 From the repository root:
 
+<!-- x-release-please-start-version -->
+
 ```
 # 1. Note the release you are leaving, and take a backup.
 grep '^COSTURA_VERSION=' .env
 just prod::backup "costura-$(date -u +%Y%m%dT%H%M%SZ).dump"
 
 # 2. Check out the new release's compose file and recipes.
-git fetch --tags && git checkout v0.2.0
+git fetch --tags && git checkout v0.2.1
 
 # 3. Verify that GitHub Actions in this repository built the published images.
 for image in api web proxy; do
-  gh attestation verify "oci://ghcr.io/costuraai/costura-$image:0.2.0" --owner CosturaAI
+  gh attestation verify "oci://ghcr.io/costuraai/costura-$image:0.2.1" --owner CosturaAI
 done
 
 # 4. Set the release you are moving to in .env, then pull, migrate and restart.
-#    COSTURA_VERSION=0.2.0
+#    COSTURA_VERSION=0.2.1
 just prod::up
 ```
+
+<!-- x-release-please-end -->
 
 `gh attestation verify` checks the provenance that
 [`publish-images.yml`](../../.github/workflows/publish-images.yml) attached to each image

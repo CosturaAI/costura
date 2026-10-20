@@ -12,7 +12,7 @@ variable empty or unset. "Required" means production refuses to start without it
 
 | Variable                      | Read by                            | Compose default | Notes                                                                                                                    |
 | ----------------------------- | ---------------------------------- | --------------- | ------------------------------------------------------------------------------------------------------------------------ |
-| `COSTURA_VERSION`             | compose (image tags)               | required        | Release to run, such as `0.1.0`. `latest` is not supported.                                                              |
+| `COSTURA_VERSION`             | compose (image tags)               | required        | Release to run, without the `v`; `.env.example` holds the checkout's own release. `latest` is not supported.                                                              |
 | `POSTGRES_DB`                 | postgres, migrate, compose         | required        | Database name.                                                                                                           |
 | `POSTGRES_USER`               | postgres, migrate, backup, restore | required        | Schema owner; used only by the migration and by backup and restore.                                                      |
 | `POSTGRES_PASSWORD`           | postgres, migrate                  | required        | Owner password. Letters, digits, `_-.`; not `costura`.                                                                   |

@@ -10,7 +10,10 @@ pull request titled `chore(main): release X.Y.Z` that bumps
 [`apps/api/uv.lock`](../apps/api/uv.lock),
 [`.release-please-manifest.json`](../.release-please-manifest.json), `COSTURA_VERSION` in
 [`.env.example`](../.env.example), the skill version in
-[`skills/costura/SKILL.md`](../skills/costura/SKILL.md), and [`CHANGELOG.md`](../CHANGELOG.md).
+[`skills/costura/SKILL.md`](../skills/costura/SKILL.md), the release between the
+`x-release-please-start-version` markers in
+[`docs/operations/install.md`](operations/install.md) and
+[`docs/operations/upgrade.md`](operations/upgrade.md), and [`CHANGELOG.md`](../CHANGELOG.md).
 Nobody edits those versions or the changelog by hand. Before the first release they read
 `0.0.0` and `CHANGELOG.md` is empty; `initial-version` in
 [`release-please-config.json`](../release-please-config.json) makes the first release `0.1.0`,
