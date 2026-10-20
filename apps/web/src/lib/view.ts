@@ -3,6 +3,7 @@ import { cache } from "react";
 
 import { ApiError, api, type Organization, type ProviderInfo } from "@/lib/api";
 import { ALL, PROVIDERS } from "@/lib/providers";
+import { readSessionToken } from "@/lib/session-cookie";
 import { readViewCookie } from "@/lib/view-cookie";
 import { currentMonth } from "@/lib/setup";
 import {
@@ -72,7 +73,7 @@ function resolveMonth(
 
 export const requireView = cache(async (overrides: ViewOverrides = {}): Promise<View> => {
   const cookie = await readViewCookie();
-  if (cookie === null) redirect("/");
+  if (cookie === null) redirect((await readSessionToken()) === null ? "/sign-in" : "/");
   const provider = resolveScope(cookie.scope);
   let organization: Organization;
   let months: string[];

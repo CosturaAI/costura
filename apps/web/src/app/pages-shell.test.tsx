@@ -580,6 +580,14 @@ describe("scope layout", () => {
     expect(screen.getByRole("combobox", { name: "Provider" })).toHaveTextContent("All providers");
   });
 
+  it("sends a visitor without a session or a view cookie to sign in, not back to /", async () => {
+    page.view = null;
+    page.sessionToken = null;
+    await expect(ScopeLayout({ children: null })).rejects.toThrow(/^NEXT_REDIRECT \/sign-in$/);
+    page.sessionToken = "tok-1";
+    await expect(ScopeLayout({ children: null })).rejects.toThrow(/^NEXT_REDIRECT \/$/);
+  });
+
   it("goes back to / without a view cookie or with an organization the API does not know", async () => {
     page.view = null;
     await expect(ScopeLayout({ children: null })).rejects.toThrow("NEXT_REDIRECT /");
