@@ -78,8 +78,9 @@ Operational scripts that span the API and the web app.
   source files missing from the coverage reports.
 - `check-api-package.py` (`just api::package-check`) installs the built wheel in a clean
   environment and imports it outside the source tree.
-- `update-migration-inventory.py` (`just api::revision`) rewrites the Alembic revision lists
-  in the READMEs between their marker comments.
+- `update-migration-inventory.py` (`just api::migration-inventory`, also run by
+  `just api::revision`) rewrites the Alembic revision lists in the READMEs between their
+  marker comments.
 - `build-llms-txt.py` (`just docs::llms`) writes `llms.txt` at the repository root from the
   first heading and first paragraph of every `docs/**/*.md` page plus `README.md`,
   `CONTRIBUTING.md`, `SECURITY.md` and `SUPPORT.md`, grouped by directory, in the

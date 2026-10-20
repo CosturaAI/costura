@@ -56,10 +56,18 @@ function titleAttributes(file: string): string[] {
 describe("title attributes", () => {
   it("carry no information a reader needs, per apps/web/AGENTS.md", () => {
     const counts: Record<string, number> = {};
-    for (const hit of sources(SRC).flatMap(titleAttributes)) {
+    const hits = sources(SRC).flatMap(titleAttributes);
+    for (const hit of hits) {
       const file = hit.slice(0, hit.lastIndexOf(":"));
       counts[file] = (counts[file] ?? 0) + 1;
     }
-    expect(counts).toEqual(ALLOWED);
+    const changed = hits.filter((hit) => {
+      const file = hit.slice(0, hit.lastIndexOf(":"));
+      return counts[file] !== ALLOWED[file];
+    });
+    expect(
+      counts,
+      `move the text into visible copy or MethodHint, or update ALLOWED when the title repeats visible text: ${changed.join(", ")}`,
+    ).toEqual(ALLOWED);
   });
 });
