@@ -20,6 +20,7 @@ scripts/smoke-env.sh:generic-password:14
 # The literal production startup and the app-role grant script reject (`costura`), not a
 # credential: apps/api/costura/config.py::_database_password and
 # apps/api/costura/ops/db_roles.py::grant_runtime_role.
+apps/api/costura/config.py:generic-password:216
 apps/api/costura/config.py:generic-password:218
 apps/api/costura/ops/db_roles.py:generic-password:22
 
