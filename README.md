@@ -77,7 +77,11 @@ mise install
 just dev
 ```
 
-Without activating mise, the second command is `mise exec -- just dev`.
+Without activating mise, the second command is `mise exec -- just dev`. Without installing
+anything, open the repository in a
+[dev container](https://code.visualstudio.com/docs/devcontainers/containers) or
+[GitHub Codespaces](https://codespaces.new/CosturaAI/costura): `.devcontainer/` installs the
+`mise.toml` tools and runs `just setup`, so its terminal needs only `just dev`.
 
 `just dev` runs `just setup` first: it copies `.env.example` to `.env` when missing, generates
 `COSTURA_SECRET_KEY` when it is empty, and installs the dependencies and the git hooks. It

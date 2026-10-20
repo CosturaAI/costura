@@ -52,7 +52,7 @@ updates:
       include: "scope"
 
   - package-ecosystem: "docker"
-    directories: ["/apps/api", "/apps/web", "/deploy"]
+    directories: ["/apps/api", "/apps/web", "/deploy", "/.devcontainer"]
     schedule:
       interval: "weekly"
       day: "monday"
@@ -74,6 +74,19 @@ updates:
       day: "monday"
     groups:
       compose:
+        patterns: ["*"]
+        update-types: ["major", "minor", "patch"]
+    commit-message:
+      prefix: "chore"
+      include: "scope"
+
+  - package-ecosystem: "devcontainers"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+      day: "monday"
+    groups:
+      devcontainers:
         patterns: ["*"]
         update-types: ["major", "minor", "patch"]
     commit-message:

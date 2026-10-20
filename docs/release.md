@@ -93,6 +93,12 @@ security updates published after that digest; the weekly Images run and every De
 digest bump rebuild it, and Trivy scans the result. A release image is reproducible from its
 published digest, not from the Dockerfile alone.
 
+The devcontainer installs mise from a release binary checked against a SHA-256 in
+[`.devcontainer/Dockerfile`](../.devcontainer/Dockerfile). Dependabot updates that file's
+`FROM` digest and the Docker-in-Docker feature digest in `devcontainer.json`, not
+`MISE_VERSION`: bump it and both checksums by hand from the release's `SHASUMS256.txt`
+(`gh api repos/jdx/mise/releases/latest --jq .tag_name`).
+
 Dependabot updates the `FROM` digests in [`deploy/proxy.Dockerfile`](../deploy/proxy.Dockerfile),
 not the arguments of its `xcaddy build` line. When Caddy or `golang.org/x/net` ships a
 release, or the image scan names one of them, bump `v2.11.7` (and the matching

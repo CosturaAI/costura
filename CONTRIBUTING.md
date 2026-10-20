@@ -35,6 +35,11 @@ Sign in at `http://127.0.0.1:3000/sign-in` with any e-mail on a local stack.
 [Troubleshooting](docs/operations/troubleshooting.md#local-development) covers each doctor
 message.
 
+`.devcontainer/` is the same setup with nothing installed on the host: VS Code Dev
+Containers or GitHub Codespaces build it (Ubuntu 24.04, Docker in Docker, mise), run
+`mise install` and `just setup`, and forward ports 3000 and 8000; then run `just dev` in its
+terminal.
+
 Fork the repository, branch from `main`, and rebase on `main` before asking for review.
 One pull request is one change.
 
