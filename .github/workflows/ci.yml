@@ -15,6 +15,26 @@ concurrency:
   cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
 jobs:
+  changes:
+    name: Changed files
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    permissions:
+      contents: read
+    outputs:
+      code: ${{ steps.classify.outputs.code }}
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+          fetch-depth: 2
+      - name: Classify the changed files
+        id: classify
+        env:
+          BEFORE_SHA: ${{ github.event.before }}
+        run: scripts/ci-changes.sh
+
   secret-history:
     name: Secret scan of the git history
     runs-on: ubuntu-24.04
@@ -67,9 +87,13 @@ jobs:
         run: just check
       - name: Run the API tests that need no database
         run: just api::test-unit
+      - name: Check that llms.txt matches the documentation
+        run: just docs::check-llms
 
   application-tests:
     name: API and web tests
+    needs: changes
+    if: needs.changes.outputs.code == 'true'
     runs-on: ubuntu-24.04
     timeout-minutes: 25
     permissions:
@@ -130,6 +154,8 @@ jobs:
 
   web-build:
     name: Next.js production build
+    needs: changes
+    if: needs.changes.outputs.code == 'true'
     runs-on: ubuntu-24.04
     timeout-minutes: 15
     permissions:
@@ -171,6 +197,8 @@ jobs:
 
   migration-check:
     name: Migration parity
+    needs: changes
+    if: needs.changes.outputs.code == 'true'
     runs-on: ubuntu-24.04
     timeout-minutes: 15
     permissions:
@@ -207,7 +235,8 @@ jobs:
 
   browser-tests:
     name: Playwright browser tests
-    needs: web-build
+    needs: [changes, web-build]
+    if: needs.changes.outputs.code == 'true'
     runs-on: ubuntu-24.04
     timeout-minutes: 20
     permissions:
@@ -266,7 +295,8 @@ jobs:
 
   demo-browser-tests:
     name: Playwright sample organization
-    needs: web-build
+    needs: [changes, web-build]
+    if: needs.changes.outputs.code == 'true'
     runs-on: ubuntu-24.04
     timeout-minutes: 30
     permissions:
@@ -324,6 +354,8 @@ jobs:
 
   package-install:
     name: API package install
+    needs: changes
+    if: needs.changes.outputs.code == 'true'
     runs-on: ubuntu-24.04
     timeout-minutes: 15
     permissions:
@@ -343,7 +375,8 @@ jobs:
 
   install-smoke:
     name: Install smoke
-    needs: web-build
+    needs: [changes, web-build]
+    if: needs.changes.outputs.code == 'true'
     runs-on: ubuntu-24.04
     timeout-minutes: 25
     permissions:
@@ -383,6 +416,8 @@ jobs:
 
   security-scan:
     name: Security scan
+    needs: changes
+    if: needs.changes.outputs.code == 'true'
     runs-on: ubuntu-24.04
     timeout-minutes: 15
     permissions:

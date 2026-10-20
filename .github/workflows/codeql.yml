@@ -17,9 +17,30 @@ concurrency:
   cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
 jobs:
+  changes:
+    name: Changed files
+    if: ${{ !github.event.repository.private }}
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    permissions:
+      contents: read
+    outputs:
+      code: ${{ steps.classify.outputs.code }}
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+          fetch-depth: 2
+      - name: Classify the changed files
+        id: classify
+        env:
+          BEFORE_SHA: ${{ github.event.before }}
+        run: scripts/ci-changes.sh
+
   analyze:
     name: Analyze (${{ matrix.language }})
-    if: ${{ !github.event.repository.private }}
+    needs: changes
     runs-on: ubuntu-24.04
     timeout-minutes: 25
     permissions:
@@ -38,15 +59,18 @@ jobs:
             build-mode: none
     steps:
       - name: Check out repository
+        if: needs.changes.outputs.code == 'true'
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           persist-credentials: false
       - name: Initialize CodeQL
+        if: needs.changes.outputs.code == 'true'
         uses: github/codeql-action/init@6f2ac81f5cd81fe351a197ba0b00d91d03cd2aee # v4.39.0
         with:
           languages: ${{ matrix.language }}
           build-mode: ${{ matrix.build-mode }}
       - name: Analyze
+        if: needs.changes.outputs.code == 'true'
         uses: github/codeql-action/analyze@6f2ac81f5cd81fe351a197ba0b00d91d03cd2aee # v4.39.0
         with:
           category: "/language:${{ matrix.language }}"

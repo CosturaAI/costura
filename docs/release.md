@@ -39,9 +39,9 @@ and release-please writes the changelog heading with that first section.
 4. [`.github/workflows/publish-images.yml`](../.github/workflows/publish-images.yml) builds
    and pushes `ghcr.io/costuraai/costura-{api,web,proxy}:X.Y.Z` (and `:latest`) with SBOM
    and provenance. Pull-request image scans are a different workflow,
-   [`.github/workflows/images.yml`](../.github/workflows/images.yml): they run on `main`,
-   weekly, and on pull requests that touch `apps/api/**`, `apps/web/**`, `deploy/**`,
-   `docker-compose.prod.yml`, the mise pins, the production smoke scripts, or
+   [`.github/workflows/images.yml`](../.github/workflows/images.yml): they run weekly, and
+   on pushes to `main` and pull requests that touch `apps/api/**`, `apps/web/**`,
+   `deploy/**`, `docker-compose.prod.yml`, the mise pins, the production smoke scripts, or
    `.just/prod.just`. A change to `COSTURA_DEMO_REFRESH` in that compose file is already
    on this path list. The variable defaults to `false` and is forwarded to the scheduler.
 5. The last job of Publish images, "Published images smoke", runs after the tags move. It

@@ -3,6 +3,17 @@ name: Images
 on:
   push:
     branches: [main]
+    paths:
+      - "apps/api/**"
+      - "apps/web/**"
+      - "deploy/**"
+      - "docker-compose.prod.yml"
+      - "mise.lock"
+      - "mise.toml"
+      - "scripts/smoke-env.sh"
+      - "scripts/smoke-prod.sh"
+      - ".just/prod.just"
+      - ".github/workflows/images.yml"
   schedule:
     - cron: "20 7 * * 1"
   pull_request:

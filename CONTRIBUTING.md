@@ -57,7 +57,10 @@ commit only reviewed PNGs.
 `just coverage-core` also
 checks branch coverage and rejects source files missing from the reports. `just fix` applies
 the formatters. A pull request also needs the CI checks in `.github/workflows/` to pass. Do not add a secret, a
-private URL, or a workflow that calls a private service.
+private URL, or a workflow that calls a private service. A pull request that changes only
+documentation (`docs/`, `llms.txt`, Markdown outside `apps/`, the issue and discussion
+templates) runs the quality, secret, title and dependency checks; the test, build, scan and
+CodeQL jobs report as skipped (`scripts/ci-changes.sh`).
 
 ## Issues
 

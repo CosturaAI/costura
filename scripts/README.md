@@ -66,4 +66,11 @@ Operational scripts that span the API and the web app.
   first heading and first paragraph of every `docs/**/*.md` page plus `README.md`,
   `CONTRIBUTING.md`, `SECURITY.md` and `SUPPORT.md`, grouped by directory, in the
   [llms.txt](https://llmstxt.org) format. `--check` exits 1 when the committed file differs
-  (`just docs::check-llms`). Standard library only.
+  (`just docs::check-llms`; CI runs it in the "Application quality" job). Standard library
+  only.
+- `ci-changes.sh` runs in the "Changed files" job of `ci.yml` and `codeql.yml`. It writes
+  `code=false` to `$GITHUB_OUTPUT` when every file a pull request or push changes is
+  documentation (`docs/**`, `llms.txt`, the `.github` issue and discussion templates, and
+  Markdown outside `apps/`), and `code=true` otherwise, on any other event, or when the
+  changed files cannot be listed. The test, build and scan jobs, and the CodeQL steps, run
+  only when it is `true`; a skipped job satisfies a required check.
