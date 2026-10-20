@@ -1,0 +1,78 @@
+groups:
+  - name: costura
+    rules:
+      - alert: CosturaApiDown
+        expr: up{job="costura"} == 0
+        for: 5m
+        labels:
+          severity: page
+        annotations:
+          summary: Prometheus cannot scrape the Costura API for 5 minutes.
+          description: Check `docker compose -f docker-compose.prod.yml ps` and the api logs.
+
+      - alert: CosturaDatabaseUnreachable
+        expr: costura_metrics_db_up == 0
+        for: 5m
+        labels:
+          severity: page
+        annotations:
+          summary: The Costura API cannot read PostgreSQL.
+          description: Check the postgres service and DATABASE_URL (docs/operations/troubleshooting.md).
+
+      - alert: CosturaWorkerDown
+        expr: time() - costura_worker_last_seen_seconds > 300 or absent(costura_worker_last_seen_seconds)
+        for: 5m
+        labels:
+          severity: page
+        annotations:
+          summary: No Costura worker heartbeat for five minutes; queued syncs are not claimed.
+          description: Check `docker compose -f docker-compose.prod.yml logs worker`.
+
+      - alert: CosturaSchedulerDown
+        expr: time() - costura_scheduler_last_seen_seconds > 300 or absent(costura_scheduler_last_seen_seconds)
+        for: 5m
+        labels:
+          severity: page
+        annotations:
+          summary: No Costura scheduler heartbeat for five minutes; the daily runs will not be enqueued.
+          description: Check `docker compose -f docker-compose.prod.yml logs scheduler`.
+
+      - alert: CosturaQueueStuck
+        expr: costura_scheduler_queue_depth{status="queued"} > 0
+        for: 1h
+        labels:
+          severity: ticket
+        annotations:
+          summary: Costura sync runs have waited an hour and no worker claims them.
+
+      - alert: CosturaSyncFailed
+        expr: increase(costura_scheduler_runs{status="failed"}[1h]) > 0
+        labels:
+          severity: ticket
+        annotations:
+          summary: A Costura sync cycle failed in the last hour.
+          description: The run's steps are on the Setup page and in the worker log.
+
+      - alert: CosturaProviderStale
+        expr: time() - costura_provider_last_success_timestamp_seconds > 129600
+        labels:
+          severity: ticket
+        annotations:
+          summary: "{{ $labels.provider }} for {{ $labels.org }} has not synced for 36 hours."
+          description: The Setup page of that organization names the failed step.
+
+      - alert: CosturaWebhookFailed
+        expr: increase(costura_webhook_deliveries{status="failed"}[1h]) > 0
+        labels:
+          severity: ticket
+        annotations:
+          summary: A Costura signal was not posted after five attempts.
+          description: Settings, Anomalies lists the last error of each delivery and can resend it.
+
+      - alert: CosturaRateLimited
+        expr: sum(rate(costura_http_requests_total{status="429"}[15m])) > 0.1
+        for: 15m
+        labels:
+          severity: ticket
+        annotations:
+          summary: Clients hit COSTURA_RATE_LIMIT_* for 15 minutes.

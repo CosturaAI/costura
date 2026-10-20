@@ -117,6 +117,7 @@ replica each, from `docker-compose.prod.yml`.
 | Every environment variable | [docs/operations/configuration.md](docs/operations/configuration.md) |
 | Upgrade | [docs/operations/upgrade.md](docs/operations/upgrade.md) |
 | Backup and restore | [docs/operations/backup-restore.md](docs/operations/backup-restore.md) |
+| Secret rotation | [docs/operations/secret-rotation.md](docs/operations/secret-rotation.md) |
 | Monitoring | [docs/operations/monitoring.md](docs/operations/monitoring.md) |
 | Troubleshooting and error codes | [docs/operations/troubleshooting.md](docs/operations/troubleshooting.md), [docs/operations/errors.md](docs/operations/errors.md) |
 | Webhooks | [docs/operations/webhooks.md](docs/operations/webhooks.md) |

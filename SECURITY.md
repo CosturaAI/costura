@@ -51,4 +51,6 @@ A leaked session is revoked with `DELETE /api/v1/auth/sessions` as that user, or
 that user's rows in `sessions`. Replace a leaked `COSTURA_OPERATOR_SECRET` in `.env` (at least
 24 characters), restart the API, and revoke sessions already opened with it. Stop the worker
 as well when the database or `COSTURA_SECRET_KEY` was exposed. The trust boundaries and asset
-protections are in [docs/security/threat-model.md](docs/security/threat-model.md).
+protections are in [docs/security/threat-model.md](docs/security/threat-model.md); the
+routine rotation of each secret is in
+[docs/operations/secret-rotation.md](docs/operations/secret-rotation.md).

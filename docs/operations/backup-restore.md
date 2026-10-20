@@ -8,6 +8,13 @@ Provider credentials in the dump stay encrypted. Copy `COSTURA_SECRET_KEY` to a 
 place from the dump. A restore without that same key starts the API and then fails when it
 tries to decrypt a provider key; `just prod::restore` runs the check that catches this.
 
+The two Caddy volumes, `costura_caddy_data` and `costura_caddy_config`, hold the ACME account
+and the certificates; the backup leaves them out. A host restored without them obtains new
+certificates on its first start, which counts against the certificate authority's rate
+limits (for Let's Encrypt, five certificates for the same hostname per week). Copy
+`costura_caddy_data` with the host's volume backup if the stack is rebuilt more often than
+that.
+
 Commands run inside the Postgres container as the schema owner (`POSTGRES_USER`) and use
 that container's `POSTGRES_DB`. Do not `source .env`.
 

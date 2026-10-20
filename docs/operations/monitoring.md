@@ -63,7 +63,8 @@ PostgreSQL at scrape time, so they include the worker's and the scheduler's work
 A path that matches no route is counted as `unmatched`, so scanning random URLs adds one
 series. Histogram buckets end at 0.025, 0.05, 0.1, 0.25, 0.5, 1, 2.5, 5 and 10 seconds.
 
-Starting points for alerts:
+Starting points for alerts; [`examples/prometheus/alerts.yml`](../../examples/prometheus/alerts.yml)
+has them as Prometheus rules:
 
 - `time() - costura_worker_last_seen_seconds > 300`: no worker heartbeat for five minutes.
 - `time() - costura_scheduler_last_seen_seconds > 300`: no scheduler heartbeat; the daily
@@ -71,8 +72,9 @@ Starting points for alerts:
 - `time() - costura_provider_last_success_timestamp_seconds > 129600` (36 hours): a provider
   of that organization has not synced since the last daily pass. The Setup page names the
   failed step.
-- `count by (version) (costura_build_info)` above 1 after an upgrade: a process still runs
-  the previous release. `/health` returns the same `version`.
+- `costura_build_info{version}` names the release the API process runs, the same `version`
+  as `/health`. The worker and the scheduler do not export theirs; after an upgrade,
+  `docker compose -f docker-compose.prod.yml ps` shows the image each service runs.
 - `costura_scheduler_queue_depth{status="queued"} > 0` for an hour: rows wait and no worker claims them.
 - An increase of `costura_scheduler_runs{status="failed"}`: a sync cycle failed. The run's
   steps are on the Setup page and in the worker log.
@@ -86,6 +88,12 @@ Starting points for alerts:
   `Retry-After` with the same seconds.
 
 ## Logs
+
+Docker keeps each service's output with the `json-file` driver, at most five files of 50 MB
+(`x-logging` in `docker-compose.prod.yml`), so the seven services hold up to 1.75 GB and the
+oldest lines are dropped first. To keep logs longer or search them centrally, ship them from
+the host (a collector reading the Docker log files, or another `logging` driver in a Compose
+override).
 
 `COSTURA_LOG_LEVEL` sets the threshold for the `costura` loggers (default `INFO`). In
 production each line is one JSON object with `ts`, `level`, `logger` and `message`:

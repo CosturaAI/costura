@@ -4,6 +4,7 @@ import json
 import logging
 import re
 from datetime import UTC, datetime, timedelta
+from pathlib import Path
 
 from fastapi.testclient import TestClient
 from sqlalchemy import select
@@ -92,6 +93,13 @@ def test_metrics_collapse_unrouted_paths(client: TestClient, db_session: Session
     body = client.get("/metrics").text
     assert 'costura_http_requests_total{method="GET",route="unmatched",status="404"} 2' in body
     assert "/nope-1" not in body
+
+
+def test_the_example_alerts_use_only_exported_metrics(client: TestClient) -> None:
+    rules = (Path(__file__).resolve().parents[3] / "examples/prometheus/alerts.yml").read_text()
+    used = set(re.findall(r"\bcostura_[a-z_]+", rules))
+    exported = set(re.findall(r"^# TYPE (\S+)", client.get("/metrics").text, flags=re.M))
+    assert used and used <= exported
 
 
 def test_metrics_label_routes_without_the_api_prefix(client: TestClient) -> None:
