@@ -22,7 +22,7 @@ This install is `docker-compose.prod.yml`.
 <!-- x-release-please-start-version -->
 
 Published images live at `ghcr.io/costuraai/costura-{api,web,proxy}`, one tag per release
-(`0.2.1`). `latest` follows the newest release and is not a supported install: pin the
+(`0.3.0`). `latest` follows the newest release and is not a supported install: pin the
 version.
 
 <!-- x-release-please-end -->
@@ -48,7 +48,7 @@ from GHCR, so the host needs no clone, no `just` and no development tools:
 <!-- x-release-please-start-version -->
 
 ```
-v=0.2.1
+v=0.3.0
 curl -fsSLO "https://github.com/CosturaAI/costura/releases/download/v$v/costura-$v.tar.gz"
 curl -fsSLO "https://github.com/CosturaAI/costura/releases/download/v$v/costura-$v.tar.gz.sha256"
 sha256sum -c "costura-$v.tar.gz.sha256" && tar -xzf "costura-$v.tar.gz" && cd "costura-$v"
@@ -70,7 +70,7 @@ From a checkout of the release tag:
 
 ```
 git clone https://github.com/CosturaAI/costura.git && cd costura
-git checkout v0.2.1
+git checkout v0.3.0
 just prod::init --email you@example.com                          # http://localhost trial
 just prod::init --email you@example.com --host costura.example.com
 ```
