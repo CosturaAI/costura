@@ -47,7 +47,10 @@ origin as the address in the browser ([configuration](configuration.md#addresses
 The log line starts with `refusing to start:` and lists each problem: no sign-in method
 (operator pair with a secret of at least 24 characters, or Google), a missing or invalid
 `COSTURA_SECRET_KEY`, the example database password, or Google configured without an https
-`COSTURA_WEB_PUBLIC_URL`. `docker compose -f docker-compose.prod.yml logs api` shows it.
+`COSTURA_WEB_PUBLIC_URL`. A value the settings cannot parse, such as `COSTURA_SCHEDULE_AT=6am`,
+is refused the same way before anything starts, and the API, the worker, the scheduler and the
+migration print it as one `error: refusing to start: ...` line that names the variable and
+never its value. `docker compose -f docker-compose.prod.yml logs api` shows it.
 
 ## Connecting a key fails
 

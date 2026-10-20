@@ -1,11 +1,16 @@
 """Required, allowlisted process environment configuration."""
 
+import subprocess
+
 import pytest
 from cryptography.fernet import Fernet
 from pydantic import SecretStr, ValidationError
 
 from costura.config import (
+    KEY_HINT,
+    ConfigError,
     Settings,
+    get_settings,
     production_runtime_errors,
     production_startup_errors,
     production_warnings,
@@ -218,3 +223,26 @@ def test_production_refuses_a_plain_http_provider_base_url() -> None:
     ]
     development = settings(openrouter_base_url="http://localhost:9000/api/v1")
     assert production_runtime_errors(development) == []
+
+
+def test_invalid_settings_refuse_in_one_line_without_the_values(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    monkeypatch.setenv("COSTURA_SCHEDULE_AT", "6am")
+    monkeypatch.setenv("COSTURA_BACKFILL_MONTHS", "hunter2")
+    with pytest.raises(ConfigError) as refused:
+        get_settings.__wrapped__()
+    assert str(refused.value) == (
+        "refusing to start: COSTURA_SCHEDULE_AT must be HH:MM in 24-hour UTC; "
+        "COSTURA_BACKFILL_MONTHS: Input should be a valid integer, unable to parse string as "
+        "an integer"
+    )
+    assert "6am" not in str(refused.value) and "hunter2" not in str(refused.value)
+
+
+def test_the_key_hint_command_prints_a_fernet_key() -> None:
+    command = KEY_HINT.split("development tools: ", 1)[1]
+    key = subprocess.run(
+        ["sh", "-c", command], check=True, capture_output=True, text=True
+    ).stdout.strip()
+    Fernet(key.encode("ascii"))

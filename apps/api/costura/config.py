@@ -5,7 +5,7 @@ from typing import Literal
 from urllib.parse import urlsplit
 
 from cryptography.fernet import Fernet
-from pydantic import Field, SecretStr, field_validator
+from pydantic import Field, SecretStr, ValidationError, field_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 from sqlalchemy.engine import make_url
 from sqlalchemy.exc import ArgumentError
@@ -225,6 +225,12 @@ def _database_password(url: str) -> str | None:
         return None
 
 
+KEY_HINT = (
+    "generate one with `just api::secret-generate`, or without the development tools: "
+    "openssl rand -base64 32 | tr '+/' '-_'"
+)
+
+
 def production_warnings(settings: Settings) -> list[str]:
     """What a production API should log at startup without refusing to run."""
     if settings.costura_env != "production":
@@ -258,19 +264,13 @@ def production_runtime_errors(settings: Settings) -> list[str]:
     secret = settings.costura_secret_key
     value = "" if secret is None else secret.get_secret_value().strip()
     if not value:
-        errors.append(
-            "COSTURA_SECRET_KEY is required in production; "
-            "generate one with `just api::secret-generate`"
-        )
+        errors.append("COSTURA_SECRET_KEY is required in production; " + KEY_HINT)
     else:
         try:
             Fernet(value.encode("ascii"))
         except (ValueError, TypeError) as exc:
             del exc
-            errors.append(
-                "COSTURA_SECRET_KEY is not a valid Fernet key; "
-                "generate one with `just api::secret-generate`"
-            )
+            errors.append("COSTURA_SECRET_KEY is not a valid Fernet key; " + KEY_HINT)
     previous = settings.costura_secret_key_previous
     old = "" if previous is None else previous.get_secret_value().strip()
     if old:
@@ -304,9 +304,26 @@ def production_startup_errors(settings: Settings) -> list[str]:
     return errors
 
 
+class ConfigError(RuntimeError):
+    """A configuration the process must not start with; the message is one line and names
+    variables, never their values."""
+
+
 def _refuse(errors: list[str]) -> None:
     if errors:
-        raise RuntimeError("refusing to start: " + "; ".join(errors))
+        raise ConfigError("refusing to start: " + "; ".join(errors))
+
+
+def _invalid_settings(exc: ValidationError) -> list[str]:
+    problems: list[str] = []
+    for error in exc.errors(include_input=False, include_url=False):
+        name = "_".join(str(part) for part in error["loc"]).upper()
+        if error["type"] == "missing":
+            problems.append(f"{name} is required")
+            continue
+        message = error["msg"].removeprefix("Value error, ")
+        problems.append(message if message.startswith(name) else f"{name}: {message}")
+    return problems
 
 
 def require_production_runtime(settings: Settings | None = None) -> None:
@@ -321,4 +338,8 @@ def require_production_config(settings: Settings | None = None) -> None:
 
 @lru_cache
 def get_settings() -> Settings:
-    return Settings()  # type: ignore[call-arg]
+    try:
+        return Settings()  # type: ignore[call-arg]
+    except ValidationError as exc:
+        _refuse(_invalid_settings(exc))
+        raise

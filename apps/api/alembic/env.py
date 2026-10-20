@@ -4,7 +4,7 @@ from alembic import context
 from sqlalchemy import engine_from_config, pool
 
 import costura.models  # noqa: F401  (registers tables on Base.metadata)
-from costura.config import get_settings
+from costura.config import ConfigError, get_settings
 from costura.db import Base
 
 config = context.config
@@ -12,7 +12,10 @@ config = context.config
 if config.config_file_name is not None:
     fileConfig(config.config_file_name)
 
-config.set_main_option("sqlalchemy.url", get_settings().database_url)
+try:
+    config.set_main_option("sqlalchemy.url", get_settings().database_url)
+except ConfigError as exc:
+    raise SystemExit(f"error: {exc}") from None
 
 target_metadata = Base.metadata
 

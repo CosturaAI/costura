@@ -39,6 +39,7 @@ def _sigterm_as_exception() -> Generator[None]:
 def run(operation: Callable[[], int]) -> int:
     """Run `operation` with conventional exit codes: 1 on `OperationError`, 130 on Ctrl-C and
     128 + signal number on SIGTERM. Every runner logs the way the API does."""
+    from costura.config import ConfigError
     from costura.telemetry import configure_logging
 
     try:
@@ -46,6 +47,9 @@ def run(operation: Callable[[], int]) -> int:
             configure_logging()
             return operation()
     except OperationError as exc:
+        print(f"error: {exc}", file=sys.stderr)
+        return 1
+    except ConfigError as exc:
         print(f"error: {exc}", file=sys.stderr)
         return 1
     except KeyboardInterrupt:

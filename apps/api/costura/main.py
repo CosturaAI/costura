@@ -17,7 +17,13 @@ from costura.api.access import access_middleware
 from costura.api.demo_cache import DemoCache, demo_cache_middleware, warm_forever
 from costura.api.deps import SettingsDep
 from costura.api.ratelimit import rate_limit_middleware
-from costura.config import Settings, get_settings, production_warnings, require_production_config
+from costura.config import (
+    ConfigError,
+    Settings,
+    get_settings,
+    production_warnings,
+    require_production_config,
+)
 from costura.db import get_engine
 from costura.errors import DomainError
 from costura.metrics import metrics_response
@@ -136,4 +142,7 @@ def metrics() -> PlainTextResponse:
     return metrics_response()
 
 
-app = create_app()
+try:
+    app = create_app()
+except ConfigError as exc:
+    raise SystemExit(f"error: {exc}") from None

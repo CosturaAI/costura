@@ -12,7 +12,7 @@ from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from costura import ops, secrets
-from costura.config import get_settings
+from costura.config import ConfigError, get_settings
 from costura.ops import scheduler as scheduler_runner
 from costura.ops import secret
 from costura.providers.anthropic.client import AnthropicAdminClient
@@ -37,6 +37,7 @@ def _client(key: str) -> AnthropicAdminClient:
         (KeyboardInterrupt(), 130, "interrupted"),
         (ops.TerminationSignal(signal.SIGTERM), 143, "terminated by signal 15"),
         (ops.OperationError("bad input"), 1, "error: bad input"),
+        (ConfigError("refusing to start: COSTURA_ENV is required"), 1, "error: refusing to start"),
     ],
 )
 def test_run_uses_conventional_exit_codes(
