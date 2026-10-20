@@ -1,10 +1,11 @@
 """Scalar parsing shared by all provider normalizers."""
 
 from datetime import UTC, datetime
+from decimal import Decimal
 
 import pytest
 
-from costura.providers.lines import NormalizeError
+from costura.providers.lines import CostLine, NormalizeError, aggregate_cost_lines, parse_timestamp
 from costura.providers.normalization import optional_text, rfc3339, unix_seconds
 
 
@@ -33,3 +34,53 @@ def test_rfc3339_requires_timezone_and_normalizes_to_utc() -> None:
     assert rfc3339(aware) == "2026-10-10T08:30:00Z"
     with pytest.raises(ValueError, match="timezone-aware"):
         rfc3339(datetime(2026, 10, 10))
+
+
+@pytest.mark.parametrize(
+    "value,match",
+    [
+        (123, "timestamp is not a string"),
+        ("2026-10-10T10:30:00", "timestamp has no timezone"),
+    ],
+)
+def test_parse_timestamp_errors(value: object, match: str) -> None:
+    with pytest.raises(NormalizeError, match=match):
+        parse_timestamp(value, field="timestamp")
+
+
+def test_aggregate_cost_lines_mixed_currencies() -> None:
+    dt = datetime(2026, 1, 1, tzinfo=UTC)
+    line1 = CostLine(
+        period_start=dt,
+        period_end=dt,
+        workspace_id=None,
+        description="test",
+        cost_type="api",
+        model=None,
+        token_type=None,
+        service_tier=None,
+        context_window=None,
+        inference_geo=None,
+        amount=Decimal("1.00"),
+        currency="USD",
+        raw_amount_minor="100",
+        provider="test",
+    )
+    line2 = CostLine(
+        period_start=dt,
+        period_end=dt,
+        workspace_id=None,
+        description="test",
+        cost_type="api",
+        model=None,
+        token_type=None,
+        service_tier=None,
+        context_window=None,
+        inference_geo=None,
+        amount=Decimal("1.00"),
+        currency="EUR",
+        raw_amount_minor="100",
+        provider="test",
+    )
+    with pytest.raises(NormalizeError, match="mixed currencies for one key"):
+        aggregate_cost_lines([line1, line2])
