@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.2.1](https://github.com/CosturaAI/costura/compare/v0.2.0...v0.2.1) (2026-10-20)
+
+
+### Bug Fixes
+
+* **web:** end the cookie-less redirect loop of the public demo home ([41ce5d2](https://github.com/CosturaAI/costura/commit/41ce5d2f1c4c2c55dde0fa4fbcbefba7932bcf78))
+
 ## [0.2.0](https://github.com/CosturaAI/costura/compare/v0.1.0...v0.2.0) (2026-10-20)
 
 
