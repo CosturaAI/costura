@@ -499,7 +499,7 @@ export function Sidebar({ account, badges = {}, user, brandName }: SidebarProps)
       data-sidebar-rail=""
       data-collapsed={collapsed || undefined}
       className={cn(
-        "sticky top-0 hidden h-dvh shrink-0 flex-col border-r border-border bg-card lg:flex print:hidden",
+        "sticky top-(--public-demo-bar) hidden h-[calc(100dvh-var(--public-demo-bar))] shrink-0 flex-col border-r border-border bg-card lg:flex print:hidden",
         collapsed ? "w-14" : "w-60",
       )}
     >

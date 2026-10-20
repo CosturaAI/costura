@@ -197,7 +197,8 @@ never uses it. With `COSTURA_DEMO_WARM_URL=http://web:3000`, the API renders the
 main pages through the web app when it starts, then checks every 30 seconds and renders them
 again when one of those three changes, so the first visitor reads a filled cache. A host
 that exists to show the sample sets `COSTURA_PUBLIC_DEMO_HOME=true`: `/` without a session
-then opens the sample instead of the sign-in page.
+then opens the sample instead of the sign-in page, and a band pinned above every page links
+to the GitHub repository.
 
 `just prod::tieout-report --org <slug> [--months N]` prints each provider's reconciliation
 verdicts for the newest months as percentages, with no amount, key, workspace or e-mail, so

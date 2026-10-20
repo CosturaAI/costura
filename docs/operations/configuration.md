@@ -106,12 +106,12 @@ production each one must start with `https://`, or every process refuses to star
 
 ## Appearance
 
-| Variable                   | Read by | Compose default | Notes                                                                 |
-| -------------------------- | ------- | --------------- | --------------------------------------------------------------------- |
-| `COSTURA_THEME`            | web     | `costura`       | Theme file stem in `apps/web/src/themes`.                             |
-| `COSTURA_COLOR_SCHEME`     | web     | `light`         | `light`, `dark` or `system`.                                          |
-| `COSTURA_BRAND_NAME`       | web     | `Costura`       | Name in the sidebar and the document title.                           |
-| `COSTURA_PUBLIC_DEMO_HOME` | web     | `false`         | `true` sends `/` without a session to the public sample, not sign-in. |
+| Variable                   | Read by | Compose default | Notes                                                                   |
+| -------------------------- | ------- | --------------- | ----------------------------------------------------------------------- |
+| `COSTURA_THEME`            | web     | `costura`       | Theme file stem in `apps/web/src/themes`.                               |
+| `COSTURA_COLOR_SCHEME`     | web     | `light`         | `light`, `dark` or `system`.                                            |
+| `COSTURA_BRAND_NAME`       | web     | `Costura`       | Name in the sidebar and the document title.                             |
+| `COSTURA_PUBLIC_DEMO_HOME` | web     | `false`         | `true`: `/` without a session opens the sample; a band links to GitHub. |
 
 ## Development only
 

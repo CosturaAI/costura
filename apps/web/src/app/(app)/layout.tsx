@@ -89,7 +89,7 @@ export default async function ScopeLayout({ children }: { children: React.ReactN
     <div className="flex min-h-dvh flex-1">
       <Sidebar account={account} badges={badges} user={user} brandName={brandName()} />
       <div className="flex min-w-0 flex-1 flex-col">
-        <header className="sticky top-0 z-20 border-b border-border bg-background/95 backdrop-blur print:hidden">
+        <header className="sticky top-(--public-demo-bar) z-20 border-b border-border bg-background/95 backdrop-blur print:hidden">
           <div className="mx-auto flex w-full max-w-screen-2xl flex-wrap items-center gap-2 px-3 py-2 sm:flex-nowrap sm:px-6">
             <MobileNav
               brandName={brandName()}

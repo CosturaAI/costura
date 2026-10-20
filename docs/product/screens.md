@@ -9,6 +9,11 @@ The sample organization is read-only, so write controls (budgets, invoice totals
 a key, connecting a provider) show their read-only notice here. In an organization with a
 key they render as forms.
 
+A deployment that sets `COSTURA_PUBLIC_DEMO_HOME=true` (the public demo) opens the sample
+from `/` and pins a band above every page, "Costura live demo", with a link to the GitHub
+repository that opens in a new tab; the header, the sidebar and the anomaly triage bar sit
+below it. The captures here are taken without it.
+
 ## Overview
 
 ![Overview](../assets/screens/overview.png)

@@ -80,7 +80,7 @@ export function BulkStatusBar({
     <form
       id={formId}
       action={action}
-      className="sticky top-14 z-10 flex flex-wrap items-center gap-3 rounded-lg border border-primary bg-accent px-4 py-2 text-sm"
+      className="sticky top-[calc(3.5rem+var(--public-demo-bar))] z-10 flex flex-wrap items-center gap-3 rounded-lg border border-primary bg-accent px-4 py-2 text-sm"
       aria-label="Bulk actions"
     >
       <ScopeInputs {...scope} />

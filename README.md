@@ -3,6 +3,7 @@
   <h1>Costura</h1>
   <p><strong>Self-hosted AI spend attribution: who spent what, per provider and per person, with totals that tie out to each provider's own report.</strong></p>
   <p>
+    <a href="https://demo.costura.ai"><strong>Live demo</strong></a> -
     <a href="#quickstart">Quickstart</a> -
     <a href="docs/operations/install.md">Install</a> -
     <a href="docs/product/screens.md">Screens</a> -
@@ -12,6 +13,7 @@
   <p>
     <a href="https://github.com/CosturaAI/costura/actions/workflows/ci.yml"><img src="https://github.com/CosturaAI/costura/actions/workflows/ci.yml/badge.svg" alt="CI status"></a>
     <a href="LICENSE"><img src="https://img.shields.io/badge/license-Apache--2.0-blue" alt="License: Apache-2.0"></a>
+    <a href="https://demo.costura.ai"><img src="https://img.shields.io/website?url=https%3A%2F%2Fdemo.costura.ai%2Fsign-in&label=demo&up_message=live&down_message=down" alt="Live demo status"></a>
   </p>
 </div>
 
@@ -20,6 +22,10 @@ daily ledger, attributes each dollar to an API key, a workspace or a person, and
 month that the stored total matches what the provider itself reports. It runs on your own
 infrastructure with Docker Compose. There is no hosted service, and nothing is sent to the
 maintainers.
+
+[demo.costura.ai](https://demo.costura.ai) runs the sample organization: a fictional company
+with thirteen months of synthetic spend across four providers, read-only and open without
+signing in.
 
 Costura is in beta. Every `0.x` release is marked as a pre-release, and interfaces, the API
 and the configuration can change between minor versions until `1.0`. Each change is listed

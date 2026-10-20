@@ -5,7 +5,10 @@ import type { Metadata } from "next";
 import localFont from "next/font/local";
 import { cookies, headers } from "next/headers";
 import Script from "next/script";
+import type { CSSProperties } from "react";
 
+import { PublicDemoBar } from "@/components/public-demo-bar";
+import { PUBLIC_DEMO_BAR_HEIGHT, isPublicDemo } from "@/lib/public-demo";
 import { brandName, themeAttribute, themeName } from "@/lib/theme";
 import { ViewportProvider } from "@/lib/viewport";
 import { VIEWPORT_COOKIE, parseViewportWidth } from "@/lib/viewport-cookie";
@@ -66,11 +69,13 @@ export default async function RootLayout({ children }: LayoutProps<"/">) {
   const nonce = (await headers()).get("x-nonce") ?? undefined;
   const width = parseViewportWidth((await cookies()).get(VIEWPORT_COOKIE)?.value);
   const extra = hostThemeCss();
+  const publicDemo = isPublicDemo();
   return (
     <html
       lang="en"
       data-theme={themeAttribute()}
       className={`${inter.variable} ${jetbrainsMono.variable} h-full`}
+      style={{ "--public-demo-bar": publicDemo ? PUBLIC_DEMO_BAR_HEIGHT : "0px" } as CSSProperties}
     >
       <body className="flex min-h-dvh flex-col">
         <Script id="sidebar-collapsed" strategy="beforeInteractive" nonce={nonce}>
@@ -83,6 +88,7 @@ export default async function RootLayout({ children }: LayoutProps<"/">) {
           Skip to content
         </a>
         {extra ? <style>{extra}</style> : null}
+        {publicDemo ? <PublicDemoBar /> : null}
         <ViewportProvider width={width}>{children}</ViewportProvider>
       </body>
     </html>

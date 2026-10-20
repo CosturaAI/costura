@@ -194,4 +194,5 @@ Environment: `COSTURA_API_URL`, plus the optional `COSTURA_THEME`, `COSTURA_COLO
 `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET` and `COSTURA_WEB_PUBLIC_URL` on the API; the web
 callback is `/api/auth/google/callback`. The web app reads no `COSTURA_ORG`: the root redirect
 follows the session and the view cookie, and without a session it opens `/sign-in`, or
-`/o/demo` when `COSTURA_PUBLIC_DEMO_HOME=true`.
+`/o/demo` when `COSTURA_PUBLIC_DEMO_HOME=true`, which also pins `PublicDemoBar` (a link to the
+GitHub repository) above every page.

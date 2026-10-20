@@ -1,6 +1,7 @@
 import { redirect } from "next/navigation";
 
 import { DEMO_ORG, api, type Organization } from "@/lib/api";
+import { isPublicDemo } from "@/lib/public-demo";
 import { readSessionToken } from "@/lib/session-cookie";
 import { readViewCookie } from "@/lib/view-cookie";
 import { landingHref, openOrgHref } from "@/lib/setup";
@@ -28,7 +29,7 @@ function homeOrganization(organizations: Organization[]): Organization | null {
  */
 export default async function Home() {
   if ((await readSessionToken()) === null) {
-    redirect(process.env.COSTURA_PUBLIC_DEMO_HOME === "true" ? `/o/${DEMO_ORG}` : "/sign-in");
+    redirect(isPublicDemo() ? `/o/${DEMO_ORG}` : "/sign-in");
   }
   const [me, view] = await Promise.all([api.me(), readViewCookie()]);
   const remembered =
