@@ -1,10 +1,13 @@
 """Per-client request limits (`costura.api.ratelimit`)."""
 
+import httpx
 import pytest
 from fastapi.testclient import TestClient
+from pydantic import SecretStr
 from sqlalchemy.orm import Session
 from starlette.requests import Request
 
+from costura import secrets
 from costura.api import ratelimit
 from costura.api.ratelimit import (
     TOO_MANY,
@@ -16,6 +19,7 @@ from costura.api.ratelimit import (
 )
 from costura.config import get_settings
 from costura.models.organization import DEMO_ORG_SLUG
+from costura.providers.anthropic.client import AnthropicAdminClient
 from tests.conftest import request_session, seed_sample
 
 
@@ -213,10 +217,19 @@ def test_key_stores_are_limited_per_organization(
     client: TestClient, monkeypatch: pytest.MonkeyPatch
 ) -> None:
     monkeypatch.setattr(get_settings(), "costura_rate_limit_connect", 2)
+    monkeypatch.setattr(get_settings(), "costura_secret_key", SecretStr(secrets.generate_key()))
+    original_init = AnthropicAdminClient.__init__
+
+    def rejecting_init(self, **kwargs):
+        kwargs["transport"] = httpx.MockTransport(
+            lambda request: httpx.Response(401, json={"error": {"message": "invalid x-api-key"}})
+        )
+        original_init(self, **kwargs)
+
+    monkeypatch.setattr(AnthropicAdminClient, "__init__", rejecting_init)
     url = "/api/v1/orgs/default/providers/anthropic/connection"
     answers = [client.put(url, json={"admin_key": "x"}) for _ in range(3)]
-    codes = [r.status_code for r in answers]
-    assert codes[:2] != [429, 429] and codes[2] == 429
+    assert [r.status_code for r in answers] == [422, 422, 429]
     # The headers describe the tightest bucket: the per-organization key store, not `write`.
     assert [r.headers["ratelimit-limit"] for r in answers] == ["2"] * 3
     assert [r.headers["ratelimit-remaining"] for r in answers] == ["1", "0", "0"]
