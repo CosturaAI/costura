@@ -43,9 +43,9 @@ dev:
     cd "{{_root}}"
     if [[ ! -f .env ]]; then
       just setup
-      exec just dev
+      COSTURA_DEV_SET_UP=1 exec just dev
     fi
-    just setup
+    [[ -n "${COSTURA_DEV_SET_UP:-}" ]] || just setup
     [[ -n "${COSTURA_SECRET_KEY:-}" ]] || unset COSTURA_SECRET_KEY
     bash scripts/doctor.sh
     just db::up
