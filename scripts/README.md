@@ -38,12 +38,15 @@ Operational scripts that span the API and the web app.
 - `prod-password.sh` runs before the production recipes. It refuses the example database
   passwords, a runtime role password shorter than 12 characters or equal to the owner's,
   and characters that break the database URL.
-- `prod-init.sh` (`just prod::init [--email you@example.com] [--host costura.example.com]`)
-  writes a production `.env` from `.env.example` with mode 600: generated
-  `COSTURA_SECRET_KEY`, database passwords and operator secret, the operator e-mail, and one
-  consistent origin for `COSTURA_SITE_ADDRESS`, `COSTURA_WEB_ORIGIN` and
-  `COSTURA_WEB_PUBLIC_URL`. It refuses to overwrite `.env`, prints the operator secret once,
-  then runs `prod-password.sh`.
+- `prod-init.sh` (`just prod::init [--email you@example.com] [--host costura.example.com]
+  [--google-client-id <id>]`) writes a production `.env` from `.env.example` with mode 600:
+  generated `COSTURA_SECRET_KEY`, database passwords and operator secret, the operator
+  e-mail, one consistent origin for `COSTURA_SITE_ADDRESS`, `COSTURA_WEB_ORIGIN` and
+  `COSTURA_WEB_PUBLIC_URL`, and the Google client when asked (the secret from
+  `GOOGLE_CLIENT_SECRET` or a hidden prompt). The variables the compose file sets
+  (`COSTURA_ENV`, `DATABASE_URL`, `TEST_DATABASE_URL`, `COSTURA_API_URL`) stay commented out.
+  It refuses to overwrite `.env`, prints the operator secret once, then runs
+  `prod-password.sh`.
 - `smoke-external-db.sh` (`just prod::smoke-external-db`) builds the production stack against
   a second PostgreSQL with a one-day generated CA: migrate, API, worker and scheduler connect
   over verified TLS as the restricted role, the bundled database stays empty, the worker runs

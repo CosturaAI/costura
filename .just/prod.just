@@ -2,7 +2,7 @@ _root := justfile_directory()
 # COSTURA_COMPOSE and COSTURA_ENV_FILE point the recipes at another project (the smoke uses them).
 _compose := env("COSTURA_COMPOSE", "docker compose -f docker-compose.prod.yml")
 
-# Write a production .env with generated secrets: just prod::init [--email you@example.com] [--host costura.example.com]
+# Write a production .env with generated secrets: just prod::init [--email you@example.com] [--host costura.example.com] [--google-client-id <id>]
 init *args:
     cd "{{_root}}" && bash scripts/prod-init.sh {{args}}
 
