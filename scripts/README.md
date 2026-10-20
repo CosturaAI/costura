@@ -69,8 +69,9 @@ Operational scripts that span the API and the web app.
   same scan in CI.
 - `doctor.sh` (`just doctor`, and the first step of `just dev`) checks that `just`, `uv`,
   `pnpm` and Node.js are on `PATH` at the `mise.toml` versions (a different `just` is a
-  warning), the Docker daemon answers, ports 8000 and 3000 are free, port 5432 is free or
-  held by this checkout's PostgreSQL, no `next dev` from this checkout holds
+  warning), the Docker daemon answers, ports 8000 and 3000 are free, the development
+  PostgreSQL port (`COSTURA_DEV_DB_PORT`, default 5432) is free or held by this checkout's
+  PostgreSQL and matches `DATABASE_URL` and `TEST_DATABASE_URL`, no `next dev` from this checkout holds
   `apps/web/.next/dev/lock`, and the `.env` key is a Fernet key when set, without printing a
   secret. A missing `.env` or an empty key is a warning.
 - `check-coverage.py` (`just coverage-core`) enforces the branch-coverage floors and fails on

@@ -22,9 +22,13 @@ below.
 - `a next dev server from this checkout is running at ... (pid N)`: Next.js allows one dev
   server per directory, whatever its port, so a second one exits and takes the stack down.
   Stop it with the `kill N` the message prints.
-- `port 5432 is held by the container costura-postgres (started from <path>)`: another
-  checkout or worktree runs its PostgreSQL under the same container name. Stop it there
-  (`docker stop costura-postgres`) or run `just dev` in that checkout.
+- `port 5432 is held by the container <name> (started from <path>)`: another checkout or
+  worktree runs its PostgreSQL. Stop it with the `docker stop` the message prints, or give
+  this checkout its own port: `COSTURA_DEV_DB_PORT=5433` in `.env`, and the same port in
+  `DATABASE_URL` and `TEST_DATABASE_URL`. Each checkout's container is named after its
+  directory (`<directory>-postgres-1`) and keeps its own data volume.
+- `DATABASE_URL uses port 5432, the development PostgreSQL listens on 5433`: `.env` sets
+  `COSTURA_DEV_DB_PORT` without the matching port in that URL.
 
 ## `just prod::up` stops before starting the stack
 

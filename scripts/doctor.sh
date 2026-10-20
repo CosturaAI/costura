@@ -69,14 +69,21 @@ if [[ -s "$lock" ]] && command -v node >/dev/null 2>&1; then
     note "a next dev server from this checkout is running at ${url:-an unknown URL} (pid $pid); stop it with: kill $pid"
   fi
 fi
-if docker info >/dev/null 2>&1 && listening 5432; then
+db_port=${COSTURA_DEV_DB_PORT:-5432}
+for name in DATABASE_URL TEST_DATABASE_URL; do
+  url=${!name:-}
+  if [[ "$url" =~ @(localhost|127\.0\.0\.1):([0-9]+)/ && "${BASH_REMATCH[2]}" != "$db_port" ]]; then
+    note "$name uses port ${BASH_REMATCH[2]}, the development PostgreSQL listens on $db_port (COSTURA_DEV_DB_PORT)"
+  fi
+done
+if docker info >/dev/null 2>&1 && listening "$db_port"; then
   if ! docker compose ps --status running --services 2>/dev/null | grep -qx postgres; then
-    holder=$(docker ps --filter publish=5432 --format '{{.Names}} {{.Label "com.docker.compose.project.working_dir"}}' 2>/dev/null | head -n 1)
+    holder=$(docker ps --filter publish="$db_port" --format '{{.Names}} {{.Label "com.docker.compose.project.working_dir"}}' 2>/dev/null | head -n 1)
     if [[ -n "$holder" ]]; then
       name=${holder%% *}
-      note "port 5432 is held by the container $name (started from ${holder#* }); stop it with: docker stop $name"
+      note "port $db_port is held by the container $name (started from ${holder#* }); stop it with: docker stop $name, or set COSTURA_DEV_DB_PORT (.env.example)"
     else
-      note "port 5432 is in use by another PostgreSQL; stop it before just dev"
+      note "port $db_port is in use by another PostgreSQL; stop it, or set COSTURA_DEV_DB_PORT (.env.example)"
     fi
   fi
 fi
