@@ -5,6 +5,8 @@
 
 # Ephemeral PostgreSQL started by `just db::up` in the CI jobs (POSTGRES_PASSWORD: costura),
 # reachable only inside the runner for the job's lifetime.
+.github/workflows/ci.yml:generic-password:82
+.github/workflows/ci.yml:generic-password:182
 .github/workflows/ci.yml:generic-password:106
 .github/workflows/ci.yml:generic-password:210
 
