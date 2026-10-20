@@ -1,5 +1,17 @@
 # Changelog
 
+## [0.2.0](https://github.com/CosturaAI/costura/compare/v0.1.0...v0.2.0) (2026-10-20)
+
+
+### Features
+
+* **demo:** serve the public sample from memory and open it at the root ([3a5037d](https://github.com/CosturaAI/costura/commit/3a5037df7c737a737eed39a6e2145191a12ff860))
+
+
+### Bug Fixes
+
+* keep the reviewed config.py ignore line for earlier commits ([befe573](https://github.com/CosturaAI/costura/commit/befe573766810d7f10c34f4b53eebb5a4a2dfe09))
+
 ## 0.1.0 (2026-10-19)
 
 
