@@ -14,7 +14,7 @@ From the repository root, check out the release and run one recipe:
 <!-- x-release-please-start-version -->
 
 ```
-git fetch --tags && git checkout v0.2.1
+git fetch --tags && git checkout v0.3.0
 just prod::upgrade
 ```
 
@@ -39,15 +39,15 @@ grep '^COSTURA_VERSION=' .env
 just prod::backup "costura-$(date -u +%Y%m%dT%H%M%SZ).dump"
 
 # 2. Check out the new release's compose file and recipes.
-git fetch --tags && git checkout v0.2.1
+git fetch --tags && git checkout v0.3.0
 
 # 3. Verify that GitHub Actions in this repository built the published images.
 for image in api web proxy; do
-  gh attestation verify "oci://ghcr.io/costuraai/costura-$image:0.2.1" --owner CosturaAI
+  gh attestation verify "oci://ghcr.io/costuraai/costura-$image:0.3.0" --owner CosturaAI
 done
 
 # 4. Set the release you are moving to in .env, then pull, migrate and restart.
-#    COSTURA_VERSION=0.2.1
+#    COSTURA_VERSION=0.3.0
 just prod::up
 ```
 
