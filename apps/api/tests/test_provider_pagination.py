@@ -78,3 +78,11 @@ def test_offset_pages_fetches_the_empty_page_after_exact_full_page() -> None:
     pages = list(offset_pages(fetch, first_index=2, page_size=2, items=lambda p: p["data"]))
     assert seen == [0, 2]
     assert [page.page_index for page in pages] == [2, 3]
+
+
+def test_clamped_windows_requires_timezone_aware_bounds() -> None:
+    start = datetime(2026, 1, 1)
+    end = datetime(2026, 1, 2, tzinfo=UTC)
+    from costura.providers.pagination import clamped_windows
+    with pytest.raises(ValueError, match="timestamps must be timezone-aware"):
+        clamped_windows(start, end, days=1)
