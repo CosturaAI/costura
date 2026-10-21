@@ -2,10 +2,12 @@
 
 from datetime import UTC, date, datetime, timedelta
 
+import pytest
 from fastapi.testclient import TestClient
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
+from costura.errors import InvalidInput
 from costura.models import AuditEvent, ProviderApiKey
 from costura.spend import snoozes
 from costura.spend.signals import collect_signals
@@ -36,6 +38,34 @@ def _orphan_key(session: Session) -> None:
 
 def _kinds(session: Session, today: date) -> set[str]:
     return {s.kind for s in collect_signals(session, ORG_ID, "anthropic", today=today)}
+
+
+def test_snooze_rejects_unsupported_kind(db_session: Session) -> None:
+    with pytest.raises(InvalidInput, match="only key gaps can be snoozed"):
+        snoozes.snooze(
+            db_session,
+            ORG_ID,
+            "anthropic",
+            kind="budget",
+            key_id="apikey_orphan",
+            days=7,
+            note=None,
+            user_id=None,
+        )
+
+
+def test_snooze_rejects_unsupported_duration(db_session: Session) -> None:
+    with pytest.raises(InvalidInput, match="snooze for 7, 30, 90 days"):
+        snoozes.snooze(
+            db_session,
+            ORG_ID,
+            "anthropic",
+            kind="no_owner",
+            key_id="apikey_orphan",
+            days=14,
+            note=None,
+            user_id=None,
+        )
 
 
 def test_a_snoozed_gap_leaves_the_queue_until_its_date(db_session: Session) -> None:
