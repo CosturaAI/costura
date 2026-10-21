@@ -17,8 +17,11 @@ below.
 - `node is 22.x, mise.toml pins ...` (or `uv`, `pnpm`): the shell resolves tools outside
   mise. Activate mise (`eval "$(mise activate zsh)"`) or run `mise exec -- just dev`.
 - `just: command not found`: mise is not active; `mise exec -- just dev` works without it.
-- `port 8000 is already in use` or `port 3000`: another stack runs. `lsof -nP -iTCP:3000
-  -sTCP:LISTEN` names the process.
+- `Docker is not installed`: install it from the Docker link in the message.
+- `the Docker daemon is not running`: start Docker Desktop or the docker service.
+- `port 8000 is already in use` or `port 3000`: another stack runs. When `lsof` is available,
+  the message names its process and PID and prints `kill <pid>` to stop it. Without `lsof`,
+  identify the listener with the host's process tools and stop that process.
 - `a next dev server from this checkout is running at ... (pid N)`: Next.js allows one dev
   server per directory, whatever its port, so a second one exits and takes the stack down.
   Stop it with the `kill N` the message prints.
