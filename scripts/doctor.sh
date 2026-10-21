@@ -50,16 +50,25 @@ for tool in just uv pnpm node; do
 done
 
 if ! command -v docker >/dev/null 2>&1; then
-  note "Docker is not installed"
+  note "Docker is not installed; install it from https://docs.docker.com/get-docker/"
 elif ! docker info >/dev/null 2>&1; then
-  note "the Docker daemon is not running"
+  note "the Docker daemon is not running; start Docker Desktop or the docker service"
 elif ! docker compose version >/dev/null 2>&1; then
   note "Docker Compose v2 is not installed (docker compose version)"
 fi
 
 for port in 8000 3000; do
   if listening "$port"; then
-    note "port $port is already in use"
+    pid=
+    if command -v lsof >/dev/null 2>&1; then
+      pid=$(lsof -nP -iTCP:"$port" -sTCP:LISTEN -t 2>/dev/null | head -n 1 || true)
+    fi
+    if [[ -n "$pid" ]]; then
+      listener=$(ps -p "$pid" -o comm= 2>/dev/null || true)
+      note "port $port is already in use by ${listener:-an unknown process} (pid $pid); stop it with: kill $pid"
+    else
+      note "port $port is already in use"
+    fi
   fi
 done
 lock=apps/web/.next/dev/lock
