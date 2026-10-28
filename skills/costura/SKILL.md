@@ -88,6 +88,8 @@ operating or changing Costura:
 | `just prod::tieout-report --org <slug>` | The tie-out report against the production database |
 | `just prod::smoke` | Build the production stack with synthetic credentials, check it, delete it |
 | `just docs::llms`, `just docs::check-llms` | Rewrite `llms.txt`; fail when it is stale |
+
+`just api::demo-status` and `just prod::demo-status` exit 1 when a refresh would change the sample organization; add `--json` to either command to print one JSON object with the same fields and exit code.
 | `just quality::workflows`, `just quality::secrets`, `just quality::vulnerabilities` | actionlint; betterleaks; Trivy |
 
 Never run more than one replica of the API, the worker or the scheduler.
