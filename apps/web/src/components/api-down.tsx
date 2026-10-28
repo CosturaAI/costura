@@ -6,6 +6,7 @@ import { startTransition } from "react";
 import { CopyDetails, type ErrorDetails } from "@/components/copy-details";
 import { Button } from "@/components/ui/button";
 import { ApiError } from "@/lib/api-error";
+import { DEMO_ORG } from "@/lib/public-demo";
 
 type BoundaryError = Error & { digest?: string };
 
@@ -15,10 +16,14 @@ function describe(error: BoundaryError): { title: string; message: string } {
   const limited =
     error instanceof ApiError ? error.status === 429 : error.message.startsWith("429 ");
   if (limited) {
-    return {
-      title: "Sample data is temporarily busy",
-      message: "This browser has reached the sample data request limit. Wait a minute, then retry.",
-    };
+    const path = error instanceof ApiError ? error.path : error.message.slice(4);
+    return path.startsWith(`/orgs/${DEMO_ORG}/`)
+      ? {
+          title: "Sample data is temporarily busy",
+          message:
+            "This browser has reached the sample data request limit. Wait a minute, then retry.",
+        }
+      : { title: "Too many requests", message: "Too many requests. Wait a minute, then retry." };
   }
   const unreachable =
     error instanceof ApiError ? error.status >= 500 : UNREACHABLE.test(error.message);

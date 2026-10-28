@@ -10,7 +10,7 @@ import type { BudgetStatuses, Usage } from "@/lib/api";
 import { entityHref } from "@/lib/dimensions";
 import { formatMonth } from "@/lib/format";
 import { MODELS_TOP } from "@/lib/overview";
-import { isAll } from "@/lib/providers";
+import { isAll, providerLabel } from "@/lib/providers";
 import { sampleCopy } from "@/lib/sample";
 import { runsAction } from "@/lib/setup";
 
@@ -85,12 +85,15 @@ export function OverviewBudgetsCard({
   currency,
   showProvider,
   isDemo,
+  provider,
 }: {
   budgets: BudgetStatuses | null;
   month: string;
   currency: string;
   showProvider: boolean;
   isDemo: boolean;
+  /** The view's scope; under one provider the card lists only that provider's budgets. */
+  provider: string;
 }) {
   return (
     <Card>
@@ -113,7 +116,9 @@ export function OverviewBudgetsCard({
           <CouldNotLoad what="the budgets" />
         ) : budgets.statuses.length === 0 ? (
           <p className="text-sm text-muted-foreground">
-            No budget set for this organization.{" "}
+            {isAll(provider)
+              ? "No budget set for this organization."
+              : `No budget for ${providerLabel(provider)}.`}{" "}
             {isDemo ? (
               sampleCopy.noBudget
             ) : (
@@ -161,7 +166,7 @@ export function OverviewModelsCard({
               label: row.label,
               amount: row.amount ?? "0.00",
               share: row.share,
-              href: entityHref("model", row.key),
+              href: entityHref("model", row.key, null, row.provider),
             }))}
           />
         ) : (

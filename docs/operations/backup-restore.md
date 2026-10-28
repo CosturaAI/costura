@@ -18,6 +18,11 @@ that.
 Commands run inside the Postgres container as the schema owner (`POSTGRES_USER`) and use
 that container's `POSTGRES_DB`. Do not `source .env`.
 
+With an external PostgreSQL (`COSTURA_DATABASE_HOST` set to a server other than `postgres`)
+the bundled container is empty, so `just prod::backup` and `just prod::restore` refuse to
+run. Use the provider's backups
+([install](install.md#a-managed-postgresql-instead-of-the-bundled-one)).
+
 ## Backup
 
 ```
@@ -92,6 +97,11 @@ then:
 just prod::restore costura.dump
 ```
 
+Before it asks or stops anything, the recipe refuses a path that is not a readable file,
+and, when `<dump>.version` exists, an Alembic revision the images of `COSTURA_VERSION` do not
+contain (`alembic show` in the `migrate` image). That error names the release in
+`<dump>.version` to set. Without `<dump>.version` it prints a warning and skips this check.
+
 An encrypted dump needs the private key: set `COSTURA_BACKUP_AGE_IDENTITY` to the key file
 and pass the `.dump.age` file. The recipe decrypts the first bytes and stops before asking
 when the key does not open the dump or the result is not a `pg_dump` archive.
@@ -112,8 +122,10 @@ webhook URLs and signing secrets) decrypted and exits non-zero when the current
 `COSTURA_SECRET_KEY` cannot read them. It does not print the keys.
 
 Restore uses the images already named by `COSTURA_VERSION`; it does not rebuild them and
-does not change `COSTURA_DEMO_REFRESH`. Start the rest of the stack with `just prod::up`
-after the check passes.
+does not change `COSTURA_DEMO_REFRESH`. It ends with the API running and the worker,
+scheduler, web app and proxy stopped, and prints `next: just prod::up`. Run that after the
+check passes to start the rest of the stack.
 
-A dump from a newer release than `COSTURA_VERSION` fails at `migrate` with an unknown
-Alembic revision. Set the newer version and run the restore again.
+A dump from a newer release than `COSTURA_VERSION` is refused before anything stops, with
+the release from `<dump>.version`. Set that version (or a later one), check out its tag and
+run the restore again.

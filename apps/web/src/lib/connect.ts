@@ -1,4 +1,4 @@
-import { describeError } from "@/lib/action-errors";
+import { describeError, sentence } from "@/lib/action-errors";
 import type { Account, Connection } from "@/lib/api";
 import { ApiError } from "@/lib/api-error";
 
@@ -33,7 +33,7 @@ export function connectFailure(error: unknown, label: string, keyLabel: string):
     if (/HTTP 40[13]\b|status=40[13]\b/.test(detail)) {
       return `${label} rejected the key as invalid or revoked. Create a new ${keyLabel} in the console and paste it here.`;
     }
-    return detail;
+    return sentence(detail);
   }
   const described = describeError(error);
   if (error instanceof ApiError && error.status >= 500 && !/Retry in a moment\.$/.test(described)) {

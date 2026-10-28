@@ -22,8 +22,16 @@ describe("formatCompactUsd", () => {
   it("abbreviates thousands and millions for axis labels", () => {
     expect(formatCompactUsd("56056.12")).toBe("$56.1K");
     expect(formatCompactUsd(1250000)).toBe("$1.3M");
-    expect(formatCompactUsd(950)).toBe("$950.00");
+    expect(formatCompactUsd(950)).toBe("$950");
+    expect(formatCompactUsd(0)).toBe("$0");
+    expect(formatCompactUsd(2.5)).toBe("$2.50");
     expect(formatCompactUsd(null)).toBe("-");
+  });
+
+  it("puts the sign before the dollar sign", () => {
+    expect(formatCompactUsd(-500)).toBe("-$500");
+    expect(formatCompactUsd(-2.5)).toBe("-$2.50");
+    expect(formatCompactUsd(-56056.12)).toBe("-$56.1K");
   });
 });
 
@@ -92,6 +100,8 @@ describe("dimensions", () => {
     expect(entityHref("api_key", "k1")).toBe("/keys/k1");
     expect(entityHref("creator", "u1")).toBe("/accounts/u1");
     expect(entityHref("model", "m1")).toBe("/models/m1");
+    expect(entityHref("model", "m1", null, "openai")).toBe("/models/m1?provider=openai");
+    expect(entityHref("api_key", "k1", null, "openai")).toBe("/keys/k1");
     expect(entityHref("api_key", null)).toBeNull();
     expect(entityHref("provider", "anthropic")).toBeNull();
     // Accounts with an e-mail identity open the person page across providers; a person row
@@ -161,6 +171,8 @@ describe("dates and durations", () => {
   it("switches units at one minute", () => {
     expect(formatDuration(12.34)).toBe("12.3s");
     expect(formatDuration(125)).toBe("2m 5s");
+    expect(formatDuration(119.6)).toBe("2m 0s");
+    expect(formatDuration(59.97)).toBe("1m 0s");
     expect(formatDuration(null)).toBe("-");
   });
 

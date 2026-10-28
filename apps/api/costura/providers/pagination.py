@@ -1,7 +1,8 @@
 """Pagination and window splitting shared by the provider clients.
 
 The iterators page until the provider says there is no more, and raise the provider's own
-error class when a page claims more data without naming the next one.
+error class when a page claims more data without naming the next one, repeats a cursor or a
+page, or passes `MAX_PAGES`, so a misbehaving provider cannot hold a worker forever.
 """
 
 from collections.abc import Callable, Iterator
@@ -12,6 +13,8 @@ import httpx
 
 from costura.providers.http import ProviderApiError, params_as_dict
 from costura.providers.pages import FetchedPage
+
+MAX_PAGES = 10_000
 
 
 def clamped_windows(
@@ -62,6 +65,7 @@ def cursor_pages(
     """Pages linked by `has_more` plus the cursor field. `fetch` takes the cursor (None on the
     first page) and returns the query it sent plus the payload."""
     cursor: str | None = None
+    seen: set[str] = set()
     index = first_index
     while True:
         query, payload = fetch(cursor)
@@ -72,6 +76,11 @@ def cursor_pages(
         next_page = payload.get(cursor_field)
         if not isinstance(next_page, str) or not next_page:
             raise api_error(missing_message or f"page has more data but no {cursor_field}")
+        if next_page in seen:
+            raise api_error(f"the provider returned the same {cursor_field} twice")
+        if index - first_index >= MAX_PAGES:
+            raise api_error(f"the provider kept paging past {MAX_PAGES} pages")
+        seen.add(next_page)
         cursor = next_page
 
 
@@ -81,14 +90,23 @@ def offset_pages(
     first_index: int,
     page_size: int,
     items: Callable[[dict[str, Any]], list[Any]],
+    api_error: type[ProviderApiError] = ProviderApiError,
 ) -> Iterator[FetchedPage]:
-    """Pages addressed by an offset that grows by `page_size` until a short page arrives."""
+    """Pages addressed by an offset that grows by `page_size` until a short page arrives. A
+    full page equal to the one before means the provider ignores the offset."""
     offset = 0
     index = first_index
+    previous: list[Any] | None = None
     while True:
         query, payload = fetch(offset)
+        rows = items(payload)
+        if previous is not None and rows == previous:
+            raise api_error("the provider returned the same page for a new offset")
         yield FetchedPage(index, params_as_dict(query), payload)
         index += 1
-        if len(items(payload)) < page_size:
+        if len(rows) < page_size:
             return
+        if index - first_index >= MAX_PAGES:
+            raise api_error(f"the provider kept paging past {MAX_PAGES} pages")
+        previous = rows
         offset += page_size

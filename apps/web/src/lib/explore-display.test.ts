@@ -48,9 +48,12 @@ describe("Explore display transforms", () => {
   it("transforms series, other and future projection without mutating the response", () => {
     const displayed = applyExploreDisplay(query, "delta");
 
-    expect(displayed.series[0]!.values).toEqual([30, 70]);
-    expect(displayed.other).toEqual([6, 4]);
-    expect(displayed.total).toEqual([36, 74]);
+    expect(displayed.buckets).toEqual(["2026-02-01"]);
+    expect(displayed.start).toBe("2026-02-01");
+    expect(displayed.series[0]!.values).toEqual([70]);
+    expect(displayed.series[0]!.total).toBe(70);
+    expect(displayed.other).toEqual([4]);
+    expect(displayed.total).toEqual([74]);
     expect(displayed.projection).toMatchObject({
       anchor: 74,
       values: [10, 30],

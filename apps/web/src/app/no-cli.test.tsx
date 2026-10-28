@@ -323,13 +323,13 @@ describe("no CLI copy in the product UI", () => {
     expectNoCliCopy();
   });
 
-  it("not-found pages and the error boundary body", () => {
+  it("not-found pages and the error boundary body", async () => {
     render(<RootNotFound />);
     expectNoCliCopy();
     cleanup();
 
     pathname = "/keys/nope";
-    render(<EntityNotFound />);
+    render(await EntityNotFound());
     expectNoCliCopy();
     cleanup();
 

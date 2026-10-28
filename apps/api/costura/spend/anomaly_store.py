@@ -144,6 +144,21 @@ def acknowledged_adjustments(
     return adjustments
 
 
+def _same_episode(
+    rows: list[SpendAnomaly], candidate: Candidate, matched: set[int]
+) -> SpendAnomaly | None:
+    """A stored row of the same series whose days overlap the candidate's: late data moved
+    the episode's first day, and the row keeps its id, its triage and its delivery."""
+    first = candidate.day
+    last = candidate.end_day or first
+    for row in rows:
+        if row.id in matched:
+            continue
+        if row.day <= last and first <= (row.end_day or row.day):
+            return row
+    return None
+
+
 def store_detection(
     session: Session,
     org_id: int,
@@ -165,10 +180,12 @@ def store_detection(
             )
         )
     }
-    seen: set[tuple[str, str, date]] = set()
+    by_series: dict[tuple[str, str], list[SpendAnomaly]] = {}
+    for row in existing.values():
+        by_series.setdefault((row.series_kind, row.series_id), []).append(row)
+    matched: set[int] = set()
     for candidate in result.found:
         key = (candidate.series_kind, candidate.series_id, candidate.day)
-        seen.add(key)
         values = {
             "kind": candidate.kind,
             "end_day": candidate.end_day,
@@ -196,7 +213,9 @@ def store_detection(
             "unit": currency,
             "root_causes": candidate.root_causes,
         }
-        row = existing.get(key)
+        row = existing.get(key) or _same_episode(
+            by_series.get((candidate.series_kind, candidate.series_id), []), candidate, matched
+        )
         if row is None:
             session.add(
                 SpendAnomaly(
@@ -212,10 +231,12 @@ def store_detection(
             )
             result.inserted += 1
         else:
+            matched.add(row.id)
+            row.day = candidate.day
             for name, value in values.items():
                 setattr(row, name, value)
             result.updated += 1
-    stale = [row.id for key, row in existing.items() if key not in seen and row.status == "open"]
+    stale = [row.id for row in existing.values() if row.id not in matched and row.status == "open"]
     if stale:
         session.execute(delete(SpendAnomaly).where(SpendAnomaly.id.in_(stale)))
         result.removed = len(stale)

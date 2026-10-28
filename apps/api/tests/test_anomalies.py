@@ -834,3 +834,49 @@ def test_root_cause_shares_split_the_change_of_their_kind() -> None:
         sample_days=samples,
     )
     assert [(c["id"], c["share"]) for c in offset] == [("a", "1.3333")]
+
+
+def test_late_data_that_moves_an_episode_start_keeps_its_row_and_triage(
+    db_session: Session, org_id: int
+) -> None:
+    last_day = SPIKE_DAY + timedelta(days=4)
+
+    def shift_from(first: date):
+        def lines(day: date) -> list[Line]:
+            out = steady(day)
+            if first <= day <= last_day:
+                out[0] = ("ws_a", "claude-opus-4-1", "apikey_a", Decimal("260"))
+            return out
+
+        return lines
+
+    seed_days(
+        db_session,
+        org_id,
+        PROVIDER,
+        HISTORY_START,
+        last_day + timedelta(days=1),
+        shift_from(SPIKE_DAY + timedelta(days=1)),
+    )
+    run_detection(db_session, org_id, PROVIDER, AUGUST, today=TODAY)
+    org = db_session.scalar(select(SpendAnomaly).where(SpendAnomaly.series_kind == "org"))
+    assert org is not None and org.day == SPIKE_DAY + timedelta(days=1)
+    org.status = "acknowledged"
+    db_session.commit()
+    first_id = org.id
+
+    for table in (SpendCostLine, SpendAllocatedLine):
+        db_session.execute(delete(table))
+    db_session.commit()
+    seed_days(
+        db_session,
+        org_id,
+        PROVIDER,
+        HISTORY_START,
+        last_day + timedelta(days=1),
+        shift_from(SPIKE_DAY),
+    )
+    run_detection(db_session, org_id, PROVIDER, AUGUST, today=TODAY)
+
+    rows = list(db_session.scalars(select(SpendAnomaly).where(SpendAnomaly.series_kind == "org")))
+    assert [(r.id, r.day, r.status) for r in rows] == [(first_id, SPIKE_DAY, "acknowledged")]

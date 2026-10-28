@@ -311,6 +311,6 @@ class AnomalySettingsIn(BaseModel):
 
 
 class AlertReadIn(BaseModel):
-    anomaly_ids: list[int] = []
+    anomaly_ids: list[int] = Field(default=[], max_length=500)
     signals: list[SignalReadIn] = Field(default=[], max_length=500)
     all: bool = False

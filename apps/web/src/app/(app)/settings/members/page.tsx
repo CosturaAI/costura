@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 
 import { CardHeading } from "@/components/card-heading";
+import { RemovalFeedback } from "@/components/form-feedback";
 import { StatusBadge } from "@/components/status-badge";
 import { Card, CardContent, CardDescription, CardHeader } from "@/components/ui/card";
 import {
@@ -63,42 +64,50 @@ export default async function MembersSettingsPage() {
       ) : null}
 
       <Card>
-        <CardHeader>
-          <CardHeading>Members</CardHeading>
-          <CardDescription>
-            {canManage
-              ? "Owners manage keys, budgets and who belongs here. Members run imports and triage anomalies. Viewers read."
-              : "Owners invite people and change roles."}
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
-          {members === null ? (
-            <p className="text-sm text-severity-critical">
-              Could not load the members; reload to retry.
-            </p>
-          ) : (
-            <MembersTable
-              org={org}
-              members={members}
-              canManage={canManage}
-              soleOwner={owners === 1}
-            />
-          )}
-        </CardContent>
+        <RemovalFeedback headingId="members-heading" className="px-6">
+          <CardHeader>
+            <CardHeading id="members-heading" tabIndex={-1}>
+              Members
+            </CardHeading>
+            <CardDescription>
+              {canManage
+                ? "Owners manage keys, budgets and who belongs here. Members run imports and triage anomalies. Viewers read."
+                : "Owners invite people and change roles."}
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            {members === null ? (
+              <p className="text-sm text-severity-critical">
+                Could not load the members; reload to retry.
+              </p>
+            ) : (
+              <MembersTable
+                org={org}
+                members={members}
+                canManage={canManage}
+                soleOwner={owners === 1}
+              />
+            )}
+          </CardContent>
+        </RemovalFeedback>
       </Card>
 
       {canManage && invitations.length > 0 ? (
         <Card>
-          <CardHeader>
-            <CardHeading>Pending invitations</CardHeading>
-            <CardDescription>
-              Nobody has claimed these yet. An expired one stops working; revoke it and invite the
-              address again.
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
-            <InvitationsTable invitations={invitations} />
-          </CardContent>
+          <RemovalFeedback headingId="invitations-heading" className="px-6">
+            <CardHeader>
+              <CardHeading id="invitations-heading" tabIndex={-1}>
+                Pending invitations
+              </CardHeading>
+              <CardDescription>
+                Nobody has claimed these yet. An expired one stops working; revoke it and invite the
+                address again.
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <InvitationsTable org={org} invitations={invitations} />
+            </CardContent>
+          </RemovalFeedback>
         </Card>
       ) : null}
     </div>
@@ -107,6 +116,7 @@ export default async function MembersSettingsPage() {
 
 /** E-mail, name, role and join date per member; for an owner, the role select and Remove. */
 function MembersTable({
+  org,
   members,
   canManage,
   soleOwner,
@@ -144,10 +154,10 @@ function MembersTable({
                 <TableCell>{member.name ?? "-"}</TableCell>
                 <TableCell>
                   {canManage ? (
-                    <MemberRoleForm member={member} lastOwner={lastOwner} />
-                  ) : (
+                    <MemberRoleForm org={org} member={member} lastOwner={lastOwner} />
+                  ) : roleLabel(member.role) === "-" ? null : (
                     <StatusBadge tone={member.role === "owner" ? "info" : "neutral"}>
-                      {member.role}
+                      {roleLabel(member.role)}
                     </StatusBadge>
                   )}
                 </TableCell>
@@ -157,7 +167,7 @@ function MembersTable({
                     {lastOwner ? (
                       <span className="text-xs text-muted-foreground">last owner</span>
                     ) : (
-                      <RemoveMemberForm member={member} lastOwner={lastOwner} />
+                      <RemoveMemberForm org={org} member={member} lastOwner={lastOwner} />
                     )}
                   </TableCell>
                 ) : null}
@@ -171,7 +181,7 @@ function MembersTable({
 }
 
 /** One row per invitation nobody has claimed: address, role, who sent it, when it lapses. */
-function InvitationsTable({ invitations }: { invitations: Invitation[] }) {
+function InvitationsTable({ org, invitations }: { org: string; invitations: Invitation[] }) {
   return (
     <div className="overflow-x-auto rounded-lg border border-border">
       <Table>
@@ -201,7 +211,11 @@ function InvitationsTable({ invitations }: { invitations: Invitation[] }) {
                 )}
               </TableCell>
               <TableCell className="text-right">
-                <RevokeInvitationForm invitationId={invitation.id} email={invitation.email} />
+                <RevokeInvitationForm
+                  org={org}
+                  invitationId={invitation.id}
+                  email={invitation.email}
+                />
               </TableCell>
             </TableRow>
           ))}

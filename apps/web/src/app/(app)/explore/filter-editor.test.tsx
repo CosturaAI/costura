@@ -59,6 +59,53 @@ describe("Explore filter editor", () => {
     expect(url.searchParams.getAll("f")).toEqual(["workspace:is:Backend", "model:is_not:gpt-5"]);
   });
 
+  it("joins a value to the dimension's clause of the same kind", () => {
+    searchParams = new URLSearchParams("f=model%3Ais%3Agpt-4o");
+    render(
+      <FilterEditor
+        dimensions={dimensions}
+        defaultDimension="model"
+        valueOptions={{ model: [{ value: "gpt-5", label: "GPT-5" }] }}
+      />,
+    );
+
+    fireEvent.change(screen.getByRole("combobox", { name: "Value" }), {
+      target: { value: "GPT-5" },
+    });
+    fireEvent.click(screen.getByRole("button", { name: "Add filter" }));
+
+    const url = new URL(push.mock.calls[0]![0], "http://web.test");
+    expect(url.searchParams.getAll("f")).toEqual(["model:one_of:gpt-4o,gpt-5"]);
+  });
+
+  it("refuses a name the full value list does not hold", () => {
+    render(
+      <FilterEditor
+        dimensions={dimensions}
+        defaultDimension="workspace"
+        valueOptions={{ workspace: [{ value: "ws_1", label: "Backend" }] }}
+        exhaustive={["workspace"]}
+      />,
+    );
+
+    fireEvent.change(screen.getByRole("combobox", { name: "Value" }), {
+      target: { value: "Frontend" },
+    });
+    fireEvent.click(screen.getByRole("button", { name: "Add filter" }));
+
+    expect(push).not.toHaveBeenCalled();
+    expect(screen.getByRole("alert")).toHaveTextContent(
+      "No workspace named Frontend in this period.",
+    );
+
+    fireEvent.change(screen.getByRole("combobox", { name: "Value" }), {
+      target: { value: "ws_1" },
+    });
+    fireEvent.click(screen.getByRole("button", { name: "Add filter" }));
+    const url = new URL(push.mock.calls[0]![0], "http://web.test");
+    expect(url.searchParams.getAll("f")).toEqual(["workspace:is:ws_1"]);
+  });
+
   it("adds value-free existence clauses", () => {
     render(<FilterEditor dimensions={dimensions} defaultDimension="model" valueOptions={{}} />);
 

@@ -8,6 +8,7 @@ owner of an organization that has no members, and the redacted tie-out report.
 
 import signal
 import sys
+import threading
 from collections.abc import Callable, Generator
 from contextlib import contextmanager
 
@@ -16,10 +17,22 @@ class OperationError(Exception):
     """User-facing failure; printed to stderr with exit code 1."""
 
 
+_stalled = threading.Event()
+
+
+def mark_stalled() -> None:
+    """Record that the coming SIGTERM comes from the worker's own stall watchdog."""
+    _stalled.set()
+
+
 class TerminationSignal(BaseException):
+    """SIGTERM as an exception. `stalled` is true when the worker stopped itself because one
+    run made no progress, which counts against that run's attempts; an operator stop does not."""
+
     def __init__(self, signum: int) -> None:
         super().__init__(f"terminated by signal {signum}")
         self.signum = signum
+        self.stalled = _stalled.is_set()
 
 
 @contextmanager

@@ -49,7 +49,11 @@ export default async function RunsPage({ searchParams }: { searchParams: Promise
       <AreaNav label="Data health" items={DATA_HEALTH} current="/runs" />
       <PageHeader
         title="Run history"
-        description={`Latest ${limit} jobs for ${isAll(provider) ? "every provider" : providerLabel(provider)}.`}
+        description={`${
+          runs.length < limit
+            ? `${runs.length} job${runs.length === 1 ? "" : "s"}`
+            : `Latest ${limit} jobs`
+        } for ${isAll(provider) ? "every provider" : providerLabel(provider)}.`}
       >
         <QuerySelect
           name="endpoint"

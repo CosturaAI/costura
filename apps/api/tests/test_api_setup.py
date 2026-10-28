@@ -8,7 +8,7 @@ from pydantic import SecretStr
 from sqlalchemy import func, select
 from sqlalchemy.orm import Session
 
-from costura import credentials, secrets
+from costura import credentials, scheduler_lock, secrets
 from costura.api.deps import (
     get_session,
 )
@@ -320,10 +320,7 @@ def test_setup_poll_requeues_an_expired_lease_and_fails_spent_attempts(
     assert by_provider["anthropic"]["status"] == "queued"
     assert by_provider["openrouter"]["status"] == "queued"
     assert by_provider["openai"]["status"] == "failed"
-    assert (
-        by_provider["openai"]["error"]
-        == "sync stopped after the worker lease expired too many times"
-    )
+    assert by_provider["openai"]["error"] == scheduler_lock.LEASE_EXHAUSTED
     db_session.refresh(expired)
     assert expired.lease_owner is None and expired.attempt_count == 1
 

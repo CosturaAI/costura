@@ -34,14 +34,14 @@ def settings(monkeypatch: pytest.MonkeyPatch) -> Settings:
 
 
 class Recorder:
-    def __init__(self, *answers: int | Exception) -> None:
+    def __init__(self, *answers: int | BaseException) -> None:
         self.answers = list(answers)
         self.calls: list[tuple[str, bytes, dict[str, str]]] = []
 
     def __call__(self, url: str, body: bytes, headers: dict[str, str]) -> int:
         self.calls.append((url, body, headers))
         answer = self.answers.pop(0) if self.answers else 200
-        if isinstance(answer, Exception):
+        if isinstance(answer, BaseException):
             raise answer
         return answer
 
@@ -403,3 +403,66 @@ def test_the_resend_route_lists_ids_and_answers_the_outcome(
     assert missing.status_code == 404
     monkeypatch.setattr(settings, "costura_webhook_hosts", "example.org")
     assert client.post(f"{WEBHOOK}/deliveries/{listed[0]['id']}/resend").status_code == 409
+
+
+def test_a_gap_that_closes_and_comes_back_is_posted_again(
+    db_session: Session, settings: Settings
+) -> None:
+    delivery.save_destination(db_session, settings, ORG_ID, URL)
+    _orphan_key(db_session)
+    post = Recorder()
+    first = delivery.deliver(db_session, settings, ORG_ID, post=post)
+    assert first > 0
+
+    key = db_session.scalar(select(ProviderApiKey).where(ProviderApiKey.name == "orphan"))
+    assert key is not None
+    key.status = "archived"
+    db_session.commit()
+    assert delivery.deliver(db_session, settings, ORG_ID, post=post) == 0
+
+    key.status = "active"
+    db_session.commit()
+    assert delivery.deliver(db_session, settings, ORG_ID, post=post) == first
+    assert len(post.calls) == 2 * first
+    closed = [r for r in _rows(db_session) if delivery.CLOSED_MARK in r.reference]
+    assert len(closed) == first and {r.status for r in closed} == {"sent"}
+
+
+def test_each_post_is_recorded_before_the_next_one_goes_out(
+    db_session: Session, settings: Settings
+) -> None:
+    delivery.save_destination(db_session, settings, ORG_ID, URL)
+    _orphan_key(db_session)
+    _orphan_key(db_session, "apikey_second")
+
+    class Stop(BaseException):
+        pass
+
+    post = Recorder(200, Stop())
+    with pytest.raises(Stop):
+        delivery.deliver(db_session, settings, ORG_ID, post=post)
+    db_session.rollback()
+
+    statuses = [r.status for r in _rows(db_session) if r.attempts > 0]
+    assert statuses[0] == "sent"
+    in_flight = [r for r in _rows(db_session) if r.attempts > 0 and r.status == "pending"]
+    assert len(in_flight) == 1 and in_flight[0].next_attempt_at > datetime.now(UTC)
+
+
+def test_a_failed_digest_waits_before_the_next_try_and_keeps_its_id(
+    db_session: Session, settings: Settings, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    from costura import digest
+
+    monkeypatch.setattr(digest, "_last_failure", {})
+    delivery.save_destination(db_session, settings, ORG_ID, URL)
+    row = db_session.get(WebhookDestination, ORG_ID)
+    assert row is not None
+    row.digest = "weekly"
+    monday = datetime.now(UTC).date() - timedelta(days=datetime.now(UTC).weekday())
+
+    post = Recorder(500, 200)
+    assert digest.post_digest(db_session, settings, row, today=monday, post=post) is not None
+    assert digest.post_digest(db_session, settings, row, today=monday, post=post) is None
+    assert len(post.calls) == 1
+    assert post.calls[0][2]["X-Costura-Delivery"] == f"digest-{monday.isoformat()}"

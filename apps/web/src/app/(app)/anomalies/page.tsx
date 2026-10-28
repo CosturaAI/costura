@@ -10,7 +10,7 @@ import { periodPhrase } from "@/lib/time-range";
 import { first, oneOf, type Search } from "@/lib/search";
 import { canOperate } from "@/lib/roles";
 import { SEVERITY_LABEL } from "@/lib/anomaly-impact";
-import { impactTotals } from "@/lib/anomaly-text";
+import { anomalyListQuery, impactTotals } from "@/lib/anomaly-text";
 
 import { requireView } from "@/lib/view";
 import { AnomalyList } from "./anomaly-list";
@@ -56,8 +56,16 @@ export default async function AnomaliesPage({ searchParams }: { searchParams?: P
     sort,
   );
 
-  const [result, organization, setup, history] = await Promise.all([
+  // The headline counts open anomalies whatever the status filter shows, ordered by impact so
+  // a list cut at the API's limit keeps the largest ones.
+  const openRequest =
+    status === "open"
+      ? anomalyRequest
+      : api.anomalies(org, provider, period, "open", undefined, "impact");
+
+  const [result, unscopedOpen, organization, setup, history] = await Promise.all([
     anomalyRequest,
+    openRequest,
     api.org(org),
     api.setup(org),
     api.signalHistory(org).catch(() => null),
@@ -65,11 +73,9 @@ export default async function AnomaliesPage({ searchParams }: { searchParams?: P
   const canWrite = setup.writes_enabled && !organization.is_demo && canOperate(organization.role);
   const anomalies =
     kind === "all" ? result.anomalies : result.anomalies.filter((a) => a.series_kind === kind);
-  const unscopedOpen =
-    status === "open"
-      ? result
-      : await api.anomalies(org, provider, period, "open", undefined, "impact");
   const open = unscopedOpen.anomalies;
+  const openCut = unscopedOpen.total > open.length;
+  const listCut = result.total > result.anomalies.length;
   const currency = open[0]?.currency ?? result.anomalies[0]?.currency ?? "USD";
   const impact = impactTotals(open);
   const days = new Set(open.map((anomaly) => anomaly.day)).size;
@@ -107,23 +113,23 @@ export default async function AnomaliesPage({ searchParams }: { searchParams?: P
           value={formatUsd(impact.over)}
           unit={currency}
           className="min-w-0 py-3 sm:py-4 [&_[data-slot=card-header]]:px-3 sm:[&_[data-slot=card-header]]:px-4 [&_[data-slot=card-title]]:text-lg sm:[&_[data-slot=card-title]]:text-2xl"
-          hint={
+          hint={`${
             impact.under > 0
               ? `spend above expected, summed; drops are ${formatUsd(impact.under)} under it`
               : "spend above expected over every episode, summed"
-          }
+          }${openCut ? `; covers the ${open.length} shown of ${unscopedOpen.total} open` : ""}`}
         />
         <KpiCard
           label="Days affected"
           value={String(days)}
           className="min-w-0 py-3 sm:py-4 [&_[data-slot=card-header]]:px-3 sm:[&_[data-slot=card-header]]:px-4 [&_[data-slot=card-title]]:text-lg sm:[&_[data-slot=card-title]]:text-2xl"
-          hint={
+          hint={`${
             ongoing > 0
               ? `with at least one open anomaly; ${ongoing} still running`
               : days > 0
                 ? "with at least one open anomaly"
                 : `none ${inPeriod}`
-          }
+          }${openCut ? `; from the ${open.length} open shown` : ""}`}
         />
       </section>
 
@@ -169,12 +175,25 @@ export default async function AnomaliesPage({ searchParams }: { searchParams?: P
             : `No ${status === "all" ? "" : status + " "}anomalies${kind === "all" ? "" : ` for ${KIND_OPTIONS.find((o) => o.value === kind)?.label.toLowerCase()}`} ${inPeriod}.`}
         </div>
       ) : (
-        <section aria-label="Anomaly feed">
+        <section aria-label="Anomaly feed" className="space-y-3">
+          {listCut ? (
+            <p className="text-sm text-muted-foreground">
+              Showing {result.anomalies.length} of {result.total}
+              {sort === "day"
+                ? ", the newest days"
+                : sort === "impact"
+                  ? ", the largest"
+                  : ", the most severe"}
+              {kind === "all" ? "" : `, before the series filter`}. Narrow the time frame or the
+              status to see the rest.
+            </p>
+          ) : null}
           <AnomalyList
             anomalies={anomalies}
             org={org}
             provider={provider}
             periodTotal={result.window_total}
+            listQuery={anomalyListQuery(query)}
             canWrite={canWrite}
             sort={sort}
           />

@@ -5,6 +5,7 @@ from datetime import UTC, datetime, timedelta
 import httpx
 import pytest
 
+from costura.providers import pagination
 from costura.providers.http import ProviderApiError
 from costura.providers.pagination import clamped_windows, cursor_pages, offset_pages, split_window
 
@@ -90,3 +91,34 @@ def test_offset_pages_fetches_the_empty_page_after_exact_full_page() -> None:
     pages = list(offset_pages(fetch, first_index=2, page_size=2, items=lambda p: p["data"]))
     assert seen == [0, 2]
     assert [page.page_index for page in pages] == [2, 3]
+
+
+def test_cursor_pages_refuses_a_repeated_cursor() -> None:
+    def fetch(cursor: str | None):
+        return httpx.QueryParams({}), {"has_more": True, "next_page": "same"}
+
+    with pytest.raises(PageError, match="same next_page twice"):
+        list(cursor_pages(fetch, first_index=0, api_error=PageError))
+
+
+def test_cursor_pages_stops_at_the_page_cap(monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setattr(pagination, "MAX_PAGES", 3)
+    counter = iter(range(100))
+
+    def fetch(cursor: str | None):
+        return httpx.QueryParams({}), {"has_more": True, "next_page": f"c{next(counter)}"}
+
+    with pytest.raises(PageError, match="past 3 pages"):
+        list(cursor_pages(fetch, first_index=0, api_error=PageError))
+
+
+def test_offset_pages_refuses_a_provider_that_ignores_the_offset() -> None:
+    def fetch(offset: int):
+        return httpx.QueryParams({"offset": str(offset)}), {"data": [1, 2]}
+
+    with pytest.raises(PageError, match="same page for a new offset"):
+        list(
+            offset_pages(
+                fetch, first_index=0, page_size=2, items=lambda p: p["data"], api_error=PageError
+            )
+        )

@@ -368,7 +368,7 @@ describe("signInAction", () => {
     mocked.devSignIn.mockRejectedValue(new ApiError(422, "/auth/dev-sign-in", "invalid e-mail"));
     await expect(signInAction(idle, form("jane@acme.com"))).resolves.toEqual({
       ok: false,
-      message: "invalid e-mail",
+      message: "Invalid e-mail.",
       field: "email",
     });
 
@@ -434,18 +434,18 @@ describe("/new", () => {
     expect(screen.queryByText(/rename it later/i)).not.toBeInTheDocument();
     const name = screen.getByLabelText("Name");
     expect(name).toHaveValue("Acme");
-    expect(screen.getByText("/acme")).toBeInTheDocument();
+    expect(screen.getByText("/o/acme")).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Create organization" })).toBeInTheDocument();
     expect(screen.queryByRole("link", { name: /^Back to/ })).not.toBeInTheDocument();
 
     fireEvent.change(name, { target: { value: "Acme Corp." } });
-    expect(screen.getByText("/acme-corp")).toBeInTheDocument();
+    expect(screen.getByText("/o/acme-corp")).toBeInTheDocument();
     const form = name.closest("form")!;
     expect(form.querySelector('input[name="slug"]')).toHaveAttribute("value", "acme-corp");
 
     // Edit turns the preview into a field; the name stops driving it.
     fireEvent.click(screen.getByRole("button", { name: "Edit" }));
-    const slug = screen.getByLabelText("Address");
+    const slug = screen.getByLabelText("Organization ID");
     expect(slug).toHaveValue("acme-corp");
     fireEvent.change(slug, { target: { value: "acme-eu" } });
     fireEvent.change(name, { target: { value: "Acme Europe" } });
@@ -463,7 +463,7 @@ describe("/new", () => {
     mocked.me.mockResolvedValue(noOrgs);
     vi.mocked(createOrgAction).mockResolvedValue({
       ok: false,
-      message: "The address /acme is taken.",
+      message: "The organization ID acme is taken.",
       field: "slug",
       suggestion: "acme-2",
     });
@@ -471,11 +471,13 @@ describe("/new", () => {
 
     fireEvent.submit(screen.getByRole("button", { name: "Create organization" }).closest("form")!);
 
-    expect(await screen.findByRole("alert")).toHaveTextContent("The address /acme is taken.");
+    expect(await screen.findByRole("alert")).toHaveTextContent(
+      "The organization ID acme is taken.",
+    );
     // The name typed before the refusal stays.
     expect(screen.getByLabelText("Name")).toHaveValue("Acme");
-    fireEvent.click(screen.getByRole("button", { name: "Use /acme-2" }));
-    await waitFor(() => expect(screen.getByLabelText("Address")).toHaveValue("acme-2"));
+    fireEvent.click(screen.getByRole("button", { name: "Use acme-2" }));
+    await waitFor(() => expect(screen.getByLabelText("Organization ID")).toHaveValue("acme-2"));
   });
 });
 
@@ -515,7 +517,7 @@ describe("createOrgAction", () => {
     );
     await expect(action(idle, form("Demo", "demo"))).resolves.toEqual({
       ok: false,
-      message: "The address /demo is reserved on this deployment. Choose another.",
+      message: "The organization ID demo is reserved on this deployment. Choose another.",
       field: "slug",
       suggestion: null,
     });
@@ -525,7 +527,7 @@ describe("createOrgAction", () => {
     mocked.createOrg.mockRejectedValue(new ApiError(409, "/orgs", "slug taken"));
     await expect(action(idle, form("Acme", "acme-2"))).resolves.toEqual({
       ok: false,
-      message: "The address /acme-2 is taken.",
+      message: "The organization ID acme-2 is taken.",
       field: "slug",
       suggestion: "acme-3",
     });
@@ -533,7 +535,7 @@ describe("createOrgAction", () => {
     mocked.createOrg.mockRejectedValue(new ApiError(422, "/orgs", "invalid slug"));
     await expect(action(idle, form("Acme", "acme"))).resolves.toEqual({
       ok: false,
-      message: "invalid slug",
+      message: "Invalid slug.",
       field: "slug",
       suggestion: null,
     });
@@ -587,7 +589,7 @@ describe("sidebar account menu", () => {
       "/new",
     );
     expect(within(menu).queryByRole("menuitem", { name: /Invitations/ })).not.toBeInTheDocument();
-    expect(within(menu).getByRole("menuitem", { name: "Log out" })).toHaveAttribute(
+    expect(within(menu).getByRole("menuitem", { name: "Sign out" })).toHaveAttribute(
       "type",
       "submit",
     );

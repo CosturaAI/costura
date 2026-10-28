@@ -23,7 +23,7 @@ values = {}
 for line in Path(os.environ["COSTURA_PASSWORD_ENV_FILE"]).read_text().splitlines():
     if "=" in line and not line.lstrip().startswith("#"):
         name, value = line.split("=", 1)
-        values.setdefault(name.strip(), value)
+        values[name.strip()] = value
 
 unsafe = set(" \t\r\n'\"\\$:@/%?#")
 

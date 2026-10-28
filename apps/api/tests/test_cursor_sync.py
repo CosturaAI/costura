@@ -164,6 +164,24 @@ def test_seat_lines_are_daily_prorated_and_member_attributed_without_double_coun
     assert sum((line.amount or Decimal("0") for line in usage), Decimal("0")) == cost[0].amount
 
 
+def test_a_seat_row_repeated_on_a_later_page_is_priced_once() -> None:
+    directory = UserDirectory.from_rows([("a@example.com", "user_a")])
+    row = {"day": "2026-09-18", "email": "a@example.com", "isActive": True}
+    seen: set[tuple[date, str]] = set()
+    pages = [
+        seat_lines_from_daily_usage(
+            [row],
+            directory,
+            seat_price_usd=Decimal("30"),
+            effective_from=date(2026, 9, 18),
+            seen=seen,
+        )
+        for _ in range(2)
+    ]
+
+    assert [len(cost) for cost, _usage in pages] == [1, 0]
+
+
 def test_spend_control_total_selects_overall_or_on_demand_without_seats() -> None:
     payload = {
         "teamMemberSpend": [

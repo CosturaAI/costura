@@ -1,10 +1,18 @@
 "use client";
 
-import { useActionState } from "react";
+import { useActionState, useState } from "react";
+import { useFormStatus } from "react-dom";
 
 import { SubmitButton } from "@/components/submit-button";
 import { CopyButton } from "@/components/copy-button";
-import { ConfirmSubmit, Feedback, FieldError, invalid } from "@/components/form-feedback";
+import {
+  ConfirmSubmit,
+  Feedback,
+  FieldError,
+  OrgField,
+  invalid,
+  useRemovalFeedback,
+} from "@/components/form-feedback";
 import { NativeSelect } from "@/components/ui/native-select";
 import { Input } from "@/components/ui/input";
 import { idleAction, idleInvite } from "@/lib/action-errors";
@@ -17,6 +25,8 @@ import {
   revokeInvitationAction,
   setMemberRoleAction,
 } from "./member-actions";
+import { signOutEverywhereAction } from "@/actions/sign-out";
+
 import { leaveOrganizationAction } from "./organization-actions";
 
 /**
@@ -46,6 +56,7 @@ export function InviteForm({ org }: { org: string }) {
   const [state, action, pending] = useActionState(inviteAction, idleInvite);
   return (
     <form action={action} className="space-y-3">
+      <OrgField org={org} />
       <div className="flex flex-wrap items-end gap-3">
         <div className="min-w-[16rem] flex-1">
           <label
@@ -115,11 +126,24 @@ export function InviteForm({ org }: { org: string }) {
   );
 }
 
-/** Role of one member, submitted on change; the last owner's own select is disabled. */
-export function MemberRoleForm({ member, lastOwner }: { member: Member; lastOwner: boolean }) {
+/**
+ * Role of one member: the select changes nothing until Save, so moving through the options
+ * with the keyboard cannot demote anyone by accident. The last owner's own select is disabled.
+ */
+export function MemberRoleForm({
+  org,
+  member,
+  lastOwner,
+}: {
+  org: string;
+  member: Member;
+  lastOwner: boolean;
+}) {
   const [state, action, pending] = useActionState(setMemberRoleAction, idleAction);
+  const [role, setRole] = useState<string>(member.role);
   return (
     <form action={action} className="flex flex-wrap items-center gap-2">
+      <OrgField org={org} />
       <input type="hidden" name="user_id" value={member.id} />
       <label htmlFor={`role-${member.id}`} className="sr-only">
         Role of {member.email}
@@ -127,13 +151,10 @@ export function MemberRoleForm({ member, lastOwner }: { member: Member; lastOwne
       <NativeSelect
         id={`role-${member.id}`}
         name="role"
-        defaultValue={member.role}
+        value={role}
+        onChange={(event) => setRole(event.currentTarget.value)}
         disabled={lastOwner}
-        aria-disabled={pending || undefined}
         aria-describedby={lastOwner ? `role-${member.id}-note` : undefined}
-        onChange={(event) => {
-          if (!pending) event.currentTarget.form?.requestSubmit();
-        }}
       >
         <RoleOptions />
       </NativeSelect>
@@ -141,17 +162,36 @@ export function MemberRoleForm({ member, lastOwner }: { member: Member; lastOwne
         <span id={`role-${member.id}-note`} className="sr-only">
           The last owner keeps the role
         </span>
-      ) : null}
+      ) : (
+        <SubmitButton
+          size="sm"
+          variant="outline"
+          pending={pending}
+          aria-label={`Save the role of ${member.email}`}
+        >
+          {pending ? "Saving..." : "Save"}
+        </SubmitButton>
+      )}
       <Feedback state={state} className="text-xs" />
     </form>
   );
 }
 
-export function RemoveMemberForm({ member, lastOwner }: { member: Member; lastOwner: boolean }) {
-  const [state, action, pending] = useActionState(removeMemberAction, idleAction);
+export function RemoveMemberForm({
+  org,
+  member,
+  lastOwner,
+}: {
+  org: string;
+  member: Member;
+  lastOwner: boolean;
+}) {
+  const [result, action, pending] = useActionState(removeMemberAction, idleAction);
+  const state = useRemovalFeedback(result);
   const formId = `remove-member-${member.id}`;
   return (
     <form id={formId} action={action} className="flex flex-wrap items-center gap-2">
+      <OrgField org={org} />
       <input type="hidden" name="user_id" value={member.id} />
       <input type="hidden" name="email" value={member.email} />
       <ConfirmSubmit
@@ -171,16 +211,20 @@ export function RemoveMemberForm({ member, lastOwner }: { member: Member; lastOw
 }
 
 export function RevokeInvitationForm({
+  org,
   invitationId,
   email,
 }: {
+  org: string;
   invitationId: number;
   email: string;
 }) {
-  const [state, action, pending] = useActionState(revokeInvitationAction, idleAction);
+  const [result, action, pending] = useActionState(revokeInvitationAction, idleAction);
+  const state = useRemovalFeedback(result);
   const formId = `revoke-invitation-${invitationId}`;
   return (
     <form id={formId} action={action} className="flex flex-wrap items-center gap-2">
+      <OrgField org={org} />
       <input type="hidden" name="invitation_id" value={invitationId} />
       <ConfirmSubmit
         formId={formId}
@@ -211,6 +255,7 @@ export function LeaveOrganizationForm({
   const formId = `leave-organization-${org}`;
   return (
     <form id={formId} action={action} className="flex flex-wrap items-center gap-3">
+      <OrgField org={org} />
       <input type="hidden" name="user_id" value={userId} />
       <ConfirmSubmit
         formId={formId}
@@ -225,5 +270,29 @@ export function LeaveOrganizationForm({
       </ConfirmSubmit>
       <Feedback state={state} />
     </form>
+  );
+}
+
+/** Account section: end every session of the caller, after a confirmation. */
+export function SignOutEverywhereForm() {
+  return (
+    <form id="sign-out-everywhere" action={signOutEverywhereAction}>
+      <SignOutEverywhereButton />
+    </form>
+  );
+}
+
+function SignOutEverywhereButton() {
+  const { pending } = useFormStatus();
+  return (
+    <ConfirmSubmit
+      formId="sign-out-everywhere"
+      title="Sign out everywhere?"
+      description="Every session of yours ends at once, on this browser and any other. You sign in again to continue."
+      confirmLabel="Sign out everywhere"
+      pending={pending}
+    >
+      {pending ? "Signing out..." : "Sign out everywhere"}
+    </ConfirmSubmit>
   );
 }

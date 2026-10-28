@@ -304,6 +304,35 @@ describe("reconcile", () => {
     expect(
       screen.getByText(/1 key outside one cent: batch-runner \(key_b1\) -1\.00\./),
     ).toBeInTheDocument();
+    cleanup();
+
+    const off = Array.from({ length: 7 }, (_, index) => ({
+      api_key_id: `key_${index}`,
+      label: `key-${index} (key_${index})`,
+      provider_amount: "2.00",
+      allocated_amount: "1.00",
+      delta: "-1.00",
+    }));
+    mocked.reconcile.mockResolvedValue({
+      ...fx.reconcile,
+      raw_check: { run_id: 9, raw_total: "100.00", delta: "-2.50", ok: false },
+      key_check_supported: true,
+      key_check: {
+        run_id: 12,
+        keys_compared: 9,
+        keys_off: off,
+        provider_total: "20.50",
+        allocated_total: "13.50",
+        ok: false,
+      },
+    });
+    render(await ReconcilePage({ searchParams: fx.noSearch }));
+    expect(
+      screen.getByText(/7 keys outside one cent: .*key-4 \(key_4\) -1\.00, and 2 more\./),
+    ).toBeInTheDocument();
+    expect(screen.getByText(/and the normalized rows sum to/).closest("p, div")!).toHaveTextContent(
+      "the normalized rows sum to 97.50, 2.50 less.",
+    );
   });
 
   it("links to Sync now when the month has no cost lines", async () => {
@@ -401,6 +430,7 @@ describe("runs", () => {
     render(await RunsPage({ searchParams: fx.noSearch }));
 
     expect(mocked.runs).toHaveBeenCalledWith("default", "anthropic", 50, undefined);
+    expect(screen.getByText("2 jobs for Anthropic.")).toBeInTheDocument();
     const rows = screen.getAllByRole("row").slice(1);
     expect(rows).toHaveLength(2);
     expect(within(rows[0]!).getByText("Allocation")).toBeInTheDocument();

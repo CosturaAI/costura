@@ -233,7 +233,7 @@ function SettingsLink({ collapsed, onNavigate }: { collapsed: boolean; onNavigat
   return (
     <div className="border-t border-border px-2 py-2">
       <NavLink
-        href="/settings/connections"
+        href="/settings"
         label="Settings"
         icon={Settings}
         active={active}
@@ -367,7 +367,7 @@ function UserFooter({
             <DropdownMenuItem asChild>
               <button type="submit" className="w-full">
                 <LogOut className="text-muted-foreground" aria-hidden />
-                Log out
+                Sign out
               </button>
             </DropdownMenuItem>
           </form>
@@ -529,7 +529,8 @@ export function Sidebar({ account, badges = {}, user, brandName }: SidebarProps)
   );
 }
 
-/** The pages a phone reaches in one tap. More lands on data health; the sheet has the rest. */
+/** The pages a phone reaches in one tap; the fourth is Data health, as the sidebar group
+ * names it, and lands on Reconciliation. The sheet has the rest. */
 const MOBILE_TABS: readonly {
   segment: PageSegment;
   href: string;
@@ -538,14 +539,12 @@ const MOBILE_TABS: readonly {
   { segment: "overview", href: "/overview", label: "Overview" },
   { segment: "explore", href: "/explore", label: "Analyze" },
   { segment: "anomalies", href: "/anomalies", label: "Anomalies" },
-  { segment: "reconcile", href: "/reconcile", label: "More" },
+  { segment: "reconcile", href: "/reconcile", label: "Data health" },
 ];
 
 function mobileTabActive(active: string, segment: PageSegment): boolean {
   if (segment !== "reconcile") return active === segment;
-  return (
-    active === "reconcile" || active === "runs" || active === "inventory" || active === "settings"
-  );
+  return active === "reconcile" || active === "runs" || active === "inventory";
 }
 
 /**

@@ -21,22 +21,26 @@ type DisplayQuery = Omit<SpendQuery, "projection"> & {
 };
 
 /**
- * Apply an Explore display mode without mutating the API result. Delta keeps the first
- * bucket's value, so a range never invents a zero before its requested start.
+ * Apply an Explore display mode without mutating the API result. The first bucket has no
+ * previous bucket in the range, so delta starts at the second bucket instead of showing the
+ * first bucket's whole value as a change.
  */
 export function applyExploreDisplay(query: SpendQuery, display: ExploreDisplay): DisplayQuery {
+  const skip = display === "delta" ? 1 : 0;
   const coverage = bucketDayCoverage(query.buckets, query.start, query.end);
-  const convert = (values: QueryValue[]) => transformValues(values, display, coverage);
+  const convert = (values: QueryValue[]) => transformValues(values, display, coverage).slice(skip);
   const total = convert(query.total);
   const comparisonCoverage =
     query.comparison === null
       ? []
       : bucketDayCoverage(query.comparison.buckets, query.comparison.start, query.comparison.end);
   const convertComparison = (values: QueryValue[]) =>
-    transformValues(values, display, comparisonCoverage);
+    transformValues(values, display, comparisonCoverage).slice(skip);
 
   return {
     ...query,
+    start: skip > 0 ? (query.buckets[1] ?? query.start) : query.start,
+    buckets: query.buckets.slice(skip),
     series: query.series.map((series) => {
       const values = convert(series.values);
       return { ...series, values, total: values.reduce((sum, value) => sum + value, 0) };
@@ -48,6 +52,7 @@ export function applyExploreDisplay(query: SpendQuery, display: ExploreDisplay):
         ? null
         : {
             ...query.comparison,
+            buckets: query.comparison.buckets.slice(skip),
             series: query.comparison.series.map((series) => {
               const values = convertComparison(series.values);
               return { ...series, values, total: values.reduce((sum, value) => sum + value, 0) };

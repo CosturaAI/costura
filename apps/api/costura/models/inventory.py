@@ -45,7 +45,7 @@ class _SnapshotColumns:
         sort_order=-7,
     )
     sync_run_id: Mapped[int] = mapped_column(
-        BigInteger, ForeignKey("provider_sync_runs.id"), nullable=False, sort_order=10
+        BigInteger, ForeignKey("provider_sync_runs.id"), nullable=False, index=True, sort_order=10
     )
     first_seen_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), nullable=False, server_default=func.now(), sort_order=11
@@ -216,7 +216,7 @@ class ProviderInventoryEvent(Base):
     from_status: Mapped[str | None] = mapped_column(Text)
     to_status: Mapped[str | None] = mapped_column(Text)
     sync_run_id: Mapped[int | None] = mapped_column(
-        BigInteger, ForeignKey("provider_sync_runs.id", ondelete="SET NULL")
+        BigInteger, ForeignKey("provider_sync_runs.id", ondelete="SET NULL"), index=True
     )
     occurred_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), nullable=False, server_default=func.now()

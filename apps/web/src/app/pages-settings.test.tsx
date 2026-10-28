@@ -177,7 +177,7 @@ describe("settings shell", () => {
     });
     render(await AuditSettingsPage({ searchParams: Promise.resolve({ page: "2" }) }));
     expect(mocked.audit).toHaveBeenCalledWith("default", 50, 50);
-    const row = screen.getByRole("row", { name: /provider key connected/ });
+    const row = screen.getByRole("row", { name: /Provider key connected/ });
     expect(row).toHaveTextContent("owner@example.com");
     expect(row).toHaveTextContent("anthropic:1");
     expect(row).toHaveTextContent("request req-1");
@@ -381,9 +381,9 @@ describe("settings: connections", () => {
       "href",
       "https://console.anthropic.com/settings/admin-keys",
     );
-    fireEvent.click(screen.getByRole("button", { name: "Disconnect" }));
+    fireEvent.click(screen.getByRole("button", { name: "Remove key" }));
     const dialog = screen.getByRole("alertdialog");
-    expect(dialog).toHaveTextContent("Remove the stored key?");
+    expect(dialog).toHaveTextContent("Remove the stored key of Anthropic?");
     expect(within(dialog).getByRole("button", { name: "Remove key" })).toHaveAttribute(
       "form",
       "disconnect-form-anthropic-1",
@@ -397,7 +397,7 @@ describe("settings: connections", () => {
     expect(screen.getByText(/\.\.\.env9/).closest("p")).toHaveTextContent(
       "Key ...env9 (provided by the instance configuration), checked never.",
     );
-    expect(screen.queryByRole("button", { name: "Disconnect" })).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Remove key" })).not.toBeInTheDocument();
     fireEvent.click(screen.getByRole("button", { name: "Connect a key" }));
     expect(screen.getByLabelText("Anthropic admin key")).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Connect" })).toBeInTheDocument();
@@ -437,7 +437,7 @@ describe("settings: connections", () => {
 
     expect(screen.getByText("An owner of this organization manages this key.")).toBeInTheDocument();
     expect(
-      screen.queryByRole("button", { name: /Disconnect|Connect|Replace/ }),
+      screen.queryByRole("button", { name: /Remove key|Connect|Replace/ }),
     ).not.toBeInTheDocument();
     expect(screen.getByText(/\.\.\.4321/).closest("p")).toHaveTextContent("(stored)");
   });
@@ -474,7 +474,7 @@ describe("settings: connections", () => {
     expect(rows[1]).toHaveTextContent("Research");
     expect(rows[1]).toHaveTextContent("org_redacted_second");
     expect(
-      within(rows[1]!).getByRole("button", { name: "Disconnect" }).closest("form"),
+      within(rows[1]!).getByRole("button", { name: "Remove key" }).closest("form"),
     ).toHaveAttribute("id", "disconnect-form-anthropic-4");
     // Replacing the key of a named account says which one.
     fireEvent.click(within(rows[1]!).getByRole("button", { name: "Replace key" }));
@@ -553,7 +553,7 @@ describe("settings: connections", () => {
         "href",
         "https://openrouter.ai/settings/management-keys",
       );
-      const disconnects = screen.getAllByRole("button", { name: "Disconnect" });
+      const disconnects = screen.getAllByRole("button", { name: "Remove key" });
       expect(disconnects.map((button) => button.closest("form")?.id)).toEqual([
         "disconnect-form-anthropic-1",
         "disconnect-form-openrouter-2",
@@ -602,7 +602,7 @@ describe("settings: sync", () => {
   it("dates the last import in relative time and names what started it", async () => {
     render(await SyncSettingsPage());
 
-    expect(screen.getByRole("heading", { level: 2 })).toHaveTextContent("Automatic syncsucceeded");
+    expect(screen.getByRole("heading", { level: 2 })).toHaveTextContent("Automatic syncReady");
     expect(screen.getByText(/Once a day at 06:00 UTC Costura imports/)).toBeInTheDocument();
     expect(screen.getByText(/^5 hours ago \(/).closest("dd")).toHaveTextContent(
       "5 hours ago (2026-09-14 06:02 UTC), automatic",
@@ -618,7 +618,7 @@ describe("settings: sync", () => {
     render(await SyncSettingsPage());
 
     expect(
-      screen.getByText(/The automatic import due 2026-09-15 06:00 UTC has not run\./),
+      screen.getByText(/No import has run since 2026-09-14 06:02 UTC, so the daily automatic/),
     ).toBeInTheDocument();
     expect(screen.getByText(/ask whoever runs Costura to check the daily import/)).toBeVisible();
   });
@@ -686,7 +686,10 @@ describe("settings: sync", () => {
     expect(within(table).getByText("3 workspaces, 12 keys, 4 users")).toBeInTheDocument();
     expect(within(table).getByText(/Still importing/)).toBeInTheDocument();
     expect(screen.getByText("Importing")).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: "Syncing..." })).toBeDisabled();
+    expect(screen.getByRole("button", { name: "Syncing..." })).toHaveAttribute(
+      "aria-disabled",
+      "true",
+    );
     expect(screen.getByText(/Steps appear as they finish/)).toBeInTheDocument();
   });
 
@@ -796,7 +799,7 @@ describe("settings: organization", () => {
     expect(screen.getByLabelText("Name")).toHaveValue("Default organization");
     expect(screen.getByRole("button", { name: "Save name" })).toBeInTheDocument();
     expect(screen.getByText("default", { selector: "code" })).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: "Copy organization id" })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Copy the organization ID" })).toBeInTheDocument();
     expect(screen.getByText("2026-09-14")).toBeInTheDocument();
   });
 
@@ -824,7 +827,9 @@ describe("settings: account", () => {
       "Leave this organization",
     ]);
     expect(screen.getByText("owner@example.com")).toBeInTheDocument();
-    expect(screen.getByText("owner")).toBeInTheDocument();
+    expect(screen.getByText("owner@example.com").closest("p")).toHaveTextContent(
+      "owner@example.comOwner",
+    );
     // The only owner cannot leave: the organization would have nobody to manage its keys.
     expect(screen.queryByRole("button", { name: "Leave organization" })).not.toBeInTheDocument();
     expect(screen.getByText(/You are the only owner/)).toBeInTheDocument();
@@ -846,7 +851,7 @@ describe("settings: account", () => {
     ]);
     render(await AccountSettingsPage());
 
-    expect(screen.getByText("member")).toBeInTheDocument();
+    expect(screen.getByText("Member")).toBeInTheDocument();
     expect(screen.getByText(/Could not load your alert setting/)).toBeInTheDocument();
     // Anyone who is not the last owner may give up their own membership.
     expect(screen.getByRole("button", { name: "Leave organization" })).toBeEnabled();
@@ -861,7 +866,7 @@ describe("settings: account", () => {
     ]);
     render(await AccountSettingsPage());
 
-    expect(screen.getByText("viewer")).toBeInTheDocument();
+    expect(screen.getByText("Viewer")).toBeInTheDocument();
     expect(screen.getByText("Reads every page. Changes nothing.")).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Turn alerts on" })).toBeEnabled();
     expect(screen.getByRole("button", { name: "Sign out everywhere" })).toBeInTheDocument();
@@ -886,15 +891,18 @@ describe("settings: advanced", () => {
       screen.getByText(/Start over as if this organization were newly created/),
     ).toBeInTheDocument();
     const button = screen.getByRole("button", { name: "Reset onboarding" });
-    expect(button.closest("form")!.querySelector('input[name="org"]')).toBeNull();
+    expect(button.closest("form")!.querySelector('input[name="org"]')).toHaveAttribute(
+      "value",
+      "default",
+    );
     expect(screen.queryByRole("alertdialog")).not.toBeInTheDocument();
 
     fireEvent.click(button);
 
     const dialog = screen.getByRole("alertdialog");
-    expect(dialog).toHaveTextContent("Reset the onboarding of this organization?");
+    expect(dialog).toHaveTextContent("Reset the onboarding of Default organization?");
     expect(dialog).toHaveTextContent(
-      "Removes the stored provider keys and every synced record for this organization: spend, inventory, runs, anomalies, projections and budgets. The next visit starts at the welcome screen.",
+      "Removes the stored provider keys and every synced record of Default organization (default): spend, inventory, runs, anomalies, projections and budgets. The next visit starts at the welcome screen.",
     );
     const confirm = within(dialog).getByRole("button", { name: "Reset everything" });
     expect(confirm).toHaveAttribute("type", "submit");

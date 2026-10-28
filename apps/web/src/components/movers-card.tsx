@@ -97,7 +97,7 @@ function Side({
       ) : (
         <ul className="mt-1 divide-y divide-border">
           {rows.map((row) => {
-            const href = entityHref(dimension, row.key);
+            const href = entityHref(dimension, row.key, null, row.provider);
             const name = splitLabel(row.label).name;
             const delta = Number(row.delta);
             return (

@@ -263,3 +263,12 @@ def test_sign_in_helper_grants_ownership(db_session: Session) -> None:
     user = db_session.scalar(select(User).where(User.email == "second@example.com"))
     assert header.startswith("Bearer ") and user is not None
     assert membership(db_session, get_org(db_session, "default").id, user.id).role == "owner"
+
+
+def test_without_a_session_an_unknown_slug_looks_like_a_private_one(
+    anonymous: TestClient,
+) -> None:
+    private = anonymous.get("/api/v1/orgs/default/setup")
+    unknown = anonymous.get("/api/v1/orgs/no-such-org/setup")
+    assert private.status_code == unknown.status_code == 401
+    assert private.json() == unknown.json()

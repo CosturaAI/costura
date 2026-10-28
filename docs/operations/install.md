@@ -64,7 +64,9 @@ command, listed in [`.just/prod.just`](../../.just/prod.just).
 
 ### From a checkout
 
-From a checkout of the release tag:
+From a checkout of the release tag, used only for production. `just dev` and the
+`just prod::*` recipes read the same `.env` at the repository root, and `prod::init` refuses
+to overwrite one, so a development checkout cannot also be the production one:
 
 <!-- x-release-please-start-version -->
 
@@ -140,8 +142,10 @@ Every `just prod::*` recipe passes `-f docker-compose.prod.yml`, so Compose does
   locks the worker holds.
 
 The bundled `postgres` service still starts and stays empty. `just prod::backup` and
-`prod::restore` read the bundled service only; back up a managed database with the
-provider's own backups. `just prod::smoke-external-db` runs the stack against a second
+`prod::restore` refuse to run while `COSTURA_DATABASE_HOST` names another server, because
+they reach only the bundled service; back up and restore a managed database with the
+provider's own backups. `just prod::upgrade` takes no backup in that case: it says so before
+it asks, so take a provider snapshot first ([upgrade](upgrade.md)). `just prod::smoke-external-db` runs the stack against a second
 PostgreSQL over verified TLS. `COSTURA_TRUSTED_PROXIES` defaults to
 the Compose network, `COSTURA_SUBNET` (`172.28.0.0/24` unless set). Set `COSTURA_SUBNET` to a
 free range when Docker answers "Pool overlaps with other one on this address space". Do not
@@ -180,7 +184,9 @@ GitHub Copilot takes two: `COPILOT_GITHUB_TOKEN` (a classic token of an organiza
 billing manager) and `COPILOT_ORG` (the organization login). The connector is experimental: it imports
 one day per request and one request per seat holder per day, and GitHub returns no e-mail for
 a seat, so an owner maps logins to e-mails with
-`PUT /api/v1/orgs/{org}/providers/copilot/accounts/{account_id}/logins`.
+`PUT /api/v1/orgs/{org}/providers/copilot/accounts/{account_id}/logins`. A day's seat cost is
+split among the logins whose seat covered that day: assigned on or before it (GitHub's seat
+creation date) and not yet gone from the inventory.
 They apply only to the organization whose slug is `COSTURA_ORG` (`default` unless set), and
 only while that organization stores no key of its own. The web app refuses that slug, so a
 signed-in user cannot create it and receive the keys. To use the fallback, create it from

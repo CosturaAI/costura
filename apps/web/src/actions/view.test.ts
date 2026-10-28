@@ -121,6 +121,15 @@ describe("switchOrganizationAction", () => {
     expect(mocks.revalidatePath).toHaveBeenCalledWith("/", "layout");
   });
 
+  it("leaves an owner-only section or an id of the old organization for a root", async () => {
+    await expect(
+      switchOrganizationAction(form({ slug: "default", next: "/settings/audit" })),
+    ).rejects.toThrow("NEXT_REDIRECT /settings");
+    await expect(
+      switchOrganizationAction(form({ slug: "default", next: "/anomalies/12" })),
+    ).rejects.toThrow("NEXT_REDIRECT /anomalies");
+  });
+
   it("keeps next on this origin", async () => {
     await expect(
       switchOrganizationAction(form({ slug: "default", next: "https://evil.test/x" })),

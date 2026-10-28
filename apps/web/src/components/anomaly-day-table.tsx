@@ -16,12 +16,22 @@ import {
   splitLabel,
 } from "@/lib/dimensions";
 import { formatTokens, formatUsd } from "@/lib/format";
+import { openOrgHref } from "@/lib/setup";
 
 /**
  * Everything the series spent on the anomaly day, one tab per child dimension, every row
- * against its own trailing 7-day average. Rows link to their entity page and to Explore.
+ * against its own trailing 7-day average. Rows link to their entity page and to Explore under
+ * the anomaly's provider, since the row ids belong to it.
  */
-export function AnomalyDayTable({ breakdowns }: { breakdowns: DayBreakdown[] }) {
+export function AnomalyDayTable({
+  breakdowns,
+  org,
+  provider,
+}: {
+  breakdowns: DayBreakdown[];
+  org: string;
+  provider: string;
+}) {
   const [dimension, setDimension] = useState(breakdowns[0]?.dimension ?? "");
   const current = breakdowns.find((b) => b.dimension === dimension) ?? breakdowns[0];
   if (!current) return <p className="text-sm text-muted-foreground">No rows for this day.</p>;
@@ -35,8 +45,9 @@ export function AnomalyDayTable({ breakdowns }: { breakdowns: DayBreakdown[] }) 
       sortValue: (row) => row.label,
       render: (row) => {
         const { name, id } = splitLabel(row.label);
-        const entity = entityHref(current.dimension, row.key);
-        const explore = drillDownHref(current.dimension, row.key);
+        const entity = entityHref(current.dimension, row.key, null, provider);
+        const drill = drillDownHref(current.dimension, row.key);
+        const explore = drill ? openOrgHref(org, drill, { scope: provider }) : null;
         return (
           <span className="flex flex-wrap items-baseline gap-x-2">
             {entity ? (
@@ -53,7 +64,11 @@ export function AnomalyDayTable({ breakdowns }: { breakdowns: DayBreakdown[] }) 
             ) : null}
             {row.new ? <StatusBadge tone="warning">new</StatusBadge> : null}
             {explore ? (
-              <Link href={explore} className="text-xs text-muted-foreground hover:underline">
+              <Link
+                href={explore}
+                prefetch={false}
+                className="text-xs text-muted-foreground hover:underline"
+              >
                 Analyze
               </Link>
             ) : null}

@@ -141,7 +141,9 @@ export function queryUsage(query: SpendQuery, dimension: string, metadata: Usage
 /**
  * Rows for a range across every measure: money and tokens per row come from the matching
  * series of each measure's query, details from the month report. Rows follow billed spend,
- * or tokens when nothing is billed.
+ * or tokens when nothing is billed. The API ranks each measure on its own, so a row in the
+ * spend top N can be missing from the token top N; its counters then come from the usage
+ * report, which ranks by spend like the billed query.
  */
 export function rangeUsage(
   dimension: string,
@@ -168,7 +170,9 @@ export function rangeUsage(
     const known = metadataByKey.get(rowKey(series.provider, key, label));
     const amount = lookups.get("billed_usd")?.get(identity);
     const byok = lookups.get("byok_usd")?.get(identity);
-    const totalTokens = lookups.get("tokens_total")?.get(identity) ?? 0;
+    const measured = (measure: QueryMeasure, fallback: number | undefined) =>
+      lookups.get(measure)?.get(identity) ?? fallback ?? 0;
+    const totalTokens = measured("tokens_total", known?.total_tokens);
     return {
       key,
       label,
@@ -180,15 +184,21 @@ export function rangeUsage(
       share: amount === undefined || total <= 0 ? null : ((amount / total) * 100).toFixed(2),
       byok_amount: byok === undefined ? null : byok.toFixed(2),
       tokens: {
-        uncached_input_tokens: lookups.get("tokens_input")?.get(identity) ?? 0,
-        cache_creation_5m_tokens: lookups.get("tokens_cache_write")?.get(identity) ?? 0,
+        uncached_input_tokens: measured("tokens_input", known?.tokens.uncached_input_tokens),
+        cache_creation_5m_tokens: measured(
+          "tokens_cache_write",
+          known
+            ? (known.tokens.cache_creation_5m_tokens ?? 0) +
+                (known.tokens.cache_creation_1h_tokens ?? 0)
+            : undefined,
+        ),
         cache_creation_1h_tokens: 0,
-        cache_read_tokens: lookups.get("tokens_cache_read")?.get(identity) ?? 0,
-        output_tokens: lookups.get("tokens_output")?.get(identity) ?? 0,
+        cache_read_tokens: measured("tokens_cache_read", known?.tokens.cache_read_tokens),
+        output_tokens: measured("tokens_output", known?.tokens.output_tokens),
         reasoning_tokens: known?.tokens.reasoning_tokens ?? 0,
       },
       total_tokens: totalTokens,
-      web_search_requests: lookups.get("requests_web_search")?.get(identity) ?? 0,
+      web_search_requests: measured("requests_web_search", known?.web_search_requests),
       person: dimension === "person" ? key : (known?.person ?? null),
     };
   });

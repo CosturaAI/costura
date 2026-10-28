@@ -145,7 +145,7 @@ describe("entity pages", () => {
     expect(screen.getByRole("button", { name: "Copy id" })).toBeInTheDocument();
     expect(screen.getByRole("link", { name: "Open in Analyze" })).toHaveAttribute(
       "href",
-      "/explore?by=model&f=api_key%3Ais%3Aapikey_redacted_2",
+      `/o/default?${new URLSearchParams({ scope: "anthropic", next: "/explore?by=model&f=api_key%3Ais%3Aapikey_redacted_2" })}`,
     );
     // Facts from the inventory: the workspace links to its own page.
     fireEvent.click(screen.getByText("Details"));
@@ -165,7 +165,8 @@ describe("entity pages", () => {
       from: "2026-08-01",
       to: "2026-08-31",
     });
-    expect(screen.getByText("Share of the organization")).toBeInTheDocument();
+    expect(screen.getByText("Share of Anthropic spend")).toBeInTheDocument();
+    expect(screen.getByText("of the period's Anthropic spend")).toBeInTheDocument();
     expect(screen.getByText("71.36%")).toBeInTheDocument();
     expect(screen.getByRole("list", { name: "Legend" })).toBeInTheDocument();
     expect(screen.getByRole("table", { name: /batch-ingest by model/ })).toBeInTheDocument();
@@ -330,8 +331,16 @@ describe("entity pages", () => {
     expect(mocked.usage).not.toHaveBeenCalled();
 
     page.pathname = "/keys/nope";
-    render(<EntityNotFound />);
+    render(await EntityNotFound());
     expect(screen.getByText(/Search the inventory for the name instead/)).toBeInTheDocument();
+    expect(screen.getByRole("link", { name: "Search resources" })).toHaveAttribute(
+      "href",
+      "/inventory",
+    );
+    expect(screen.getByRole("link", { name: "Open under All providers" })).toHaveAttribute(
+      "href",
+      "/o/default?scope=all&next=%2Fkeys%2Fnope",
+    );
     expect(screen.getByRole("link", { name: "Connect a provider" })).toHaveAttribute(
       "href",
       "/welcome",
@@ -368,7 +377,7 @@ describe("entity pages", () => {
     expect(screen.getByRole("meter", { name: "Platform budget" })).toBeInTheDocument();
     expect(screen.getByRole("link", { name: "Open in Analyze" })).toHaveAttribute(
       "href",
-      "/explore?by=person&f=workspace%3Ais%3Awrkspc_redacted_a",
+      `/o/default?${new URLSearchParams({ scope: "anthropic", next: "/explore?by=person&f=workspace%3Ais%3Awrkspc_redacted_a" })}`,
     );
     expect(mocked.series).toHaveBeenCalledWith(
       "default",
@@ -436,7 +445,7 @@ describe("entity pages", () => {
     expect(screen.getByRole("heading", { level: 1 })).toHaveTextContent("claude-sonnet-4");
     expect(screen.getByRole("link", { name: "Open in Analyze" })).toHaveAttribute(
       "href",
-      "/explore?by=person&f=model%3Ais%3Aclaude-sonnet-4",
+      `/o/default?${new URLSearchParams({ scope: "anthropic", next: "/explore?by=person&f=model%3Ais%3Aclaude-sonnet-4" })}`,
     );
     expect(mocked.usage).toHaveBeenCalledWith(
       "default",
@@ -491,8 +500,25 @@ describe("entity pages", () => {
     );
     expect(screen.getByRole("link", { name: "Open in Analyze" })).toHaveAttribute(
       "href",
-      "/explore?by=api_key&f=workspace%3Ais%3Awrkspc_redacted_a",
+      `/o/default?${new URLSearchParams({ scope: "anthropic", next: "/explore?by=api_key&f=workspace%3Ais%3Awrkspc_redacted_a" })}`,
     );
+  });
+
+  it("opens a person under every provider when the scope's provider has no account", async () => {
+    page.view = { ...page.view!, scope: "openai" };
+    mocked.person.mockImplementation((_org: string, scope: string) =>
+      scope === "all"
+        ? Promise.resolve(fx.person)
+        : Promise.reject(new ApiError(404, "/x", "unknown person")),
+    );
+    mocked.anomalies.mockResolvedValue({ ...fx.anomalies, anomalies: [] });
+    render(await PersonPage({ params: Promise.resolve({ email: "alice%40example.com" }) }));
+
+    expect(mocked.person).toHaveBeenCalledWith("default", "openai", "2026-08", "alice@example.com");
+    expect(mocked.person).toHaveBeenCalledWith("default", "all", "2026-08", "alice@example.com");
+    expect(
+      screen.getByText("This person has no OpenAI account; the page shows every provider."),
+    ).toBeInTheDocument();
   });
 
   it("renders a person across providers under all with badges, identities and breakdowns", async () => {
@@ -586,7 +612,7 @@ describe("entity pages", () => {
     expect(screen.getByRole("heading", { name: /^By api key$/i })).toBeInTheDocument();
     expect(screen.getByRole("link", { name: "Open in Analyze" })).toHaveAttribute(
       "href",
-      "/explore?by=provider&f=person%3Ais%3Aalice%40example.com",
+      `/o/default?${new URLSearchParams({ scope: "all", next: "/explore?by=provider&f=person%3Ais%3Aalice%40example.com" })}`,
     );
     expect(screen.getByRole("link", { name: "All anomalies" })).toHaveAttribute(
       "href",

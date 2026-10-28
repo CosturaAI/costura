@@ -53,7 +53,7 @@ export function AnomalyEvidence({ detail, org }: { detail: AnomalyDetail; org: s
       <div className="mt-3 space-y-4">
         <WhyCard detail={detail} />
         <BaselineCard detail={detail} />
-        <SpentThatDayCard detail={detail} />
+        <SpentThatDayCard detail={detail} org={org} />
         <div className="grid gap-4 lg:grid-cols-2">
           <VolumeOrPriceCard detail={detail} />
           <DataBehindCard detail={detail} org={org} />
@@ -108,7 +108,7 @@ function BaselineCard({ detail }: { detail: AnomalyDetail }) {
   );
 }
 
-function SpentThatDayCard({ detail }: { detail: AnomalyDetail }) {
+function SpentThatDayCard({ detail, org }: { detail: AnomalyDetail; org: string }) {
   const { evidence } = detail;
   const flaggedDrivers = detail.same_day.filter((own) =>
     detail.root_causes.some(
@@ -140,7 +140,7 @@ function SpentThatDayCard({ detail }: { detail: AnomalyDetail }) {
         </CardDescription>
       </CardHeader>
       <CardContent>
-        <AnomalyDayTable breakdowns={evidence.breakdowns} />
+        <AnomalyDayTable breakdowns={evidence.breakdowns} org={org} provider={detail.provider} />
       </CardContent>
     </Card>
   );

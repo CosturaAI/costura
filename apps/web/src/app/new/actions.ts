@@ -22,7 +22,7 @@ const NewOrg = z.object({
   name: text().refine((value) => !!value, "Give the organization a name."),
   slug: text().refine(
     isValidSlug,
-    "The address needs 2 to 63 lowercase letters, digits or hyphens and cannot start with a hyphen.",
+    "The organization ID needs 2 to 63 lowercase letters, digits or hyphens and cannot start with a hyphen.",
   ),
 });
 
@@ -36,7 +36,7 @@ export async function createOrgAction(_prev: NewOrgState, form: FormData): Promi
     if (error instanceof ApiError && error.status === 409 && /reserved/.test(error.detail)) {
       return {
         ok: false,
-        message: `The address /${slug} is reserved on this deployment. Choose another.`,
+        message: `The organization ID ${slug} is reserved on this deployment. Choose another.`,
         field: "slug",
         suggestion: null,
       };
@@ -44,7 +44,7 @@ export async function createOrgAction(_prev: NewOrgState, form: FormData): Promi
     if (error instanceof ApiError && error.status === 409) {
       return {
         ok: false,
-        message: `The address /${slug} is taken.`,
+        message: `The organization ID ${slug} is taken.`,
         field: "slug",
         suggestion: nextSlug(slug),
       };

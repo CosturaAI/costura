@@ -3,6 +3,7 @@ import { describe, expect, it } from "vitest";
 import {
   autoInterval,
   monthRange,
+  monthToDate,
   monthsIn,
   periodPhrase,
   periodTitle,
@@ -16,6 +17,13 @@ import {
 const TODAY = new Date("2026-09-17T12:00:00Z");
 
 describe("time ranges", () => {
+  it("reads a range from the 1st to today as the month so far", () => {
+    expect(monthToDate("2026-09-01", "2026-09-17", TODAY)).toBe("2026-09");
+    expect(monthToDate("2026-09-02", "2026-09-17", TODAY)).toBeNull();
+    expect(monthToDate("2026-09-01", "2026-09-16", TODAY)).toBeNull();
+    expect(monthToDate("2026-08-01", "2026-09-17", TODAY)).toBeNull();
+  });
+
   it("names a period as its month when it is one, else by its days", () => {
     expect(wholeMonth("2026-02-01", "2026-02-28")).toBe("2026-02");
     expect(wholeMonth("2026-02-01", "2026-02-27")).toBeNull();

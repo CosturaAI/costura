@@ -106,8 +106,11 @@ just prod::doctor
 just prod::up
 ```
 
-`just prod::init` writes `.env` with generated secrets. `just prod::doctor` checks the host
-and that `.env` without printing a secret. `just prod::up` starts PostgreSQL, a
+Run these in a checkout used only for production, or from the
+[Docker-only bundle](docs/operations/install.md#docker-only): the development and production
+recipes read the same `.env` at the repository root, and `just prod::init` refuses to
+overwrite one. `just prod::init` writes `.env` with generated secrets. `just prod::doctor`
+checks the host and that `.env` without printing a secret. `just prod::up` starts PostgreSQL, a
 one-shot migration, the API, the worker, the scheduler, the web app and a Caddy proxy, one
 replica each, from `docker-compose.prod.yml`.
 

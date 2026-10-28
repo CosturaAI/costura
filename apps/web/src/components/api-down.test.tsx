@@ -1,4 +1,4 @@
-import { act, fireEvent, render, screen } from "@testing-library/react";
+import { act, cleanup, fireEvent, render, screen } from "@testing-library/react";
 import { describe, expect, it, vi } from "vitest";
 
 import { ApiError } from "@/lib/api-error";
@@ -17,6 +17,15 @@ describe("ApiDown", () => {
   it("names an API 5xx as the data service", () => {
     render(<ApiDown error={new ApiError(503, "/orgs/a", "down")} reset={() => {}} />);
     expect(screen.getByText("Costura did not answer")).toBeInTheDocument();
+  });
+
+  it("names the sample limit only for a sample request and words any other 429 generically", () => {
+    render(<ApiDown error={new ApiError(429, "/orgs/demo/spend", "too many")} reset={() => {}} />);
+    expect(screen.getByText("Sample data is temporarily busy")).toBeInTheDocument();
+    cleanup();
+    render(<ApiDown error={new Error("429 /orgs/acme/spend: too many")} reset={() => {}} />);
+    expect(screen.getByText("Too many requests. Wait a minute, then retry.")).toBeInTheDocument();
+    expect(screen.queryByText("Sample data is temporarily busy")).toBeNull();
   });
 
   it("shows a neutral title and the digest for any other error", () => {

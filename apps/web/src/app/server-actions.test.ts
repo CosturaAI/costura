@@ -36,6 +36,7 @@ vi.mock("@/lib/api", async () => {
       setInvoice: vi.fn(),
       setTeam: vi.fn(),
       setTeamMember: vi.fn(),
+      teams: vi.fn(),
       setup: vi.fn(),
       syncNow: vi.fn(),
       unassignOwner: vi.fn(),
@@ -524,6 +525,7 @@ describe("setup and inbox actions", () => {
 
 describe("team actions", () => {
   it("derives the slug from the name and maps a chosen entity", async () => {
+    vi.mocked(api.teams).mockResolvedValue({ teams: [] });
     vi.mocked(api.setTeam).mockResolvedValue({ teams: [] });
     await expect(
       teams.setTeamAction(idleAction, formOf({ name: " Data Platform " })),
@@ -542,6 +544,31 @@ describe("team actions", () => {
       "anthropic",
       "ws|1",
     );
+  });
+
+  it("refuses a name whose slug another team holds instead of renaming that team", async () => {
+    vi.mocked(api.teams).mockResolvedValue({
+      teams: [{ slug: "data-platform", name: "Data platform", members: [] }],
+    });
+    await expect(
+      teams.setTeamAction(idleAction, formOf({ name: "Data  Platform!" })),
+    ).resolves.toEqual({
+      ok: false,
+      message: "The team Data platform already uses this name; choose another one.",
+      field: "name",
+    });
+    expect(api.setTeam).not.toHaveBeenCalled();
+  });
+
+  it("refuses a write posted from a tab that showed another organization", async () => {
+    await expect(
+      teams.deleteTeamAction(idleAction, formOf({ org: "other", team: "growth" })),
+    ).resolves.toEqual({
+      ok: false,
+      message:
+        "This tab shows other but acme was opened in another tab; reload before changing anything.",
+    });
+    expect(api.deleteTeam).not.toHaveBeenCalled();
   });
 
   it("refuses a name without letters or digits and an empty choice", async () => {

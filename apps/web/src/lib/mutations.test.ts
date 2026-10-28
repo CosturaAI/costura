@@ -26,7 +26,7 @@ describe("runMutation", () => {
       runMutation(async () => {
         throw new ApiError(422, "/key", "key rejected");
       }),
-    ).resolves.toEqual({ ok: false, message: "key rejected" });
+    ).resolves.toEqual({ ok: false, message: "Key rejected." });
     await expect(
       runMutation(async () => {
         throw new Error("boom");

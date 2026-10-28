@@ -3,7 +3,7 @@
 import { useActionState } from "react";
 
 import { SubmitButton } from "@/components/submit-button";
-import { Feedback, FieldError, invalid } from "@/components/form-feedback";
+import { Feedback, FieldError, OrgField, invalid } from "@/components/form-feedback";
 import { Input } from "@/components/ui/input";
 import { idleAction } from "@/lib/action-errors";
 
@@ -13,8 +13,10 @@ export function DeleteOrganizationForm({ slug }: { slug: string }) {
   const [state, action, pending] = useActionState(deleteOrganizationAction, idleAction);
   return (
     <form action={action} className="space-y-3">
+      <OrgField org={slug} />
       <label htmlFor="delete-org-slug" className="text-sm font-medium text-foreground">
-        Type <span className="font-mono">{slug}</span> to delete this organization
+        Type the organization ID <span className="font-mono">{slug}</span> to delete this
+        organization
       </label>
       <Input
         id="delete-org-slug"

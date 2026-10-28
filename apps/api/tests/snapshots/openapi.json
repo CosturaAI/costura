@@ -29,6 +29,7 @@
           "seat_price_usd": {
             "anyOf": [
               {
+                "exclusiveMaximum": 1000000000.0,
                 "minimum": 0.0,
                 "type": "number"
               },
@@ -79,6 +80,7 @@
           "seat_price_usd": {
             "anyOf": [
               {
+                "exclusiveMaximum": 1000000000.0,
                 "minimum": 0.0,
                 "type": "number"
               },
@@ -680,6 +682,7 @@
             "items": {
               "type": "integer"
             },
+            "maxItems": 500,
             "title": "Anomaly Ids",
             "type": "array"
           },
@@ -2319,6 +2322,7 @@
           "amount": {
             "anyOf": [
               {
+                "exclusiveMaximum": 1000000000000.0,
                 "type": "number"
               },
               {
@@ -2845,6 +2849,7 @@
           "seat_price_usd": {
             "anyOf": [
               {
+                "exclusiveMaximum": 1000000000.0,
                 "minimum": 0.0,
                 "type": "number"
               },
@@ -3027,6 +3032,7 @@
           "price_per_credit": {
             "anyOf": [
               {
+                "exclusiveMaximum": 1000000000.0,
                 "exclusiveMinimum": 0.0,
                 "type": "number"
               },
@@ -3978,7 +3984,7 @@
           "amount": {
             "anyOf": [
               {
-                "exclusiveMaximum": 100000000000000.0,
+                "exclusiveMaximum": 1000000000000.0,
                 "minimum": 0.0,
                 "type": "number"
               },
@@ -3991,6 +3997,7 @@
           "note": {
             "anyOf": [
               {
+                "maxLength": 500,
                 "type": "string"
               },
               {
@@ -4537,6 +4544,7 @@
           "note": {
             "anyOf": [
               {
+                "maxLength": 500,
                 "type": "string"
               },
               {

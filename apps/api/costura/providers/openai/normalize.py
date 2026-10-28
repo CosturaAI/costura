@@ -177,6 +177,8 @@ def result_amount(result: dict[str, Any]) -> tuple[Decimal, str]:
         money = Decimal(str(value))
     except InvalidOperation as exc:
         raise NormalizeError(f"amount.value is not a number: {value!r}") from exc
+    if not money.is_finite():
+        raise NormalizeError(f"amount.value is not a finite number: {value!r}")
     currency = amount.get("currency")
     if not isinstance(currency, str) or not currency:
         raise NormalizeError("amount.currency is missing")
@@ -355,9 +357,12 @@ def _decimal(value: Any, *, field: str) -> Decimal:
     if isinstance(value, bool) or not isinstance(value, (int, float, str)):
         raise NormalizeError(f"{field} is not a number: {value!r}")
     try:
-        return Decimal(str(value))
+        number = Decimal(str(value))
     except InvalidOperation as exc:
         raise NormalizeError(f"{field} is not a number: {value!r}") from exc
+    if not number.is_finite():
+        raise NormalizeError(f"{field} is not a finite number: {value!r}")
+    return number
 
 
 __all__ = [

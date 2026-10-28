@@ -21,10 +21,10 @@ export async function resendDeliveryAction(
   _prev: ActionState,
   form: FormData,
 ): Promise<ActionState> {
-  const org = await requireActiveOrg();
   const parsed = parseForm(form, Resend);
   if (!parsed.ok) return parsed.error;
   try {
+    const org = await requireActiveOrg(form);
     const result = await api.resendWebhookDelivery(org, parsed.data.delivery_id);
     refresh(SETTINGS_PAGES);
     return result.delivered

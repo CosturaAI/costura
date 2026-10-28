@@ -1,5 +1,6 @@
 """Scheduler: sync_all step counts, failure handling, skipped organizations, lock, timing."""
 
+import threading
 from dataclasses import replace
 from datetime import UTC, date, datetime, timedelta
 from typing import Any
@@ -11,7 +12,7 @@ from sqlalchemy import func, select
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
-from costura import credentials, scheduler, scheduler_lock, secrets, sync_cycle
+from costura import credentials, ops, scheduler, scheduler_lock, secrets, sync_cycle
 from costura.config import get_settings
 from costura.db import SessionLocal
 from costura.models.credential import ProviderCredential
@@ -20,6 +21,7 @@ from costura.models.sync import ProviderSyncRun
 from costura.ops.worker import drain
 from costura.orgs import create_org
 from costura.providers.anthropic.client import AnthropicAdminClient
+from costura.providers.http import ProviderApiError
 from costura.providers.openai.client import OpenAIAdminClient
 from costura.providers.openrouter.client import OpenRouterManagementClient
 from costura.providers.registry import ANTHROPIC_SPEC, OPENAI_SPEC, OPENROUTER_SPEC
@@ -195,10 +197,12 @@ def test_sync_all_continues_after_a_failing_step_and_retries_it(
     assert len(calls) == sync_cycle.STEP_ATTEMPTS
     assert slept == [5.0, 30.0]
     # Independent report steps still ran; the dependent chain is deterministically skipped.
+    # Person budgets read every provider, so this provider's failure does not skip them.
     assert [s.step for s in result.steps if s.status == "ok"] == [
         "inventory",
         "cost",
         "total",
+        "person_budgets",
     ]
     skipped = [s for s in result.steps if s.status == "skipped"]
     assert [(s.step, s.attempts, s.detail) for s in skipped] == [
@@ -206,7 +210,6 @@ def test_sync_all_continues_after_a_failing_step_and_retries_it(
         ("detect", 0, "prerequisite not satisfied: allocate=skipped"),
         ("project", 0, "prerequisite not satisfied: allocate=skipped"),
         ("budgets", 0, "prerequisite not satisfied: project=skipped"),
-        ("person_budgets", 0, "prerequisite not satisfied: budgets=skipped"),
     ]
     assert db_session.get(SchedulerRun, result.run_id).status == "failed"
 
@@ -599,6 +602,52 @@ def test_interrupt_requeues_the_cycle_and_fails_the_provider_run(
     assert provider_run.error == "KeyboardInterrupt:"
 
 
+@pytest.mark.parametrize("stalled", [False, True])
+def test_a_stop_signal_undoes_the_attempt_unless_the_watchdog_sent_it(
+    db_session: Session,
+    org_id: int,
+    stored_key: None,
+    monkeypatch: pytest.MonkeyPatch,
+    stalled: bool,
+) -> None:
+    stall = threading.Event()
+    if stalled:
+        stall.set()
+    monkeypatch.setattr(ops, "_stalled", stall)
+
+    def terminating_handler(request: httpx.Request) -> httpx.Response:
+        if request.url.path.endswith("/cost_report"):
+            raise ops.TerminationSignal(15)
+        return anthropic_fixture_handler(request)
+
+    def terminating_factory(key: str) -> AnthropicAdminClient:
+        return AnthropicAdminClient(
+            admin_key=key,
+            transport=httpx.MockTransport(terminating_handler),
+            sleep=NO_SLEEP,
+        )
+
+    [run] = scheduler.enqueue_runs(db_session, org_id, ["anthropic"], trigger="connect")
+    run.attempt_count = 1
+    db_session.commit()
+
+    with pytest.raises(ops.TerminationSignal):
+        sync_cycle.sync_all(
+            db_session,
+            get_settings(),
+            org_id,
+            provider="anthropic",
+            months=["2026-08"],
+            factory=terminating_factory,
+            sleep=NO_SLEEP,
+            run=run,
+        )
+
+    db_session.refresh(run)
+    assert run.status == "queued"
+    assert run.attempt_count == (1 if stalled else 0)
+
+
 def test_sync_all_skips_an_organization_without_credential(
     db_session: Session, secret_key: None
 ) -> None:
@@ -775,3 +824,17 @@ def test_a_new_connection_backfills_and_skips_months_beyond_the_provider_history
     assert "40-day history" in (cost["2026-06"].detail or "")
     assert {cost["2026-08"].status, cost["2026-07"].status} == {"ok"}
     assert result.status == "succeeded"
+
+
+@pytest.mark.parametrize(("status", "tries"), [(404, 1), (400, 1), (429, 3), (408, 3), (500, 3)])
+def test_a_step_stops_retrying_on_an_answer_that_will_not_change(status: int, tries: int) -> None:
+    calls: list[int] = []
+
+    def step() -> None:
+        calls.append(1)
+        raise ProviderApiError("refused", status_code=status)
+
+    result = sync_cycle._attempt("costs", "2026-08", step, sleep=NO_SLEEP)
+
+    assert result.status == "failed"
+    assert len(calls) == tries == result.attempts

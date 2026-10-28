@@ -80,3 +80,15 @@ def test_per_user_request_omits_group_and_lookback_is_clamped_to_90_days() -> No
 def test_workspace_id_must_be_a_uuid() -> None:
     with pytest.raises(ValueError, match="workspace_id must be a UUID"):
         CodexAnalyticsClient(admin_key="redacted", workspace_id="workspace-name")
+
+
+def test_reads_start_at_the_first_whole_day_inside_the_lookback() -> None:
+    from costura.providers.codex.client import served_from
+
+    now = datetime(2026, 10, 28, 14, 30, tzinfo=UTC)
+    assert served_from(now) == datetime(2026, 7, 31, tzinfo=UTC)
+    assert served_from(datetime(2026, 10, 28, tzinfo=UTC)) == datetime(2026, 7, 30, tzinfo=UTC)
+    windows = day_windows(
+        datetime(2026, 7, 1, tzinfo=UTC), datetime(2026, 8, 1, tzinfo=UTC), now=now
+    )
+    assert windows[0][0] == datetime(2026, 7, 31, tzinfo=UTC)

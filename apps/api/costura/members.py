@@ -5,6 +5,7 @@ from dataclasses import dataclass
 from datetime import UTC, datetime, timedelta
 
 from sqlalchemy import func, select
+from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
 from costura.config import Settings
@@ -66,6 +67,12 @@ class InvitationUnavailable(LookupError, DomainError):
         super().__init__("this invitation is no longer valid; ask an owner for a new one")
 
 
+def _lock_owners(session: Session, org_id: int) -> None:
+    """Serialize role changes and removals in one organization, so two owners demoting each
+    other at the same moment cannot both see a second owner and leave none."""
+    session.execute(select(Organization.id).where(Organization.id == org_id).with_for_update())
+
+
 def owner_count(session: Session, org_id: int) -> int:
     return (
         session.scalar(
@@ -84,6 +91,7 @@ def set_role(session: Session, org: Organization, user_id: int, role: str) -> Or
     """Change the role of an existing membership. The last owner keeps the role."""
     if role not in ROLES:
         raise InvalidRole(role)
+    _lock_owners(session, org.id)
     row = membership(session, org.id, user_id)
     if row is None:
         raise UnknownMember()
@@ -99,6 +107,7 @@ def set_role(session: Session, org: Organization, user_id: int, role: str) -> Or
 def remove_member(session: Session, org: Organization, user_id: int) -> None:
     """Remove a membership; the person keeps their account, their sessions and any other
     organization. The last owner cannot be removed, by an owner or by themself."""
+    _lock_owners(session, org.id)
     row = membership(session, org.id, user_id)
     if row is None:
         raise UnknownMember()
@@ -164,8 +173,11 @@ def invite(
         invited_by=invited_by.id,
         expires_at=now + timedelta(days=INVITATION_DAYS),
     )
-    session.add(row)
-    session.flush()
+    try:
+        with session.begin_nested():
+            session.add(row)
+    except IntegrityError:
+        raise AlreadyInvited(normalized) from None
     return Invited(invitation=row, url=join_url(settings, token))
 
 

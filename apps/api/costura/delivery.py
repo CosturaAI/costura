@@ -149,7 +149,41 @@ def recent_deliveries(session: Session, org_id: int, limit: int = 20) -> list[We
 
 
 def current_signals(session: Session, org_id: int) -> list[Signal]:
-    return collect_signals(session, org_id, ALL, thresholds=org_thresholds(session, org_id))
+    return collect_signals(
+        session, org_id, ALL, thresholds=org_thresholds(session, org_id), anomaly_limit=None
+    )
+
+
+EPISODE_KINDS = frozenset({"anomaly", "budget"})
+CLOSED_MARK = "#closed-"
+
+
+def release_closed(session: Session, org_id: int, open_keys: set[tuple[str, str, str]]) -> None:
+    """Free the key of every row whose signal is no longer open, so the same import outage or
+    key gap is posted again when it comes back. Anomaly and budget references already name
+    one episode or one alert; the other kinds name the entity. The row stays in the history
+    under a reference that carries its id."""
+    rows = session.execute(
+        select(
+            WebhookDelivery.id,
+            WebhookDelivery.kind,
+            WebhookDelivery.provider,
+            WebhookDelivery.reference,
+        ).where(
+            WebhookDelivery.organization_id == org_id,
+            WebhookDelivery.kind.not_in(EPISODE_KINDS),
+            WebhookDelivery.reference.not_like(f"%{CLOSED_MARK}%"),
+        )
+    ).all()
+    for row_id, kind, provider, reference in rows:
+        if (kind, provider, reference) in open_keys:
+            continue
+        session.execute(
+            update(WebhookDelivery)
+            .where(WebhookDelivery.id == row_id)
+            .values(reference=f"{reference}{CLOSED_MARK}{row_id}")
+        )
+    session.flush()
 
 
 def record_signals(
@@ -273,15 +307,20 @@ def deliver(
     now: datetime | None = None,
 ) -> int:
     """Record the organization's new signals and post the due rows. Returns how many were
-    sent. Hosts dropped from `COSTURA_WEBHOOK_HOSTS` after the save are not posted to."""
+    sent. Hosts dropped from `COSTURA_WEBHOOK_HOSTS` after the save are not posted to.
+
+    Each row's attempt is committed before its post and its outcome right after, so a stop
+    mid-batch repeats at most the one message in flight, never the ones already answered."""
     row = destination(session, org_id)
     org = session.get(Organization, org_id)
     if row is None or org is None or row.url_host not in settings.webhook_hosts:
         return 0
     now = now or datetime.now(UTC)
     found = [s for s in current_signals(session, org_id) if s.kind not in NOT_POSTED]
-    record_signals(session, org_id, found=found)
     by_key = {read_key(s): s for s in found}
+    release_closed(session, org_id, set(by_key))
+    record_signals(session, org_id, found=found)
+    session.commit()
     due = list(
         session.scalars(
             select(WebhookDelivery)
@@ -302,15 +341,13 @@ def deliver(
         if signal is None:
             delivery.status = "skipped"
             delivery.last_error = "closed before delivery"
+            session.commit()
             continue
-        error = send_text(
-            settings,
-            row,
-            message(settings, org.slug, signal, seen),
-            str(delivery.id),
-            post or http_post,
-        )
+        text = message(settings, org.slug, signal, seen)
         delivery.attempts += 1
+        delivery.next_attempt_at = now + BACKOFF[min(delivery.attempts, len(BACKOFF)) - 1]
+        session.commit()
+        error = send_text(settings, row, text, str(delivery.id), post or http_post)
         if error is None:
             delivery.status = "sent"
             delivery.sent_at = now
@@ -322,8 +359,7 @@ def deliver(
         delivery.last_error = error
         if delivery.attempts >= MAX_ATTEMPTS:
             delivery.status = "failed"
-        else:
-            delivery.next_attempt_at = now + BACKOFF[min(delivery.attempts, len(BACKOFF)) - 1]
+        session.commit()
     session.flush()
     return sent
 

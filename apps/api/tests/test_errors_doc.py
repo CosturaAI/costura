@@ -10,10 +10,17 @@ from pathlib import Path
 import pytest
 from fastapi import Request
 from fastapi.exceptions import RequestValidationError
+from fastapi.testclient import TestClient
+from sqlalchemy.orm import Session
 
 import costura
 from costura.errors import DomainError, InvalidInput
-from costura.main import VALIDATION_CODE, domain_error_handler, validation_error_handler
+from costura.main import (
+    HTTP_CODES,
+    VALIDATION_CODE,
+    domain_error_handler,
+    validation_error_handler,
+)
 
 DOC = Path(__file__).resolve().parents[3] / "docs" / "operations" / "errors.md"
 ENTRY = re.compile(r"^### `([a-z_]+)`\n\n- \*\*Status:\*\* (\d{3})\n", re.MULTILINE)
@@ -53,6 +60,8 @@ def test_documented_codes_match_the_subclasses_and_their_status() -> None:
     documented = _documented()
     expected = {cls.code: cls.status for cls in _subclasses()}
     expected[VALIDATION_CODE] = 422
+    expected.update({code: status for status, code in HTTP_CODES.items()})
+    expected["rate_limited"] = 429
     assert documented == expected
 
 
@@ -88,3 +97,13 @@ def test_validation_error_handler_adds_the_code_and_drops_the_input() -> None:
         b'{"detail":[{"loc":["query","limit"],"msg":"bad","type":"int_parsing"}],'
         b'"code":"validation_failed"}'
     )
+
+
+def test_a_plain_http_refusal_carries_the_code_of_its_status(db_session: Session) -> None:
+    from costura.main import app
+
+    anonymous = TestClient(app)
+    refused = anonymous.get("/api/v1/orgs/default/setup")
+    assert refused.status_code == 401
+    assert refused.json()["code"] == "unauthenticated"
+    assert refused.headers["www-authenticate"] == "Bearer"

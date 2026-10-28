@@ -19,6 +19,8 @@ import {
   PRINCIPAL_BADGES,
   STATUS_TONE,
   anomalyHref,
+  anomalyListHref,
+  anomalyListQuery,
   baselineSentence,
   episodeSentence,
   isDrop,
@@ -28,6 +30,7 @@ import {
 import { entityHref, idHint, splitLabel } from "@/lib/dimensions";
 import { formatDateTime, formatDayShort } from "@/lib/format";
 import { ALL, sourceLabel } from "@/lib/providers";
+import type { Search } from "@/lib/search";
 import { readSessionToken } from "@/lib/session-cookie";
 
 import { requireView } from "@/lib/view";
@@ -58,8 +61,15 @@ export async function generateMetadata({
  * behind the data, the series' earlier anomalies, the other anomalies of that day and the
  * status controls. Opening it marks the anomaly read in the visitor's inbox.
  */
-export default async function AnomalyPage({ params }: { params: Promise<{ id: string }> }) {
+export default async function AnomalyPage({
+  params,
+  searchParams,
+}: {
+  params: Promise<{ id: string }>;
+  searchParams?: Promise<Search>;
+}) {
   const { id } = await params;
+  const listQuery = anomalyListQuery((await searchParams) ?? {});
   const { org } = await requireView();
   const anomalyId = Number(id);
   if (!Number.isInteger(anomalyId)) notFound();
@@ -81,11 +91,11 @@ export default async function AnomalyPage({ params }: { params: Promise<{ id: st
   const { name, id: externalId } = splitLabel(detail.label);
   const entity =
     detail.series_kind === "org" ? null : entityHref(detail.series_kind, detail.series_id);
-  const explore = investigateHref(detail);
+  const explore = investigateHref(detail, org);
   const severity = detail.severity;
   const episode = episodeSentence(detail);
   const falling = isDrop(detail);
-  const listHref = `/anomalies`;
+  const listHref = anomalyListHref(listQuery);
   // On the organization total the people to write to are behind the principals that drove
   // the day; the card names them instead of leaving the reader to the drivers table.
   const drivers: Driver[] =
@@ -161,7 +171,9 @@ export default async function AnomalyPage({ params }: { params: Promise<{ id: st
         ) : null}
         {explore ? (
           <Button asChild variant="outline" size="lg">
-            <Link href={explore}>Open in Analyze</Link>
+            <Link href={explore} prefetch={false}>
+              Open in Analyze
+            </Link>
           </Button>
         ) : null}
       </PageHeader>

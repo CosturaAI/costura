@@ -2,9 +2,9 @@ import type { Metadata } from "next";
 import Link from "next/link";
 
 import { CardHeading } from "@/components/card-heading";
-import { StatusBadge } from "@/components/status-badge";
+import { RunStatusPill } from "@/components/sync-progress";
 import { Card, CardContent, CardDescription, CardHeader } from "@/components/ui/card";
-import type { Connection } from "@/lib/api";
+import type { Connection, SchedulerRun } from "@/lib/api";
 import { formatMinute, formatRelative } from "@/lib/format";
 import { isAll } from "@/lib/providers";
 import { anyConnected, newestSchedule } from "@/lib/scope";
@@ -21,6 +21,13 @@ const TRIGGERS: Record<string, string> = {
   manual: "started by hand",
   connect: "first import after connecting",
 };
+
+const RUN_STATUSES: readonly string[] = ["queued", "running", "succeeded", "failed", "skipped"];
+
+/** `schedule.status` is a plain string in the API schema; an unknown one reads as importing. */
+function runStatus(status: string): SchedulerRun["status"] | null {
+  return RUN_STATUSES.includes(status) ? (status as SchedulerRun["status"]) : null;
+}
 
 function triggerLabel(trigger: string | null): string {
   if (trigger === null) return "";
@@ -39,18 +46,15 @@ export default async function SyncSettingsPage() {
   const schedule = newestSchedule(scope) ?? scope.connections[0]?.schedule;
   const everRan = scope.connections.some((connection) => connection.schedule.last_run_at !== null);
   const connected = anyConnected(scope);
-  const overdue = importOverdue(schedule?.next_run_at);
+  const lastRunAt = newestSchedule(scope)?.last_run_at ?? null;
+  const overdue = !isDemo && importOverdue(lastRunAt);
 
   return (
     <Card>
       <CardHeader>
         <CardHeading className="flex items-center gap-3">
           Automatic sync
-          {schedule?.status ? (
-            <StatusBadge tone={schedule.status === "succeeded" ? "success" : "critical"}>
-              {schedule.status}
-            </StatusBadge>
-          ) : null}
+          {schedule?.status ? <RunStatusPill status={runStatus(schedule.status)} /> : null}
         </CardHeading>
         <CardDescription>
           Once a day at {schedule?.schedule_at ?? "06:00"} UTC Costura imports the current and the
@@ -96,8 +100,8 @@ export default async function SyncSettingsPage() {
         ) : null}
         {connected && overdue ? (
           <p className="text-sm text-severity-warning">
-            The automatic import due {formatMinute(schedule?.next_run_at)} has not run. Use Sync now
-            for today, or ask whoever runs Costura to check the daily import.
+            No import has run since {formatMinute(lastRunAt)}, so the daily automatic import is not
+            running. Use Sync now for today, or ask whoever runs Costura to check the daily import.
           </p>
         ) : null}
         {connected && canOperate ? (
@@ -154,7 +158,7 @@ function LastRun({
             <span>{connected ? "never" : "not connected"}</span>
           )}
           {schedule.status && schedule.status !== "succeeded" ? (
-            <StatusBadge tone="critical">{schedule.status}</StatusBadge>
+            <RunStatusPill status={runStatus(schedule.status)} />
           ) : null}
         </div>
         {schedule.failed_steps.length > 0 ? (

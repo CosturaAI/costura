@@ -2,7 +2,9 @@
 
 Next.js 16 application for Costura. Server-component pages read the Costura API
 (`COSTURA_API_URL`, default `http://127.0.0.1:8000`) during rendering, carrying the bearer
-token of the `costura_session` cookie. A 401 sends the browser to `/sign-in`; the public sample
+token of the `costura_session` cookie. A 401 sends the browser to `/sign-in` (with
+`?expired=1&next=<path>` when the request carried a token, so sign-in says the session ended
+and returns to the page); the public sample
 organization `demo` renders without a session, with "Sign in" in the sidebar footer.
 
 Per organization, time range and provider scope (`anthropic`, `claude_ai`, `codex`, `copilot`,
@@ -53,7 +55,8 @@ The view (organization, the month a link without dates opens, provider scope, da
 activates an organization (`?from=&to=&time_frame=` carry the dates across a scope change).
 An Analyze link that carries `from` and `to` different from the view goes through
 `/o/{slug}`, which writes them into the cookie and comes back without them, so the header
-picker and the page read one range. The web view keeps ranges inside the API's bounds
+picker and the page read one range. It also carries the previous range back, and Analyze then
+names the new time frame with a link back to the old one. The web view keeps ranges inside the API's bounds
 (2000-2099, at most 3660 days, 400 on the sample organization).
 Every page reads its data for the time frame in the scope bar; budgets stay
 monthly and name the month they show. Before the shell: `/sign-in` (Google when

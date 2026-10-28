@@ -7,7 +7,7 @@ cost without a configured seat price.
 """
 
 from collections.abc import Sequence
-from datetime import datetime
+from datetime import date, datetime
 from decimal import Decimal
 
 from sqlalchemy import delete, select
@@ -15,7 +15,7 @@ from sqlalchemy.orm import Session
 
 from costura.models import ProviderUser, SpendCostLine, SpendUsageLine
 from costura.providers.copilot import PROVIDER
-from costura.providers.copilot.client import FetchedPage, GitHubBillingClient
+from costura.providers.copilot.client import FetchedPage, GitHubBillingClient, served_from
 from costura.providers.copilot.normalize import (
     SEAT_MODEL,
     DayWindow,
@@ -37,6 +37,32 @@ ENDPOINT_USERS = "ai_credit_usage"
 # No endpoint reports a control total apart from the usage report itself, so no step writes
 # this run and reconcile reports the provider total as pending.
 ENDPOINT_COST_TOTAL = "billing_usage_total"
+
+
+def seat_history(session: Session, target: Target) -> list[tuple[str, date | None, date | None]]:
+    """Every login that held a seat: the day it was assigned (when GitHub reported it) and
+    the day it went missing from the inventory (None while it is still assigned)."""
+    rows = session.execute(
+        select(ProviderUser.external_id, ProviderUser.added_at, ProviderUser.missing_since).where(
+            ProviderUser.organization_id == target.org_id,
+            ProviderUser.provider_account_id == target.account_id,
+            ProviderUser.provider == PROVIDER,
+            ProviderUser.kind == USER_KIND_USER,
+        )
+    )
+    return [
+        (login, added.date() if added else None, missing.date() if missing else None)
+        for login, added, missing in rows
+    ]
+
+
+def holders_on(history: list[tuple[str, date | None, date | None]], day: date) -> list[str]:
+    """The logins whose seat covered `day`: assigned on or before it, not gone by then."""
+    return sorted(
+        login
+        for login, added, missing in history
+        if (added is None or added <= day) and (missing is None or missing > day)
+    )
 
 
 def seat_holders(session: Session, target: Target) -> list[str]:
@@ -61,6 +87,7 @@ def run_cost_sync(
     start: datetime,
     end: datetime,
 ) -> SyncSummary:
+    start = max(start, served_from())
     return run_report(
         session,
         target,
@@ -84,6 +111,7 @@ def run_user_sync(
     start: datetime,
     end: datetime,
 ) -> SyncSummary:
+    start = max(start, served_from())
     logins = seat_holders(session, target)
 
     def normalize(page: FetchedPage) -> list[UsageLine]:
@@ -101,7 +129,7 @@ def run_user_sync(
         normalize=normalize,
         aggregate=aggregate_usage_lines,
         upsert=lambda session, target, lines, run_id: _replace_usage(
-            session, target, lines, run_id, start, end, logins
+            session, target, lines, run_id, start, end
         ),
     )
 
@@ -133,7 +161,6 @@ def _replace_usage(
     run_id: int,
     start: datetime,
     end: datetime,
-    logins: list[str],
 ) -> int:
     session.execute(
         delete(SpendUsageLine).where(
@@ -144,6 +171,7 @@ def _replace_usage(
             SpendUsageLine.period_start < end,
         )
     )
+    history = seat_history(session, target)
     seat_lines: list[UsageLine] = []
     for period_start, amount, sku in session.execute(
         select(SpendCostLine.period_start, SpendCostLine.amount, SpendCostLine.description).where(
@@ -156,7 +184,8 @@ def _replace_usage(
         )
     ):
         window = DayWindow(period_start.date())
-        seat_lines.extend(seat_usage_lines(Decimal(amount), window, logins, sku))
+        holders = holders_on(history, period_start.date())
+        seat_lines.extend(seat_usage_lines(Decimal(amount), window, holders, sku))
     return upsert_usage_lines(session, target, aggregate_usage_lines([*lines, *seat_lines]), run_id)
 
 

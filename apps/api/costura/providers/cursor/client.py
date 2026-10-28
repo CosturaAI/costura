@@ -18,6 +18,7 @@ from costura.providers.http import (
     ProviderHttpClient,
 )
 from costura.providers.pages import FetchedPage as BasePage
+from costura.providers.pagination import MAX_PAGES
 
 DEFAULT_BASE_URL = "https://api.cursor.com"
 MEMBERS_PATH = "/teams/members"
@@ -119,8 +120,13 @@ class CursorAdminClient:
             raise ValueError("window start must be before window end")
         if not 1 <= page_size <= MAX_PAGE_SIZE:
             raise ValueError(f"page_size must be between 1 and {MAX_PAGE_SIZE}")
+        end = min(end, datetime.now(UTC))
+        if start >= end:
+            return
         page_number = 1
         while True:
+            if page_number > MAX_PAGES:
+                raise CursorApiError(f"the provider kept paging past {MAX_PAGES} pages")
             body = {
                 "startDate": epoch_milliseconds(start),
                 "endDate": epoch_milliseconds(end - timedelta(milliseconds=1)),

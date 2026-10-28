@@ -25,7 +25,10 @@ from costura.models.scheduler import SchedulerRun
 # pg_advisory_lock is a different key space and is not used.
 ADVISORY_LOCK_CLASS = 0x0C05
 ACTIVE_RUN_STATUSES = ("queued", "running")
-LEASE_EXHAUSTED = "sync stopped after the worker lease expired too many times"
+LEASE_EXHAUSTED = (
+    "sync stopped after it used every attempt: the worker lease expired or the run passed "
+    "the stall limit"
+)
 
 log = logging.getLogger("costura.scheduler")
 
@@ -145,7 +148,7 @@ def recover_abandoned_runs(
             run.lease_owner = None
             run.lease_expires_at = None
             run.heartbeat_at = None
-            log.info("failed scheduler run %s after the lease expired too many times", run.id)
+            log.info("failed scheduler run %s after its attempts were spent", run.id)
         changed += 1
     if changed and commit:
         session.commit()

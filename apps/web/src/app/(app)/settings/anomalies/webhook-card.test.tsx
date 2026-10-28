@@ -29,7 +29,9 @@ describe("WebhookCard", () => {
 
   it("shows the signing secret once after a save", async () => {
     actions.save.mockResolvedValue({ ok: true, message: "Saved.", secret: "s3cret" });
-    render(<WebhookCard webhook={{ ...fx.webhookSaved, configured: false }} canManage />);
+    render(
+      <WebhookCard org="acme" webhook={{ ...fx.webhookSaved, configured: false }} canManage />,
+    );
     expect(screen.getByText(/No webhook saved. Allowed hosts: hooks.slack.com/)).toBeVisible();
     fireEvent.change(screen.getByLabelText("Webhook URL"), {
       target: { value: "https://hooks.slack.com/services/x" },
@@ -41,7 +43,9 @@ describe("WebhookCard", () => {
 
   it("reports the test result and warns when the host left the allowlist", async () => {
     actions.test.mockResolvedValue({ ok: false, message: "The webhook did not accept it." });
-    render(<WebhookCard webhook={{ ...fx.webhookSaved, host_blocked: true }} canManage />);
+    render(
+      <WebhookCard org="acme" webhook={{ ...fx.webhookSaved, host_blocked: true }} canManage />,
+    );
     expect(screen.getByText(/is no longer in COSTURA_WEBHOOK_HOSTS/)).toBeInTheDocument();
     expect(screen.getByLabelText("Digest")).toHaveValue("weekly");
     fireEvent.click(screen.getByRole("button", { name: "Send a test message" }));
@@ -51,7 +55,7 @@ describe("WebhookCard", () => {
   });
 
   it("leaves a member without the controls", () => {
-    render(<WebhookCard webhook={fx.webhookSaved} canManage={false} />);
+    render(<WebhookCard org="acme" webhook={fx.webhookSaved} canManage={false} />);
     expect(screen.queryByRole("button", { name: "Send a test message" })).not.toBeInTheDocument();
     expect(screen.queryByLabelText(/webhook URL/i)).not.toBeInTheDocument();
     expect(screen.getByRole("table", { name: "Recent deliveries" })).toBeInTheDocument();
@@ -60,7 +64,7 @@ describe("WebhookCard", () => {
 
   it("lists each delivery with its outcome and lets an owner resend one", async () => {
     actions.resend.mockResolvedValue({ ok: true, message: "Posted again." });
-    render(<WebhookCard webhook={fx.webhookSaved} canManage />);
+    render(<WebhookCard org="acme" webhook={fx.webhookSaved} canManage />);
     const table = screen.getByRole("table", { name: "Recent deliveries" });
     expect(within(table).getAllByRole("row")).toHaveLength(3);
     expect(within(table).getByText("HTTP 503, 2 attempts")).toBeInTheDocument();
@@ -78,7 +82,7 @@ describe("WebhookCard", () => {
 
   it("shows a refused resend next to its row", async () => {
     actions.resend.mockResolvedValue({ ok: false, message: "The webhook did not accept it." });
-    render(<WebhookCard webhook={fx.webhookSaved} canManage />);
+    render(<WebhookCard org="acme" webhook={fx.webhookSaved} canManage />);
     fireEvent.click(screen.getByRole("button", { name: "Resend anomaly anthropic" }));
     await waitFor(() =>
       expect(screen.getByText("The webhook did not accept it.")).toBeInTheDocument(),
@@ -86,10 +90,10 @@ describe("WebhookCard", () => {
   });
 
   it("names what fills an empty history and reports a webhook that did not load", () => {
-    render(<WebhookCard webhook={{ ...fx.webhookSaved, deliveries: [] }} canManage />);
+    render(<WebhookCard org="acme" webhook={{ ...fx.webhookSaved, deliveries: [] }} canManage />);
     expect(screen.getByText("Nothing posted yet")).toBeInTheDocument();
     expect(screen.queryByRole("table")).not.toBeInTheDocument();
-    render(<WebhookCard webhook={null} canManage />);
+    render(<WebhookCard org="acme" webhook={null} canManage />);
     expect(screen.getByText(/Could not load the webhook/)).toBeInTheDocument();
   });
 });

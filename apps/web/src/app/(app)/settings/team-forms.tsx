@@ -1,12 +1,20 @@
 "use client";
 
-import { useActionState } from "react";
+import { useActionState, useState } from "react";
 
-import { ConfirmSubmit, Feedback, FieldError, invalid } from "@/components/form-feedback";
+import {
+  ConfirmSubmit,
+  Feedback,
+  FieldError,
+  OrgField,
+  invalid,
+  useRemovalFeedback,
+} from "@/components/form-feedback";
 import { SubmitButton } from "@/components/submit-button";
 import { Input } from "@/components/ui/input";
 import { NativeSelect } from "@/components/ui/native-select";
 import { idleAction } from "@/lib/action-errors";
+import { useOnSuccess } from "@/lib/use-on-success";
 import type { Team, TeamMember } from "@/lib/api";
 import { memberValue, type MemberOptionGroups } from "@/lib/teams";
 
@@ -18,10 +26,13 @@ import {
 } from "./team-actions";
 
 /** Name a new team; its slug is derived from the name. */
-export function NewTeamForm() {
+export function NewTeamForm({ org }: { org: string }) {
   const [state, action, pending] = useActionState(setTeamAction, idleAction);
+  const [name, setName] = useState("");
+  useOnSuccess(state, () => setName(""));
   return (
     <form action={action} className="flex flex-wrap items-end gap-3">
+      <OrgField org={org} />
       <div className="min-w-[16rem] flex-1">
         <label htmlFor="team-name" className="mb-1 block text-sm text-secondary-foreground">
           Team name
@@ -31,6 +42,8 @@ export function NewTeamForm() {
           name="name"
           placeholder="Platform"
           maxLength={80}
+          value={name}
+          onChange={(event) => setName(event.target.value)}
           aria-invalid={invalid(state, "name") || undefined}
           aria-describedby={invalid(state, "name") ? "team-name-error" : undefined}
         />
@@ -45,11 +58,20 @@ export function NewTeamForm() {
 }
 
 /** Map a person, a workspace or a key to the team; one in another team moves here. */
-export function AddMemberForm({ team, groups }: { team: Team; groups: MemberOptionGroups }) {
+export function AddMemberForm({
+  org,
+  team,
+  groups,
+}: {
+  org: string;
+  team: Team;
+  groups: MemberOptionGroups;
+}) {
   const [state, action, pending] = useActionState(addTeamMemberAction, idleAction);
   const id = `team-member-${team.slug}`;
   return (
     <form action={action} className="flex flex-wrap items-end gap-3">
+      <OrgField org={org} />
       <input type="hidden" name="team" value={team.slug} />
       <div className="min-w-[16rem] flex-1">
         <label htmlFor={id} className="mb-1 block text-sm text-secondary-foreground">
@@ -84,10 +106,20 @@ export function AddMemberForm({ team, groups }: { team: Team; groups: MemberOpti
   );
 }
 
-export function RemoveMemberForm({ team, member }: { team: Team; member: TeamMember }) {
-  const [state, action, pending] = useActionState(removeTeamMemberAction, idleAction);
+export function RemoveMemberForm({
+  org,
+  team,
+  member,
+}: {
+  org: string;
+  team: Team;
+  member: TeamMember;
+}) {
+  const [result, action, pending] = useActionState(removeTeamMemberAction, idleAction);
+  const state = useRemovalFeedback(result);
   return (
     <form action={action} className="flex items-center justify-end gap-2">
+      <OrgField org={org} />
       <input type="hidden" name="team" value={team.slug} />
       <input type="hidden" name="member" value={memberValue(member)} />
       <Feedback state={state} className="text-xs" />
@@ -103,11 +135,13 @@ export function RemoveMemberForm({ team, member }: { team: Team; member: TeamMem
   );
 }
 
-export function DeleteTeamForm({ team }: { team: Team }) {
-  const [state, action, pending] = useActionState(deleteTeamAction, idleAction);
+export function DeleteTeamForm({ org, team }: { org: string; team: Team }) {
+  const [result, action, pending] = useActionState(deleteTeamAction, idleAction);
+  const state = useRemovalFeedback(result);
   const formId = `delete-team-${team.slug}`;
   return (
     <form id={formId} action={action} className="flex items-center gap-2">
+      <OrgField org={org} />
       <input type="hidden" name="team" value={team.slug} />
       <Feedback state={state} className="text-xs" />
       <ConfirmSubmit

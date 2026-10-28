@@ -217,7 +217,7 @@ test("the OpenRouter disconnect confirmation submits that account's form", async
   await expect(anthropic).toContainText("Research");
   await expect(page.getByRole("button", { name: "Add account" })).toHaveCount(4);
 
-  const disconnects = page.getByRole("button", { name: "Disconnect", exact: true });
+  const disconnects = page.getByRole("button", { name: "Remove key", exact: true });
   await expect(disconnects).toHaveCount(5);
   await expect(page.locator("#disconnect-form-openrouter-2 input[name=provider]")).toHaveValue(
     "openrouter",
@@ -250,9 +250,9 @@ test("a Codex account requires, adds and deletes credit pricing", async ({ page,
 
   const rates = schedule.getByRole("list", { name: "Effective credit rates" });
   await expect(rates).toContainText("2026-09-18 - 0.08000000 USD");
-  await schedule.getByRole("button", { name: "Delete" }).click();
+  await schedule.getByRole("button", { name: "Delete the rate from 2026-09-18" }).click();
   const dialog = page.getByRole("alertdialog");
-  await expect(dialog).toContainText("Delete this credit rate?");
+  await expect(dialog).toContainText("rate from 2026-09-18?");
   await dialog.getByRole("button", { name: "Delete rate" }).click();
   await expect(schedule.getByRole("alert")).toContainText("Pricing required");
 
@@ -282,18 +282,22 @@ test("the settings sub-navigation walks the sections on a narrow viewport", asyn
   await expect(page.getByRole("heading", { level: 1, name: "Settings" })).toBeVisible();
 
   await section.selectOption("sync");
+  await page.getByRole("button", { name: "Open", exact: true }).click();
   await expect(page).toHaveURL(/\/settings\/sync$/, { timeout: 15_000 });
   await expect(page.getByRole("button", { name: "Sync now" })).toBeVisible();
   // A working key is not asked for again: the field waits behind the button.
   await expect(page.getByLabel("New admin key")).toHaveCount(0);
 
   await section.selectOption("members");
+  await page.getByRole("button", { name: "Open", exact: true }).click();
   await expect(page.getByRole("table", { name: "Members" })).toBeVisible();
 
   await section.selectOption("account");
+  await page.getByRole("button", { name: "Open", exact: true }).click();
   await expect(page.getByRole("heading", { level: 2, name: "Your sessions" })).toBeVisible();
 
   await section.selectOption("advanced");
+  await page.getByRole("button", { name: "Open", exact: true }).click();
   await expect(page.getByRole("button", { name: "Reset onboarding" })).toBeVisible();
 });
 
@@ -713,7 +717,11 @@ test("Copy link reproduces the Analyze view", async ({ page, context }) => {
   await expect(page.getByRole("button", { name: "Copied" })).toBeVisible();
   const copied = await page.evaluate(() => navigator.clipboard.readText());
   const link = new URL(copied);
-  expect(link.searchParams.get("by")).toBe("workspace");
+  expect(link.pathname).toBe("/o/default");
+  expect(link.searchParams.get("scope")).toBe("anthropic");
+  const view = new URL(link.searchParams.get("next") ?? "", link.origin);
+  expect(view.pathname).toBe("/explore");
+  expect(view.searchParams.get("by")).toBe("workspace");
 
   const second = await context.newPage();
   await second.goto(copied);

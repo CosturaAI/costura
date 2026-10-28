@@ -102,7 +102,7 @@ class SpendCostLine(Base):
     currency: Mapped[str] = mapped_column(Text, nullable=False)
     raw_amount_minor: Mapped[str] = mapped_column(Text, nullable=False)
     sync_run_id: Mapped[int] = mapped_column(
-        BigInteger, ForeignKey("provider_sync_runs.id"), nullable=False
+        BigInteger, ForeignKey("provider_sync_runs.id"), nullable=False, index=True
     )
     first_seen_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), nullable=False, server_default=func.now()
@@ -174,7 +174,7 @@ class SpendUsageLine(Base):
     list_amount: Mapped[Decimal | None] = mapped_column(Numeric(20, 8))
     product: Mapped[str | None] = mapped_column(Text)
     sync_run_id: Mapped[int] = mapped_column(
-        BigInteger, ForeignKey("provider_sync_runs.id"), nullable=False
+        BigInteger, ForeignKey("provider_sync_runs.id"), nullable=False, index=True
     )
     first_seen_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), nullable=False, server_default=func.now()
@@ -222,7 +222,7 @@ class SpendActivityLine(Base):
     model: Mapped[str | None] = mapped_column(Text)
     detail: Mapped[str | None] = mapped_column(Text)
     sync_run_id: Mapped[int] = mapped_column(
-        BigInteger, ForeignKey("provider_sync_runs.id"), nullable=False
+        BigInteger, ForeignKey("provider_sync_runs.id"), nullable=False, index=True
     )
     first_seen_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), nullable=False, server_default=func.now()

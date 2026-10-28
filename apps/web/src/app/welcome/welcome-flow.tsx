@@ -6,7 +6,7 @@ import { useState } from "react";
 
 import { ConnectForm } from "@/app/(app)/settings/connection-forms";
 import { CardHeading } from "@/components/card-heading";
-import { WritesDisabledNotice } from "@/components/notice";
+import { KeyStorageNotice, WritesDisabledNotice } from "@/components/notice";
 import { SampleEntry } from "@/components/sample-entry";
 import { StatusBadge } from "@/components/status-badge";
 import { Button } from "@/components/ui/button";
@@ -44,6 +44,7 @@ export function WelcomeFlow({
   const onConnected = () => router.push(overviewHref());
   const [chosen, setChosen] = useState(unconnected[0]?.provider ?? "");
   const current = unconnected.find((p) => p.provider === chosen) ?? unconnected[0];
+  const canStore = setup.secret_ready !== false;
 
   return (
     <main id="main" tabIndex={-1} className="mx-auto w-full max-w-xl space-y-6 px-4 py-10 sm:py-16">
@@ -74,13 +75,7 @@ export function WelcomeFlow({
       </header>
 
       {!setup.writes_enabled ? <WritesDisabledNotice /> : null}
-      {setup.secret_ready === false ? (
-        <p className="text-sm text-muted-foreground">
-          This deployment has no COSTURA_SECRET_KEY, so a key typed here cannot be stored. Generate
-          one with <span className="font-medium">just api::secret-generate</span> and restart the
-          API.
-        </p>
-      ) : null}
+      {setup.writes_enabled && setup.secret_ready === false ? <KeyStorageNotice /> : null}
       {setup.needs_pricing ? (
         <p className="text-sm text-muted-foreground">
           Codex is connected and still needs a credit price. Until that price is saved, imported
@@ -88,7 +83,7 @@ export function WelcomeFlow({
         </p>
       ) : null}
 
-      {setup.writes_enabled && canConnect && current ? (
+      {setup.writes_enabled && canConnect && canStore && current ? (
         <div className="space-y-3">
           {unconnected.length > 1 ? (
             <div className="space-y-1">

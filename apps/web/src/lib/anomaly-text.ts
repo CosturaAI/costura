@@ -116,7 +116,7 @@ export function episodeSentence(anomaly: Anomaly): string | null {
   return anomaly.ongoing ? `ongoing, ${run} so far` : run;
 }
 
-/** Anomalies grouped by day, newest first, each day ordered by impact. */
+/** Anomalies grouped by first day, newest first, each day ordered by the episode's impact. */
 export function groupByDay(anomalies: Anomaly[]): { day: string; rows: Anomaly[] }[] {
   const byDay = new Map<string, Anomaly[]>();
   for (const anomaly of anomalies) {
@@ -126,14 +126,33 @@ export function groupByDay(anomalies: Anomaly[]): { day: string; rows: Anomaly[]
     .sort(([a], [b]) => b.localeCompare(a))
     .map(([day, rows]) => ({
       day,
-      rows: [...rows].sort((a, b) => Number(b.impact) - Number(a.impact)),
+      rows: [...rows].sort((a, b) => Number(b.total_impact) - Number(a.total_impact)),
     }));
 }
 
+/** The list's own parameters; an anomaly opened from the list carries them back to it. */
+const LIST_KEYS = ["status", "kind", "sort"] as const;
+
+/** "status=all&sort=impact" from a query, keeping only the list's parameters. */
+export function anomalyListQuery(query: Record<string, string | string[] | undefined>): string {
+  const params = new URLSearchParams();
+  for (const key of LIST_KEYS) {
+    const value = query[key];
+    const single = Array.isArray(value) ? value[0] : value;
+    if (single) params.set(key, single);
+  }
+  return params.toString();
+}
+
 /** `/org/provider/month/anomalies/<id>`; under `all` the page stays under `all`, which the
- * API accepts for any provider of the organization. */
-export function anomalyHref(id: number): string {
-  return `/anomalies/${id}`;
+ * API accepts for any provider of the organization. `listQuery` is the list's filters. */
+export function anomalyHref(id: number, listQuery = ""): string {
+  return `/anomalies/${id}${listQuery ? `?${listQuery}` : ""}`;
+}
+
+/** The list with the filters it was left with. */
+export function anomalyListHref(listQuery = ""): string {
+  return `/anomalies${listQuery ? `?${listQuery}` : ""}`;
 }
 
 /** "acknowledged by ana@example.com: expected: backfill", or null while the anomaly is open. */

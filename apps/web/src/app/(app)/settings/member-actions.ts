@@ -29,11 +29,11 @@ const MemberId = z.object({ user_id: z.coerce.number().catch(0), email: text() }
 const InvitationId = z.object({ invitation_id: z.coerce.number().catch(0) });
 
 export async function inviteAction(_prev: InviteState, form: FormData): Promise<InviteState> {
-  const org = await requireActiveOrg();
   const parsed = parseForm(form, Invite, ["email"]);
   if (!parsed.ok) return { ...idleInvite, ...parsed.error, url: null, email: null };
   const { email, role } = parsed.data;
   try {
+    const org = await requireActiveOrg(form);
     const invitation = await api.invite(org, email, role);
     refresh(SETTINGS_PAGES);
     return {
@@ -57,10 +57,10 @@ export async function revokeInvitationAction(
   _prev: ActionState,
   form: FormData,
 ): Promise<ActionState> {
-  const org = await requireActiveOrg();
   const id = parseForm(form, InvitationId);
   if (!id.ok) return id.error;
   try {
+    const org = await requireActiveOrg(form);
     await api.revokeInvitation(org, id.data.invitation_id);
     refresh(SETTINGS_PAGES);
     return { ok: true, message: "Invitation revoked; its link no longer works." };
@@ -73,11 +73,11 @@ export async function setMemberRoleAction(
   _prev: ActionState,
   form: FormData,
 ): Promise<ActionState> {
-  const org = await requireActiveOrg();
   const parsed = parseForm(form, MemberRole);
   if (!parsed.ok) return parsed.error;
   const { user_id: userId, role } = parsed.data;
   try {
+    const org = await requireActiveOrg(form);
     const member = await api.setMemberRole(org, userId, role);
     refresh(SETTINGS_PAGES);
     return {
@@ -90,11 +90,11 @@ export async function setMemberRoleAction(
 }
 
 export async function removeMemberAction(_prev: ActionState, form: FormData): Promise<ActionState> {
-  const org = await requireActiveOrg();
   const parsed = parseForm(form, MemberId);
   if (!parsed.ok) return parsed.error;
   const { user_id: userId, email } = parsed.data;
   try {
+    const org = await requireActiveOrg(form);
     await api.removeMember(org, userId);
     refresh(SETTINGS_PAGES);
     return { ok: true, message: `${email} can no longer open this organization.` };

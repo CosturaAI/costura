@@ -36,8 +36,22 @@ describe("anomalyMarkers", () => {
   it("names the top three contributors and marks the rest with an ellipsis", () => {
     const day = "2026-08-11";
     const extra = [
-      { ...anomaly, id: 21, series_id: "w2", label: "Search (w2)", impact: "300.00" },
-      { ...anomaly, id: 22, series_id: "w3", label: "Batch (w3)", impact: "20.00" },
+      {
+        ...anomaly,
+        id: 21,
+        series_id: "w2",
+        label: "Search (w2)",
+        impact: "300.00",
+        total_impact: "300.00",
+      },
+      {
+        ...anomaly,
+        id: 22,
+        series_id: "w3",
+        label: "Batch (w3)",
+        impact: "20.00",
+        total_impact: "20.00",
+      },
     ];
     const [marker] = anomalyMarkers([orgAnomaly, anomaly, ...extra, { ...newKeyAnomaly, day }]);
 
@@ -45,6 +59,16 @@ describe("anomalyMarkers", () => {
     expect(marker!.note).toBe(
       "organization total +900.00; ana@example.com +810.00; Search +300.00; ...",
     );
+  });
+
+  it("signs a drop and runs the marker to the episode's last day", () => {
+    const [marker] = anomalyMarkers([
+      { ...anomaly, kind: "drop", impact: "40.00", total_impact: "120.00", end_day: "2026-08-13" },
+    ]);
+
+    expect(marker!.note).toBe("ana@example.com -120.00");
+    expect(marker!.endDay).toBe("2026-08-13");
+    expect(marker!.impact).toBe("120.00");
   });
 
   it("returns nothing without anomalies", () => {

@@ -83,9 +83,12 @@ def optional_decimal(value: Any, *, field: str) -> Decimal | None:
     if isinstance(value, bool) or not isinstance(value, (int, float, str)):
         raise NormalizeError(f"{field} is not a number: {value!r}")
     try:
-        return Decimal(str(value))
+        number = Decimal(str(value))
     except ArithmeticError as exc:
         raise NormalizeError(f"{field} is not a number: {value!r}") from exc
+    if not number.is_finite():
+        raise NormalizeError(f"{field} is not a finite number: {value!r}")
+    return number
 
 
 def optional_day(value: Any, *, field: str) -> datetime | None:

@@ -27,6 +27,7 @@ export default async function SignInPage({
 } = {}) {
   const next = safeNextPath(first((await searchParams)?.next));
   const error = first((await searchParams)?.error);
+  const expired = first((await searchParams)?.expired) === "1";
   if ((await readSessionToken()) !== null) {
     let signedIn = true;
     try {
@@ -66,6 +67,11 @@ export default async function SignInPage({
           Who spent what on AI, by provider, key and person, with numbers that match the invoice.
         </p>
       </header>
+      {expired && !errorMessage ? (
+        <p role="status" className="text-sm text-secondary-foreground">
+          Your session ended; sign in again to continue.
+        </p>
+      ) : null}
       {errorMessage ? (
         <p role="alert" className="text-sm text-critical">
           {errorMessage}

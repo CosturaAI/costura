@@ -151,4 +151,16 @@ describe("usage rows", () => {
     ]);
     expect(tokensOnly.allocated).toBe(false);
   });
+
+  it("takes the counters of a row missing from a token top N from the usage report", () => {
+    const byMeasure = new Map<QueryMeasure, SpendQuery>([
+      ["billed_usd", query("billed_usd", { a: "3", c: "1" })],
+      ["tokens_total", query("tokens_total", { c: "4" })],
+    ]);
+    const rows = rangeUsage("model", metadata, byMeasure).rows;
+    expect(rows.map((row) => [row.key, row.total_tokens])).toEqual([
+      ["a", 10],
+      ["c", 4],
+    ]);
+  });
 });

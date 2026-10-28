@@ -55,7 +55,7 @@ groups:
           summary: Costura sync runs have waited an hour and no worker claims them.
 
       - alert: CosturaSyncFailed
-        expr: increase(costura_scheduler_runs{status="failed"}[1h]) > 0
+        expr: (costura_scheduler_runs{status="failed"} - costura_scheduler_runs{status="failed"} offset 1h) > 0
         labels:
           severity: ticket
         annotations:
@@ -71,7 +71,7 @@ groups:
           description: The Setup page of that organization names the failed step.
 
       - alert: CosturaWebhookFailed
-        expr: increase(costura_webhook_deliveries{status="failed"}[1h]) > 0
+        expr: (costura_webhook_deliveries{status="failed"} - costura_webhook_deliveries{status="failed"} offset 1h) > 0
         labels:
           severity: ticket
         annotations:

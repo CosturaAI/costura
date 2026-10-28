@@ -117,11 +117,14 @@ export function formatCompactUsd(value: string | number | null | undefined): str
   if (value === null || value === undefined || value === "") return "-";
   const parsed = typeof value === "number" ? value : Number.parseFloat(value);
   if (Number.isNaN(parsed)) return "-";
-  if (Math.abs(parsed) < 1000) return `$${usd.format(parsed)}`;
-  return `$${compactMoney.format(parsed)}`;
+  const sign = parsed < 0 ? "-" : "";
+  const size = Math.abs(parsed);
+  if (size < 1000) {
+    return `${sign}$${Number.isInteger(size) ? integer.format(size) : usd.format(size)}`;
+  }
+  return `${sign}$${compactMoney.format(size)}`;
 }
 
-/** Signed change against the previous period: "+12.50%" / "-3.00%"; null when no baseline. */
 /** Percent change between two amounts, two decimals; null when there is no non-zero base. */
 export function changePercent(
   current: string | number | null,
@@ -186,8 +189,7 @@ export function formatDayRange(start: string, end: string): string {
 
 export function formatDuration(seconds: number | null | undefined): string {
   if (seconds === null || seconds === undefined) return "-";
-  if (seconds < 60) return `${seconds.toFixed(1)}s`;
-  const minutes = Math.floor(seconds / 60);
-  const rest = Math.round(seconds - minutes * 60);
-  return `${minutes}m ${rest}s`;
+  if (seconds < 59.95) return `${seconds.toFixed(1)}s`;
+  const total = Math.round(seconds);
+  return `${Math.floor(total / 60)}m ${total % 60}s`;
 }

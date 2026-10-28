@@ -30,8 +30,10 @@ export default async function ClaimInvitationPage({
   }
   const me = await api.me();
   // The token is not readable from here; an invitation for this address is what makes the
-  // link claimable, and the claim below is what verifies the token itself.
-  const waiting = me.invitations[0] ?? null;
+  // link claimable, and the claim below is what verifies the token itself. With several
+  // pending, the page cannot tell which one the link is, so it names none of them.
+  const waiting = me.invitations.length === 1 ? me.invitations[0]! : null;
+  const several = me.invitations.length > 1;
 
   return (
     <main id="main" tabIndex={-1} className="mx-auto w-full max-w-xl space-y-6 px-4 py-10 sm:py-16">
@@ -54,6 +56,11 @@ export default async function ClaimInvitationPage({
                 {ROLE_DESCRIPTIONS[waiting.role]} Expires{" "}
                 <time dateTime={waiting.expires_at}>{formatRelative(waiting.expires_at)}</time>.
               </>
+            ) : several ? (
+              <>
+                {me.invitations.length} invitations wait for {me.user.email}. Accept to join the
+                organization this link is for.
+              </>
             ) : (
               <>
                 Nothing is waiting for {me.user.email}. If the link was sent to another address,
@@ -63,7 +70,7 @@ export default async function ClaimInvitationPage({
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-3">
-          <ClaimForm token={token} />
+          <ClaimForm token={token} email={me.user.email} />
           <form action={signOutAction} className="text-sm text-muted-foreground">
             Wrong account?{" "}
             <button type="submit" className="text-primary hover:underline">

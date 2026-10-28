@@ -44,6 +44,16 @@ def validate_workspace_id(value: str) -> str:
     return cleaned
 
 
+def served_from(now: datetime | None = None) -> datetime:
+    """The first whole UTC day inside the API's lookback. Reads and the replace of stored
+    rows both start here, so a day the API no longer serves is never deleted, and the
+    partial day at the edge of the lookback never overwrites a complete one."""
+    current = (now or datetime.now(UTC)).astimezone(UTC)
+    edge = current - timedelta(days=MAX_LOOKBACK_DAYS)
+    midnight = datetime(edge.year, edge.month, edge.day, tzinfo=UTC)
+    return midnight if midnight == edge else midnight + timedelta(days=1)
+
+
 def day_windows(
     start: datetime,
     end: datetime,
@@ -55,7 +65,7 @@ def day_windows(
         start,
         end,
         days=MAX_LOOKBACK_DAYS,
-        earliest=current - timedelta(days=MAX_LOOKBACK_DAYS),
+        earliest=served_from(current),
         now=current,
     )
 
@@ -146,5 +156,6 @@ __all__ = [
     "CodexAuthError",
     "FetchedPage",
     "day_windows",
+    "served_from",
     "validate_workspace_id",
 ]

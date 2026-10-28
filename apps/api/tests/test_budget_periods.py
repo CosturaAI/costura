@@ -78,6 +78,18 @@ def test_a_weekly_budget_reads_iso_weeks_across_the_month_start(
     assert evaluate_budgets(db_session, org_id, PROVIDER, AUGUST, today=TODAY).inserted == 0
 
 
+def test_a_week_that_began_last_month_still_signals_this_month(
+    db_session: Session, org_id: int
+) -> None:
+    seed(db_session, org_id)
+    set_budget(db_session, org_id, PROVIDER, *ORG, Decimal("600"), [80], period="week")
+    evaluate_budgets(db_session, org_id, PROVIDER, AUGUST, today=date(2026, 8, 2))
+
+    (signal,) = budget_signals(db_session, org_id, PROVIDER, "2026-08")
+    assert signal.alert is not None and signal.alert.period_start == date(2026, 7, 27)
+    assert budget_signals(db_session, org_id, PROVIDER, "2026-09") == []
+
+
 def test_a_person_budget_stays_monthly(db_session: Session, org_id: int) -> None:
     with pytest.raises(InvalidBudget):
         set_budget(

@@ -2,6 +2,8 @@
 # Check a production host and its .env before `just prod::up`, without printing a secret.
 # One line per problem; exits 1 on any error, a warning does not change the exit code.
 # COSTURA_COMPOSE and COSTURA_ENV_FILE select another project, as in the prod recipes.
+# COSTURA_TARGET_VERSION checks the API settings in that release's image instead of the one
+# COSTURA_VERSION names (prod::upgrade passes the release it moves to).
 set -euo pipefail
 
 root=$(cd "$(dirname "$0")/.." && pwd)
@@ -16,11 +18,10 @@ note() {
 }
 
 listening() {
-  if command -v lsof >/dev/null 2>&1; then
-    lsof -nP -iTCP:"$1" -sTCP:LISTEN >/dev/null 2>&1
-  else
-    python3 -c 'import socket,sys; s=socket.socket(); s.settimeout(0.5); sys.exit(0 if s.connect_ex(("127.0.0.1", int(sys.argv[1]))) == 0 else 1)' "$1"
+  if python3 -c 'import socket,sys; s=socket.socket(); s.settimeout(0.5); sys.exit(0 if s.connect_ex(("127.0.0.1", int(sys.argv[1]))) == 0 else 1)' "$1" 2>/dev/null; then
+    return 0
   fi
+  command -v ss >/dev/null 2>&1 && [[ -n "$(ss -Hltn "sport = :$1" 2>/dev/null)" ]]
 }
 
 command -v python3 >/dev/null 2>&1 || note "python3 is not installed; the prod scripts need it"
@@ -63,7 +64,7 @@ if [[ $docker_ok -eq 1 ]]; then
       fi
     done
   fi
-  version=$(sed -n 's/^COSTURA_VERSION=//p' "$env_file" | tail -n 1)
+  version=${COSTURA_TARGET_VERSION:-$(sed -n 's/^COSTURA_VERSION=//p' "$env_file" | tail -n 1)}
   image="ghcr.io/costuraai/costura-api:${version}"
   if [[ -n "$version" ]] && docker image inspect "$image" >/dev/null 2>&1; then
     docker run --rm --network none --read-only --env-file "$env_file" -e COSTURA_ENV=production \

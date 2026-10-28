@@ -7,7 +7,8 @@ Operational scripts that span the API and the web app.
   organization, starts the API and the web app on ports 18000 and 13000, and checks
   `/live`, `/ready`, the current month's demo summary (`GET .../months/{month}/summary`,
   non-zero `total`), and the sign-in page that loads that organization through Next.js. `COSTURA_SMOKE_DB_PORT`, `COSTURA_SMOKE_API_PORT` and
-  `COSTURA_SMOKE_WEB_PORT` change the ports. The smoke database is removed on exit
+  `COSTURA_SMOKE_WEB_PORT` change the ports; a port in use stops the run with the variable
+  that moves it. The smoke database is removed on exit
   and is not the database from `just db::up`.
 - `demo-e2e.sh` (`just web::test-e2e-demo`) starts a disposable PostgreSQL (Compose project
   `costura-demo-e2e` on `127.0.0.1:5434`), applies migrations, seeds the sample as of
@@ -36,9 +37,12 @@ Operational scripts that span the API and the web app.
   `just --dotenv-path`. `COSTURA_SUBNET` moves the network when `172.28.0.0/24` is taken. `smoke-env.sh` also prints the
   variable names the caller unsets so the repo-root `.env` does not override that file.
 - `prod-doctor.sh` (`just prod::doctor`) checks a production host and `.env` without
-  changing anything or printing a secret: Docker, Compose v2, memory, ports 80 and 443, the
-  password rules (`prod-password.sh`), `docker compose config`, and the API settings in the
-  pulled API image (`docker run --network none`). `prod-doctor-env.py` holds the `.env`
+  changing anything or printing a secret: Docker, Compose v2, memory, ports 80 and 443 (a
+  TCP connect to `127.0.0.1`, then `ss` when installed, so a listener another user owns
+  counts), the password rules (`prod-password.sh`), `docker compose config`, and the API
+  settings in the pulled API image (`docker run --network none`). `COSTURA_TARGET_VERSION`
+  checks the settings in that release's image instead; `just prod::upgrade` passes the
+  release it moves to. `prod-doctor-env.py` holds the `.env`
   rules: `COSTURA_VERSION` is a release, the URL variables name the origin
   `COSTURA_SITE_ADDRESS` serves, a public hostname resolves, and a sign-in method can let
   someone in first.
@@ -48,7 +52,8 @@ Operational scripts that span the API and the web app.
   The release workflow attaches the result to the GitHub Release.
 - `prod-password.sh` runs before the production recipes. It refuses the example database
   passwords, a runtime role password shorter than 12 characters or equal to the owner's,
-  and characters that break the database URL.
+  and characters that break the database URL. A variable set twice in `.env` is read from
+  its last line, as Compose reads it.
 - `prod-init.sh` (`just prod::init [--email you@example.com] [--host costura.example.com]
   [--google-client-id <id>]`) writes a production `.env` from `.env.example` with mode 600:
   generated `COSTURA_SECRET_KEY`, database passwords and operator secret, the operator
@@ -56,14 +61,19 @@ Operational scripts that span the API and the web app.
   `COSTURA_WEB_PUBLIC_URL`, and the Google client when asked (the secret from
   `GOOGLE_CLIENT_SECRET` or a hidden prompt). The variables the compose file sets
   (`COSTURA_ENV`, `DATABASE_URL`, `TEST_DATABASE_URL`, `COSTURA_API_URL`) stay commented out.
-  It refuses to overwrite `.env`, prints the operator secret once, then runs
-  `prod-password.sh`.
+  It creates `.env` with mode 600 from the start and refuses to overwrite one, including a
+  development `.env` (production runs from its own checkout or the Docker-only bundle),
+  prints the operator secret once, then runs `prod-password.sh`.
 - `smoke-external-db.sh` (`just prod::smoke-external-db`) builds the production stack against
   a second PostgreSQL with a one-day generated CA: migrate, API, worker and scheduler connect
   over verified TLS as the restricted role, the bundled database stays empty, the worker runs
   once, the secret check passes, then the project and its volumes are deleted.
 - `prod.sh` holds `confirm_or_exit` for the destructive production recipes;
-  `COSTURA_ASSUME_YES=1` answers yes for scripts.
+  `COSTURA_ASSUME_YES=1` answers yes for scripts, and without it and without a terminal the
+  question fails with an error that names the variable. `env_value` reads a variable from
+  the environment or `COSTURA_ENV_FILE`, and `external_database` tells `prod::backup`,
+  `prod::restore` and `prod::upgrade` that `COSTURA_DATABASE_HOST` names a server other
+  than the bundled `postgres`.
 - `betterleaks-pre-commit.sh` is the pre-commit hook that scans staged files with betterleaks.
   Without betterleaks on `PATH` it warns and lets the commit through; `just check` runs the
   same scan in CI.

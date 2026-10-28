@@ -129,6 +129,20 @@ def test_claim_prefers_an_interactive_run_over_an_older_daily_run(
     assert urgent.lease_owner == "worker-a" and urgent.lease_expires_at is not None
 
 
+def test_drain_stamps_progress_at_each_claim(
+    db_session: Session, org_id: int, stored_key: None
+) -> None:
+    scheduler.enqueue_runs(db_session, org_id, ["anthropic"], trigger="connect")
+    db_session.commit()
+    progress = [0.0]
+    before = time.monotonic()
+
+    [result] = worker.drain(factory=factory, sleep=NO_SLEEP, progress=progress)
+
+    assert result.status == "succeeded"
+    assert progress[0] >= before
+
+
 def test_drain_runs_a_queued_row_and_clears_the_lease(
     db_session: Session, org_id: int, stored_key: None
 ) -> None:

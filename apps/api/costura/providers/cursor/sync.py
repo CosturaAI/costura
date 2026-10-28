@@ -1,7 +1,7 @@
 """Fetch Cursor filtered usage events and upsert daily cost and per-user usage."""
 
 from collections.abc import Sequence
-from datetime import UTC, datetime
+from datetime import UTC, date, datetime
 from decimal import Decimal
 
 from sqlalchemy import delete, select
@@ -97,6 +97,7 @@ def run_seat_sync(
     if account is None:
         raise LookupError(f"Cursor account {target.account_id} not found")
     configured = account_settings.cursor_settings(account)
+    seen: set[tuple[date, str]] = set()
 
     def normalize(page: FetchedPage) -> list[Line]:
         cost, usage = seat_lines_from_daily_usage(
@@ -104,6 +105,7 @@ def run_seat_sync(
             directory,
             seat_price_usd=configured.seat_price_usd,
             effective_from=max(configured.effective_from, account.created_at.date()),
+            seen=seen,
         )
         return [*cost, *usage]
 

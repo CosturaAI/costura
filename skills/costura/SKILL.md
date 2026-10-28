@@ -82,7 +82,7 @@ operating or changing Costura:
 | `just web::test-e2e-docker`, `just web::test-e2e-demo-docker` | Playwright suites in the pinned image, as CI runs them |
 | `just web::screens` | Recapture the product screens of `docs/product/screens.md` from a running `just dev` |
 | `just prod::up`, `just prod::down`, `just prod::logs`, `just prod::ps` | The production stack |
-| `just prod::doctor`, `just prod::upgrade` | Check the host and `.env` without changes; back up and move to the checked-out release |
+| `just prod::doctor`, `just prod::upgrade` | Check the host and `.env` without changes; back up the bundled database (an external one keeps the provider's snapshots) and move to the checked-out release |
 | `just prod::backup <dest>`, `just prod::restore <dump>` | Dump with a `.version` file; replace the database in one transaction |
 | `just prod::purge`, `just prod::secret-rotate`, `just prod::secret-check` | Retention pass; key rotation; decrypt count |
 | `just prod::tieout-report --org <slug>` | The tie-out report against the production database |

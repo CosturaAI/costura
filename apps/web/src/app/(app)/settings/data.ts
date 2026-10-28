@@ -34,19 +34,22 @@ type SettingsScope = {
   writesOff: boolean;
 };
 
-/** An hour past the due time with no run means no daily cycle happened at all. */
-const OVERDUE_MS = 60 * 60 * 1000;
+/** A day plus an hour of grace: the daily import runs once every 24 hours. */
+const OVERDUE_MS = 25 * 60 * 60 * 1000;
 
 /**
- * Whether the automatic import that was due did not run, which is what a scheduler process
- * that is not running looks like from the browser.
+ * Whether the daily import stopped, which is what a scheduler process that is not running
+ * looks like from the browser. `next_run_at` is always in the future (the API computes the
+ * next occurrence of the schedule time), so the signal is the newest import of any trigger:
+ * older than 25 hours means no automatic import ran in that time either.
  */
 export function importOverdue(
-  nextRunAt: string | null | undefined,
+  lastRunAt: string | null | undefined,
   now: Date = new Date(),
 ): boolean {
-  if (!nextRunAt) return false;
-  return now.getTime() - new Date(nextRunAt).getTime() > OVERDUE_MS;
+  if (!lastRunAt) return false;
+  const last = Date.parse(lastRunAt);
+  return Number.isFinite(last) && now.getTime() - last > OVERDUE_MS;
 }
 
 /**

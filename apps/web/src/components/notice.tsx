@@ -19,3 +19,14 @@ export function Notice({ children }: { children: React.ReactNode }) {
 export function WritesDisabledNotice() {
   return <Notice>{WRITES_DISABLED_MESSAGE}</Notice>;
 }
+
+/** The sentence for an instance without key storage (`secret_ready: false`): no key can be
+ * saved, so the connect forms are not shown. */
+export function KeyStorageNotice() {
+  return (
+    <Notice>
+      Key storage is not configured on this instance, so a key cannot be saved yet. Ask whoever runs
+      Costura to finish the server setup.
+    </Notice>
+  );
+}

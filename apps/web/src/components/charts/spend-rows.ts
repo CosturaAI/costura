@@ -88,16 +88,20 @@ export function bucketedAsDaily(
   };
 }
 
-/** One bar per dimension value: the total over the shown buckets. */
-export function dimensionTotals(data: BucketedSeriesData) {
+/**
+ * One bar per dimension value: the total over the shown buckets times `scale`. The caller
+ * passes untransformed totals and the scale of its display mode (1 / days for a daily
+ * average), since a sum of per-bucket averages is not an average.
+ */
+export function dimensionTotals(data: BucketedSeriesData, scale = 1) {
   const rows = data.series.map((series, index) => ({
     key: `s${index}`,
     index: index as number | null,
     label: series.label,
-    value: sum(series.values),
+    value: sum(series.values) * scale,
   }));
   if (data.other)
-    rows.push({ key: OTHER_KEY, index: null, label: "other", value: sum(data.other) });
+    rows.push({ key: OTHER_KEY, index: null, label: "other", value: sum(data.other) * scale });
   return rows;
 }
 

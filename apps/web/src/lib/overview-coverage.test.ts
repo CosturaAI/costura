@@ -6,6 +6,7 @@ import {
   coverageNote,
   partialCoverage,
   providerVerdict,
+  rangeRunsPast,
   scopeBudget,
   scopeProjection,
 } from "./overview";
@@ -53,6 +54,20 @@ describe("partialCoverage", () => {
   it("is true when the comparison covers only part of the period", () => {
     expect(partialCoverage({ comparison_basis: "month_to_date" })).toBe(true);
     expect(partialCoverage({ comparison_basis: "full_month" })).toBe(false);
+  });
+});
+
+describe("rangeRunsPast", () => {
+  it("names the last complete day when a range ends after it", () => {
+    expect(rangeRunsPast("2026-10-15", { complete_through: "2026-10-14" }, TODAY)).toBe(
+      "2026-10-14",
+    );
+    expect(rangeRunsPast("2026-10-14", { complete_through: "2026-10-14" }, TODAY)).toBeNull();
+    expect(rangeRunsPast("2026-10-14", { complete_through: "2026-10-12" }, TODAY)).toBe(
+      "2026-10-12",
+    );
+    expect(rangeRunsPast("2026-10-15", { complete_through: null }, TODAY)).toBe("2026-10-14");
+    expect(rangeRunsPast("2026-10-10", { complete_through: null }, TODAY)).toBeNull();
   });
 });
 

@@ -11,7 +11,7 @@ from sqlalchemy.orm import Session
 from costura import credit_prices
 from costura.models import ProviderUser, SpendCostLine
 from costura.providers.codex import PROVIDER
-from costura.providers.codex.client import CodexAnalyticsClient, FetchedPage
+from costura.providers.codex.client import CodexAnalyticsClient, FetchedPage, served_from
 from costura.providers.codex.normalize import (
     aggregate_cost_lines,
     aggregate_user_lines,
@@ -67,6 +67,7 @@ def run_cost_sync(
 ) -> SyncSummary:
     workspace_id = _workspace_id(session, target)
     prices = _prices(session, target)
+    start = max(start, served_from())
     return run_report(
         session,
         target,
@@ -98,6 +99,7 @@ def run_user_sync(
 ) -> SyncSummary:
     workspace_id = _workspace_id(session, target)
     prices = _prices(session, target)
+    start = max(start, served_from())
     return run_report(
         session,
         target,

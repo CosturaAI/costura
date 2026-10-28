@@ -22,7 +22,9 @@ The scope bar at the top holds the provider (`All providers` or one), the time f
 the interval. Every page reads them. Overview answers "what changed, and what should I do":
 the total for the period against the previous one with a sparkline (when the cost syncs
 cover only part of the month, both sides stop at the same day, the header says "Data
-through <day>", and a drop is not colored as savings) and whether it matches the
+through <day>", and a drop is not colored as savings; a range from the 1st to today reads as
+that month so far, and any other range that ends after the last complete day says so and
+leaves a drop uncolored too) and whether it matches the
 provider's own report ("matches provider", "differs from provider by <amount>" or
 "provider check pending", linking to Reconciliation), the daily average, the
 open anomalies with the worst one's own impact and a link to it, and cache reads. The strip below shows the organization budget
@@ -56,20 +58,30 @@ organization, downloads the same text as Markdown, and prints without the app ch
 
 Analyze (`/explore`) groups the period's spend by API key, account, workspace, model,
 provider, provider account, person or team, as a chart and a table. Copy link reproduces the
-view; Export CSV downloads the table. A person is one e-mail across providers;
-`(api key request)` rows are service-key spend, one per provider. A team takes a line by
-its key, else its person, else its workspace; the rest is `(no team)`.
+view, opening the same organization and provider; Export CSV downloads the table. A link that
+carries dates (Copy link, an anomaly's "Analyze the day") sets the time frame on every page,
+and Analyze then says which time frame it replaced, with a link back to it. A person is one
+e-mail across providers; `(api key request)` rows are service-key spend, one per provider. A
+team takes a line by its key, else its person, else its workspace; the rest is `(no team)`.
 
 ![Analyze table](../assets/screens/analyze-table.png)
 
 The table carries the amount, the share and, behind "Show token counters", the tokens.
-A name opens its page.
+A name opens its page. When the grouping has more rows than the row limit, an unlinked "Other
+rows" line, last under every sort, holds the rest, so the amounts and shares add up to the
+header's total.
 
 ![Analyze filter](../assets/screens/analyze-filter.png)
 
 Filters are clauses of dimension, operator (`is`, `is_not`, `one_of`, `not_one_of`,
-`contains`, `not_contains`, `exists`, `not_exists`) and value, shown as chips. Row limits,
-display, chart axis and a linear projection sit under View options.
+`contains`, `not_contains`, `exists`, `not_exists`) and value, shown as chips. A dimension
+holds one clause: a value added with the same kind of operator (is, is not) joins it as
+`one_of` or `not_one_of`, any other replaces it. The value field suggests the names of the
+period for every dimension and refuses a name the period does not have ("No workspace named
+X in this period") when the full list fits in 200 rows. Row limits, display, chart axis and a
+linear projection sit under View options. Delta (change from the previous bucket) starts at
+the second bucket. The dimension x-axis has one bar per row, the period's total or its daily
+average, and offers no delta.
 
 ## Search and people
 
@@ -82,7 +94,8 @@ and provider from two characters. A person result lists the providers the e-mail
 
 The person page is one e-mail across providers: one badge per provider account with the
 role there, the spend in the period against the previous one, and the daily chart by
-provider.
+provider. Under a provider where the e-mail has no account, the page opens across every
+provider and says so instead of answering not found.
 
 ![Person chart](../assets/screens/person-chart.png)
 
@@ -101,9 +114,11 @@ usage families (embeddings, web search) with their billed cost.
 The account (`/accounts/{id}`), workspace (`/workspaces/{id}`) and model (`/models/{id}`)
 pages share the key page's shape: identity, the spend in the period against the previous
 one, the daily chart, one breakdown and the alerts that name the entity; facts, further
-breakdowns and the budget sit under Details. Under `all` a row carries its provider badge and
-opens its entity under that provider. These pages have no image here; `e2e/pages.ts` opens
-them in the accessibility suite.
+breakdowns and the budget sit under Details; the share there is of the entity's provider's
+spend. Under `all` a row carries its provider badge and opens its entity under that provider
+(a model row names it, since one model name can exist under two providers). "Open in Analyze"
+opens Analyze under the entity's own provider, whatever the scope. These pages have no image
+here; `e2e/pages.ts` opens them in the accessibility suite.
 
 ## Guardrails
 
@@ -113,10 +128,15 @@ Anomalies are days that left their own baseline, grouped into episodes. The head
 open anomalies, the spend above expected (drops, money that stopped arriving, are counted
 apart) and the days affected. Each row opens with one sentence that names the cause and its
 share of the change, then the severity, direction, provider account, series and impact,
-with its drivers (each with its share) and a link to the day in Analyze. "How detection works" explains the baseline; Filters narrow by status, severity
-and series kind. "Closed in the last 90 days" lists every signal that stopped needing a
-person (anomalies, budgets, imports, key gaps) with how long it stayed open; in "Needs a
-person" and the bell, a signal whose entity opened before reads "2nd time in 90 days".
+with its drivers (each with its share) and a link to the day in Analyze under the anomaly's
+provider. "How detection works" explains the baseline; Filters narrow by status, severity
+and series kind. A day heading sums each episode's impact, spikes above expected and drops
+apart. When more anomalies match than the API returns (500), the list says "Showing 500 of
+N" and the open impact and days say which rows they cover. An anomaly opened from the list
+keeps the list's filters on its "Anomalies" breadcrumb. "Closed in the last 90 days" lists
+every signal that stopped needing a person (anomalies, budgets, imports, key gaps) with how
+long it stayed open; in "Needs a person" and the bell, a signal whose entity opened before
+reads "2nd time in 90 days".
 
 ![Anomaly](../assets/screens/anomaly.png)
 
@@ -202,6 +222,12 @@ bell, which lists unread anomalies, budget alerts and key gaps with a count per 
 opening a budget alert or a gap from the bell marks it read. The sample explains how it is
 configured and accepts no change.
 
+Every settings form posts the organization its page showed; when another tab has opened a
+different organization since, the write is refused with a sentence asking for a reload.
+A member's role changes only on Save. Audit and Advanced answer a "not available here" page
+that links back to Settings for a caller without the owner role, and switching organization
+from a settings section or from an id-specific page lands on Settings or on the list page.
+
 A connector the registry marks `experimental` (GitHub Copilot) carries an
 `experimental` badge on its Connections card and on the Welcome card, with one line saying
 it has not run against a live organization yet. Settings > Sample (`/settings/sample`), shown
@@ -209,9 +235,11 @@ only on the sample organization, explains how the sample is configured and links
 Resources.
 
 Before the shell, three pages take no view: `/sign-in` (Google when configured; a local
-e-mail form only in development or test), `/new` (create an organization; its slug is the
-immutable id) and `/join` or `/join/{token}` (accept an invitation; 403 when the signed-in
-e-mail is not the invited one, 410 when it was revoked, used or expired). A new organization
+e-mail form only in development or test; after an expired session it says so and returns to
+the page that was open), `/new` (create an organization; its organization ID is immutable and
+opens at `/o/<id>`) and `/join` or `/join/{token}` (accept an invitation; the API answers
+410 alike when the signed-in e-mail is not the invited one and when the invitation was
+revoked, used or expired, so the page names both cases). A new organization
 then starts at Welcome: a picker of the providers without a key and one card for the chosen
 provider, with where its key is created, what the key must read for spend, inventory and
 key posture, and what it can do if it leaks ([provider keys](../security/provider-keys.md)).

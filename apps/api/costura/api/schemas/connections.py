@@ -25,13 +25,13 @@ class AccountIn(BaseModel):
     admin_key: AdminKey
     label: str | None = None
     workspace_id: str | None = None
-    seat_price_usd: Annotated[Decimal, Field(ge=0)] | None = None
+    seat_price_usd: Annotated[Decimal, Field(ge=0, lt=Decimal("1e9"))] | None = None
     include_included_in_business: bool = True
 
 
 class AccountLabelIn(BaseModel):
     label: str
-    seat_price_usd: Annotated[Decimal, Field(ge=0)] | None = None
+    seat_price_usd: Annotated[Decimal, Field(ge=0, lt=Decimal("1e9"))] | None = None
     include_included_in_business: bool | None = None
 
 
@@ -59,13 +59,13 @@ class ConnectionIn(BaseModel):
     # Optional label for the account the key connects when the provider has none yet.
     label: str | None = None
     workspace_id: str | None = None
-    seat_price_usd: Annotated[Decimal, Field(ge=0)] | None = None
+    seat_price_usd: Annotated[Decimal, Field(ge=0, lt=Decimal("1e9"))] | None = None
     include_included_in_business: bool | None = None
 
 
 class CreditPriceIn(BaseModel):
     effective_from: date
-    price_per_credit: Annotated[Decimal, Field(gt=0)]
+    price_per_credit: Annotated[Decimal, Field(gt=0, lt=Decimal("1e9"))]
 
 
 class CreditPriceOut(BaseModel):

@@ -154,8 +154,20 @@ export default async function ReconcilePage({ searchParams }: { searchParams: Pr
                   <span className="font-mono text-foreground">
                     {formatUsd(report.raw_check.raw_total)}
                   </span>{" "}
-                  and the normalized rows sum to the same figure
-                  {report.raw_check.ok ? "." : ` minus ${formatUsd(report.raw_check.delta)}.`}
+                  and the normalized rows sum to{" "}
+                  {report.raw_check.ok ? (
+                    "the same figure."
+                  ) : (
+                    <>
+                      <span className="font-mono text-foreground">
+                        {formatUsd(
+                          Number(report.raw_check.raw_total) + Number(report.raw_check.delta),
+                        )}
+                      </span>
+                      , {formatUsd(Math.abs(Number(report.raw_check.delta)))}{" "}
+                      {Number(report.raw_check.delta) > 0 ? "more" : "less"}.
+                    </>
+                  )}
                 </>
               ) : (
                 <>No import covers the whole period yet.</>
@@ -228,6 +240,9 @@ export default async function ReconcilePage({ searchParams }: { searchParams: Pr
                           .slice(0, 5)
                           .map((key) => `${key.label} ${formatUsd(key.delta)}`)
                           .join(", ")}
+                        {keyCheck.keys_off.length > 5
+                          ? `, and ${keyCheck.keys_off.length - 5} more`
+                          : ""}
                         .
                       </>
                     )}

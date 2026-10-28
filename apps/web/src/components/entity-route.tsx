@@ -19,9 +19,9 @@ type RouteProps = {
   searchParams?: Promise<Search>;
 };
 
-/** Keys and accounts accept a provider/account hint from search results; models and people
- * resolve from the id alone. */
-const HINTED: readonly EntityKind[] = ["api_key", "account", "workspace"];
+/** Keys and accounts accept a provider/account hint from search results, models the provider
+ * of the row that linked them; people resolve from the e-mail alone. */
+const HINTED: readonly EntityKind[] = ["api_key", "account", "workspace", "model"];
 
 const load = cache(
   async (
@@ -55,14 +55,14 @@ async function read(kind: EntityKind, param: string, props: RouteProps) {
     hint.provider,
     hint.account,
   );
-  return { data, organization };
+  return { data, organization, org };
 }
 
 export function entityPage(kind: EntityKind, param = "id") {
   return async function Page(props: RouteProps) {
-    const { data, organization } = await read(kind, param, props);
+    const { data, organization, org } = await read(kind, param, props);
     if (!data) notFound();
-    return <EntityPage data={data} isDemo={organization.is_demo} />;
+    return <EntityPage data={data} org={org} isDemo={organization.is_demo} />;
   };
 }
 

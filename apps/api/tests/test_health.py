@@ -45,6 +45,6 @@ def test_ready_and_health_are_503_when_the_database_is_down(
     health = client.get("/health")
 
     assert ready.status_code == 503
-    assert ready.json() == {"detail": "database unreachable"}
+    assert ready.json() == {"detail": "database unreachable", "code": "service_unavailable"}
     assert health.status_code == 503
-    assert health.json() == {"detail": "database unreachable"}
+    assert health.json() == {"detail": "database unreachable", "code": "service_unavailable"}

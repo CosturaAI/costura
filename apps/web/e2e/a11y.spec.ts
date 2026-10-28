@@ -91,7 +91,7 @@ test.describe("overlays", () => {
   test("confirm dialog", async ({ page }) => {
     await openApp(page, "/settings/connections");
     await page
-      .getByRole("button", { name: /^Disconnect/ })
+      .getByRole("button", { name: /^Remove key/ })
       .first()
       .click();
     await settled(page.getByRole("alertdialog"));

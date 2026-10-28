@@ -31,10 +31,17 @@ export default async function AnomalySettingsPage() {
           </CardDescription>
         </CardHeader>
         <CardContent>
-          <AnomalySettingsForm settings={current} canManage={settings.canManage} />
+          <AnomalySettingsForm
+            org={settings.org}
+            settings={current}
+            canManage={settings.canManage}
+            isOwner={settings.isOwner}
+          />
         </CardContent>
       </Card>
-      {settings.isDemo ? null : <WebhookCard webhook={webhook} canManage={settings.canManage} />}
+      {settings.isDemo ? null : (
+        <WebhookCard org={settings.org} webhook={webhook} canManage={settings.canManage} />
+      )}
     </div>
   );
 }

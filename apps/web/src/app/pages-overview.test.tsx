@@ -443,7 +443,7 @@ describe("overview", () => {
     fireEvent.click(screen.getByText("More on this period"));
 
     expect(mocked.budgetStatuses).toHaveBeenCalledWith("default", "anthropic", "2026-08");
-    expect(screen.getByText(/No budget set for this organization/)).toBeInTheDocument();
+    expect(screen.getByText(/No budget for Anthropic/)).toBeInTheDocument();
     // Once in the budgets card, once in the getting-started checklist.
     const links = screen.getAllByRole("link", { name: "Set a monthly budget" });
     expect(links).toHaveLength(2);
@@ -457,7 +457,7 @@ describe("overview", () => {
     page.organizations = [{ ...fx.organization, is_demo: true, role: null }];
     render(await OverviewPage({ searchParams: fx.noSearch }));
     fireEvent.click(screen.getByText("More on this period"));
-    expect(screen.getByText(/No budget set for this organization/)).toHaveTextContent(
+    expect(screen.getByText(/No budget for Anthropic/)).toHaveTextContent(
       "The sample's budgets are fixed",
     );
     expect(screen.queryByRole("link", { name: "Set a monthly budget" })).not.toBeInTheDocument();

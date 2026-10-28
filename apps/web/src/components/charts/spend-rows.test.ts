@@ -123,4 +123,8 @@ describe("bucketed data", () => {
       { key: "__other__", index: null, label: "other", value: 1 },
     ]);
   });
+
+  it("scales each raw total once, so a daily average is the total over the days", () => {
+    expect(dimensionTotals(bucketed, 1 / 4).map((row) => row.value)).toEqual([0.75, 0.25]);
+  });
 });

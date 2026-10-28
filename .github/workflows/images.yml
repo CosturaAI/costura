@@ -12,6 +12,9 @@ on:
       - "mise.toml"
       - "scripts/smoke-env.sh"
       - "scripts/smoke-prod.sh"
+      - "scripts/prod*.sh"
+      - "scripts/prod-doctor-env.py"
+      - "Justfile"
       - ".just/prod.just"
       - ".github/workflows/images.yml"
   schedule:
@@ -27,6 +30,9 @@ on:
       - "mise.toml"
       - "scripts/smoke-env.sh"
       - "scripts/smoke-prod.sh"
+      - "scripts/prod*.sh"
+      - "scripts/prod-doctor-env.py"
+      - "Justfile"
       - ".just/prod.just"
       - ".github/workflows/images.yml"
   workflow_dispatch:
@@ -70,6 +76,11 @@ jobs:
       fail-fast: false
       matrix:
         platform: [linux/amd64, linux/arm64]
+        include:
+          - platform: linux/amd64
+            arch: amd64
+          - platform: linux/arm64
+            arch: arm64
     timeout-minutes: 45
     permissions:
       contents: read
@@ -83,7 +94,18 @@ jobs:
       - name: Set up Buildx
         uses: docker/setup-buildx-action@f87e5991a6d7451dcb8d9637bfbc97413f497069 # v4.4.1
       - name: Build the API image
-        run: docker buildx build --load --platform "${{ matrix.platform }}" --file apps/api/Dockerfile --tag costura-api:ci .
+        uses: docker/build-push-action@c3c9e263c25d99ce0380d002d59b67737d91b0dc # v7.4.0
+        with:
+          context: .
+          file: apps/api/Dockerfile
+          platforms: ${{ matrix.platform }}
+          load: true
+          push: false
+          provenance: false
+          sbom: false
+          tags: costura-api:ci
+          cache-from: type=gha,scope=costura-api-${{ matrix.arch }}
+          cache-to: type=gha,mode=max,scope=costura-api-${{ matrix.arch }}
       - name: Check license files in the API image
         run: docker run --rm --entrypoint python costura-api:ci -c "from pathlib import Path; root=Path('/app/licenses'); assert (root/'LICENSE').is_file(); assert (root/'NOTICE').is_file(); assert (root/'third-party'/'psycopg-LGPL-3.0.txt').is_file(); assert (root/'third-party'/'psycopg-GPL-3.0.txt').is_file()"
       - name: Scan the API image for fixed high and critical vulnerabilities
@@ -106,6 +128,11 @@ jobs:
       fail-fast: false
       matrix:
         platform: [linux/amd64, linux/arm64]
+        include:
+          - platform: linux/amd64
+            arch: amd64
+          - platform: linux/arm64
+            arch: arm64
     timeout-minutes: 60
     permissions:
       contents: read
@@ -119,7 +146,18 @@ jobs:
       - name: Set up Buildx
         uses: docker/setup-buildx-action@f87e5991a6d7451dcb8d9637bfbc97413f497069 # v4.4.1
       - name: Build the web image
-        run: docker buildx build --load --platform "${{ matrix.platform }}" --file apps/web/Dockerfile --tag costura-web:ci .
+        uses: docker/build-push-action@c3c9e263c25d99ce0380d002d59b67737d91b0dc # v7.4.0
+        with:
+          context: .
+          file: apps/web/Dockerfile
+          platforms: ${{ matrix.platform }}
+          load: true
+          push: false
+          provenance: false
+          sbom: false
+          tags: costura-web:ci
+          cache-from: type=gha,scope=costura-web-${{ matrix.arch }}
+          cache-to: type=gha,mode=max,scope=costura-web-${{ matrix.arch }}
       - name: Check license files in the web image
         run: docker run --rm --user 0 --entrypoint node costura-web:ci -e "const fs=require('fs'); for (const name of ['/app/licenses/LICENSE','/app/licenses/NOTICE','/app/licenses/third-party/shadcn-MIT.txt','/app/licenses/third-party/fonts-OFL-1.1.txt']) fs.accessSync(name); if (!fs.readFileSync('/app/licenses/third-party/npm-THIRD-PARTY.txt','utf8').includes('cmdk ')) process.exit(1)"
       - name: Scan the web image for fixed high and critical vulnerabilities
@@ -142,6 +180,11 @@ jobs:
       fail-fast: false
       matrix:
         platform: [linux/amd64, linux/arm64]
+        include:
+          - platform: linux/amd64
+            arch: amd64
+          - platform: linux/arm64
+            arch: arm64
     timeout-minutes: 45
     permissions:
       contents: read
@@ -155,7 +198,18 @@ jobs:
       - name: Set up Buildx
         uses: docker/setup-buildx-action@f87e5991a6d7451dcb8d9637bfbc97413f497069 # v4.4.1
       - name: Build the proxy image
-        run: docker buildx build --load --platform "${{ matrix.platform }}" --file deploy/proxy.Dockerfile --tag costura-proxy:ci deploy
+        uses: docker/build-push-action@c3c9e263c25d99ce0380d002d59b67737d91b0dc # v7.4.0
+        with:
+          context: deploy
+          file: deploy/proxy.Dockerfile
+          platforms: ${{ matrix.platform }}
+          load: true
+          push: false
+          provenance: false
+          sbom: false
+          tags: costura-proxy:ci
+          cache-from: type=gha,scope=costura-proxy-${{ matrix.arch }}
+          cache-to: type=gha,mode=max,scope=costura-proxy-${{ matrix.arch }}
       - name: Scan the proxy image for fixed high and critical vulnerabilities
         uses: aquasecurity/trivy-action@ed142fd0673e97e23eac54620cfb913e5ce36c25 # v0.36.0
         env:

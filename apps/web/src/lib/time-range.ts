@@ -124,6 +124,14 @@ export function wholeMonth(from: string, to: string): string | null {
   return monthRange(month).to === to ? month : null;
 }
 
+/** The month of a range that runs from its 1st to today: the month so far, which the overview
+ * reads as the month view (month-to-date comparison) rather than as a free range. */
+export function monthToDate(from: string, to: string, today = new Date()): string | null {
+  const month = from.slice(0, 7);
+  if (!from.endsWith("-01") || to.slice(0, 7) !== month) return null;
+  return to === isoDate(utcDay(today)) ? month : null;
+}
+
 export function monthsIn(from: string, to: string): string[] {
   const months: string[] = [];
   let [year, month] = to.slice(0, 7).split("-").map(Number);

@@ -29,9 +29,9 @@ with socket.socket() as sock:
 PY
 }
 
-for port in "$api_port" "$web_port" "$db_port"; do
-  if port_busy "$port"; then
-    echo "error: port $port is already in use" >&2
+for pair in "COSTURA_SMOKE_API_PORT:$api_port" "COSTURA_SMOKE_WEB_PORT:$web_port" "COSTURA_SMOKE_DB_PORT:$db_port"; do
+  if port_busy "${pair#*:}"; then
+    echo "error: port ${pair#*:} is already in use; set ${pair%%:*} to a free port" >&2
     exit 1
   fi
 done

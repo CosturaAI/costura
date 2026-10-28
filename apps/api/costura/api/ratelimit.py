@@ -4,7 +4,9 @@ Four buckets, each a sliding one-minute window per client address: the sign-in a
 routes (`auth`), every request other than GET, HEAD and OPTIONS (`write`), the reads of the
 public sample organization (`demo`), the one path that answers without a session, and every
 other read under `/api/v1` (`read`), counted per session token rather than per address so a
-web server in front of many browsers does not share one limit. On top of `write`, storing a
+web server in front of many browsers does not share one limit. A read whose token the API
+rejects (401) is counted against the sender's address instead, so new random tokens do not
+buy new windows. On top of `write`, storing a
 provider key (connect, add an account, replace a key) is limited per organization
 (`connect`), since each one calls the provider. A limit of 0 turns the bucket off; the
 counters live in this process only, so a deployment with several API processes multiplies
@@ -186,6 +188,24 @@ class SlidingWindow:
             reset = math.ceil(WINDOW_SECONDS - (now - window[0])) if window else WINDOW_SECONDS
             return Verdict(allowed, limit, max(limit - len(window), 0), max(reset, 1))
 
+    def spent(self, key: tuple[str, ...], limit: int, now: float | None = None) -> Verdict | None:
+        """The refusal for `key` when its window is already full, without recording a hit."""
+        now = time.monotonic() if now is None else now
+        with self.lock:
+            window = self.hits.get(key)
+            if not window:
+                return None
+            while window and now - window[0] >= WINDOW_SECONDS:
+                window.popleft()
+            if len(window) < limit:
+                return None
+            reset = math.ceil(WINDOW_SECONDS - (now - window[0]))
+            return Verdict(False, limit, 0, max(reset, 1))
+
+    def forget(self, key: tuple[str, ...]) -> None:
+        with self.lock:
+            self.hits.pop(key, None)
+
     def _shrink(self, now: float) -> None:
         for key in [
             k for k, hits in self.hits.items() if not hits or now - hits[-1] >= WINDOW_SECONDS
@@ -211,10 +231,14 @@ def _session_subject(request: Request) -> str:
     return hashlib.sha256(token.strip().encode()).hexdigest()[:32]
 
 
+def _unknown_tokens(request: Request) -> tuple[str, ...]:
+    return ("read-unknown-token", client_address(request), "")
+
+
 def _refused(verdict: Verdict) -> JSONResponse:
     return JSONResponse(
         status_code=429,
-        content={"detail": TOO_MANY},
+        content={"detail": TOO_MANY, "code": "rate_limited"},
         headers={"Retry-After": str(verdict.reset), **verdict.headers()},
     )
 
@@ -243,10 +267,15 @@ async def rate_limit_middleware(
     bucket = bucket_for(request.method, request.url.path)
     limit = limit_for(bucket, settings) if bucket is not None else 0
     verdicts: list[Verdict] = []
+    token = ""
     if bucket is not None and limit > 0:
-        subject = _session_subject(request) if bucket == "read" else ""
-        client = "session" if subject else client_address(request)
-        subject = subject or await _auth_subject(request, bucket)
+        token = _session_subject(request) if bucket == "read" else ""
+        if token:
+            refused = limiter.spent(_unknown_tokens(request), limit)
+            if refused is not None:
+                return _refused(refused)
+        client = "session" if token else client_address(request)
+        subject = token or await _auth_subject(request, bucket)
         verdicts.append(limiter.hit((bucket, client, subject), limit))
         if not verdicts[-1].allowed:
             return _refused(verdicts[-1])
@@ -257,6 +286,12 @@ async def rate_limit_middleware(
         if not verdicts[-1].allowed:
             return _refused(verdicts[-1])
     response = await call_next(request)
+    if token and response.status_code == 401:
+        # A token the API does not know is charged to the sender's address, and its own
+        # window is dropped, so fresh random tokens neither escape the limit nor push real
+        # clients' windows out of the table.
+        limiter.forget(("read", "session", token))
+        limiter.hit(_unknown_tokens(request), limit)
     if verdicts:
         response.headers.update(min(verdicts, key=lambda v: v.remaining).headers())
     return response

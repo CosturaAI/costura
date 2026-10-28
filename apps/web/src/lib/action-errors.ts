@@ -26,6 +26,21 @@ export const WRITES_DISABLED_MESSAGE =
 const API_UNREACHABLE_MESSAGE = "Costura did not answer. Retry in a moment.";
 
 /**
+ * A write posted from a tab that shows another organization than the view cookie names: the
+ * cookie stays the authority, so the action refuses instead of acting on the other one.
+ */
+export class OrganizationMismatchError extends Error {
+  constructor(
+    public readonly shown: string,
+    public readonly active: string,
+  ) {
+    super(
+      `This tab shows ${shown} but ${active} was opened in another tab; reload before changing anything.`,
+    );
+  }
+}
+
+/**
  * `redirect()` (the api wrapper's answer to a 401) throws an error carrying a `NEXT_REDIRECT`
  * digest; actions call this inside catch-all blocks, so it leaves through here instead of
  * becoming a form message. Same check as `unstable_rethrow`, without the module the tests mock.
@@ -35,26 +50,33 @@ function isRedirectError(error: unknown): boolean {
   return typeof digest === "string" && digest.startsWith("NEXT_REDIRECT");
 }
 
+/** An API detail as a sentence: capitalized, ending with a period. */
+export function sentence(detail: string): string {
+  const trimmed = detail.trim();
+  if (!trimmed) return trimmed;
+  const capitalized = `${trimmed[0]!.toUpperCase()}${trimmed.slice(1)}`;
+  return /[.!?]$/.test(capitalized) ? capitalized : `${capitalized}.`;
+}
+
+/** The 404 the API answers for an organization that is gone or that the caller left. */
+function organizationMissing(error: ApiError): boolean {
+  return error.code === "unknown_organization" || /^unknown organization\b/.test(error.detail);
+}
+
 export function describeError(error: unknown): string {
   if (isRedirectError(error)) throw error;
+  if (error instanceof OrganizationMismatchError) return error.message;
   if (error instanceof ApiError) {
     if (error.status === 403) {
       if (/read-only/.test(error.detail)) {
         return "The sample organization is read-only; connect a provider in your own organization.";
       }
-      // A refusal about the caller's role names what to do next. An invitation mismatch
-      // is 410 and keeps the API sentence, which does not name the invited address.
-      return /write routes are disabled/.test(error.detail)
-        ? WRITES_DISABLED_MESSAGE
-        : `${error.detail[0]!.toUpperCase()}${error.detail.slice(1)}.`;
+      if (/write routes are disabled/.test(error.detail)) return WRITES_DISABLED_MESSAGE;
     }
-    if (error.status === 404) {
-      return /workspace|budget|anomaly/.test(error.detail)
-        ? `${error.detail[0]!.toUpperCase()}${error.detail.slice(1)}.`
-        : "Organization not found on the API.";
+    if (error.status === 404 && organizationMissing(error)) {
+      return "Organization not found on the API.";
     }
-    // 422 (key rejected) and 503 (key storage not configured) carry a sentence meant for the user.
-    return error.detail;
+    return sentence(error.detail);
   }
   if (error instanceof Error && /fetch failed|ECONNREFUSED/i.test(error.message)) {
     return API_UNREACHABLE_MESSAGE;

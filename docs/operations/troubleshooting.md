@@ -34,6 +34,10 @@ below.
 - `DATABASE_URL uses port 5432, the development PostgreSQL listens on 5433`: `.env` was
   edited by hand; `just db::port 5433` puts the same port in all three.
 
+Once the stack runs, `just dev` stops every process and exits 1 when the API, the web app or
+the worker exits, with `error: the <name> process exited; its output is above`. The lines
+above that one hold the error of the process it names.
+
 ## `just prod::up` stops before starting the stack
 
 The password check runs first and prints one line naming the variable:
@@ -67,7 +71,9 @@ never its value. `docker compose -f docker-compose.prod.yml logs api` shows it.
 
 - "rejected the key (HTTP 401/403)": the provider refused it. It is revoked, or it is a
   regular API key where the provider needs an admin, management or team key. The message
-  names the expected key type and prefix.
+  names the expected key type and prefix. A 403 that carries a rate-limit header (GitHub
+  answers its rate limits that way) is retried and then reported as unavailable, never as a
+  rejected key.
 - "accepted the key but ...": the key authenticates but cannot read what the import needs,
   such as an OpenRouter key that is not a management key.
 
@@ -89,9 +95,13 @@ ps worker`. Sync now on the card runs one organization without waiting for the s
 
 ## Restore refuses a backup
 
-A backup taken on a newer release carries a newer migration than the running images. Run
-the release the backup's `.version` file names, then restore
-([backup and restore](backup-restore.md)).
+`just prod::restore` reads the backup's `.version` file before it stops anything. When the
+images of `COSTURA_VERSION` do not contain the Alembic revision that file names, the backup
+came from a newer release: the error names it. Set `COSTURA_VERSION` to that release (or a
+later one), check out its tag, and run the restore again
+([backup and restore](backup-restore.md)). The recipe also refuses a path that is not a
+readable file and, with `COSTURA_DATABASE_HOST` set to an external server, any restore:
+restore that database with the provider's backups.
 
 ## The schema did not change after an upgrade
 

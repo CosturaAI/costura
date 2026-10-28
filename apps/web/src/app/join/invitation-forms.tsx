@@ -23,11 +23,12 @@ export function AcceptForm({ invitationId, name }: { invitationId: number; name:
 }
 
 /** Accept the invitation a link carries; the token never reaches the API from the browser. */
-export function ClaimForm({ token }: { token: string }) {
+export function ClaimForm({ token, email }: { token: string; email: string }) {
   const [state, action, pending] = useActionState(claimInvitationAction, idleAction);
   return (
     <form action={action} className="space-y-3">
       <input type="hidden" name="token" value={token} />
+      <input type="hidden" name="email" value={email} />
       <SubmitButton size="lg" pending={pending}>
         {pending ? "Joining..." : "Accept invitation"}
       </SubmitButton>

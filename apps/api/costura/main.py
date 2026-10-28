@@ -77,10 +77,31 @@ def create_app(settings: Settings | None = None) -> FastAPI:
     app.include_router(technical)
     app.add_exception_handler(DomainError, domain_error_handler)
     app.add_exception_handler(RequestValidationError, validation_error_handler)
+    app.add_exception_handler(HTTPException, http_error_handler)
     return app
 
 
 VALIDATION_CODE = "validation_failed"
+HTTP_CODES = {
+    400: "bad_request",
+    401: "unauthenticated",
+    403: "forbidden",
+    404: "not_found",
+    422: "invalid_input",
+    503: "service_unavailable",
+}
+
+
+async def http_error_handler(_request: Request, exc: Exception) -> JSONResponse:
+    """A refusal raised as a plain HTTPException (session, role and range checks) carries the
+    code of its status, so every error body has `detail` and `code`."""
+    if not isinstance(exc, HTTPException):
+        raise exc
+    return JSONResponse(
+        status_code=exc.status_code,
+        content={"detail": exc.detail, "code": HTTP_CODES.get(exc.status_code, "http_error")},
+        headers=exc.headers,
+    )
 
 
 async def domain_error_handler(_request: Request, exc: Exception) -> JSONResponse:

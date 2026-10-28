@@ -3,7 +3,7 @@ from datetime import UTC, date, datetime, timedelta
 from decimal import Decimal
 from typing import Literal
 
-from sqlalchemy import func, or_, select
+from sqlalchemy import and_, func, or_, select
 from sqlalchemy.orm import Session
 
 from costura.models import (
@@ -95,10 +95,13 @@ def collect_signals(
     *,
     today: date | None = None,
     thresholds: PostureThresholds | None = None,
+    anomaly_limit: int | None = SIGNAL_LIMIT,
 ) -> list[Signal]:
+    """Every open signal, most money first. Anomalies stop at `anomaly_limit` for display;
+    webhook delivery passes None so an anomaly ranked past it is still posted."""
     today = today or datetime.now(UTC).date()
     signals = [
-        *anomaly_signals(session, org_id, provider),
+        *anomaly_signals(session, org_id, provider, limit=anomaly_limit),
         *budget_signals(session, org_id, provider, f"{today.year}-{today.month:02d}"),
         *sync_signals(session, org_id, provider, today),
         *webhook_signals(session, org_id, provider),
@@ -115,8 +118,10 @@ def sort_signals(signals: list[Signal]) -> list[Signal]:
     return sorted(signals, key=lambda s: (-s.dollars_at_risk, -s.detected_at.timestamp()))
 
 
-def anomaly_signals(session: Session, org_id: int, provider: str) -> list[Signal]:
-    rows = session.scalars(
+def anomaly_signals(
+    session: Session, org_id: int, provider: str, *, limit: int | None = SIGNAL_LIMIT
+) -> list[Signal]:
+    statement = (
         select(SpendAnomaly)
         .where(
             SpendAnomaly.organization_id == org_id,
@@ -124,8 +129,8 @@ def anomaly_signals(session: Session, org_id: int, provider: str) -> list[Signal
             SpendAnomaly.status == "open",
         )
         .order_by(SpendAnomaly.total_impact.desc(), SpendAnomaly.id)
-        .limit(SIGNAL_LIMIT)
     )
+    rows = session.scalars(statement if limit is None else statement.limit(limit))
     return [
         Signal(
             kind="anomaly",
@@ -145,10 +150,22 @@ def budget_signals(session: Session, org_id: int, provider: str, month: str) -> 
     scope = provider_clause(SpendBudget.provider, provider)
     if provider == ALL:
         scope = or_(scope, SpendBudget.provider == PERSON_BUDGET_PROVIDER)
+    first = date.fromisoformat(f"{month}-01")
+    week_of_first = first - timedelta(days=first.weekday())
     rows = session.execute(
         select(SpendBudgetAlert, SpendBudget)
         .join(SpendBudget, SpendBudget.id == SpendBudgetAlert.budget_id)
-        .where(SpendBudget.organization_id == org_id, scope, SpendBudgetAlert.month == month)
+        .where(
+            SpendBudget.organization_id == org_id,
+            scope,
+            or_(
+                SpendBudgetAlert.month == month,
+                and_(
+                    SpendBudget.period == "week",
+                    SpendBudgetAlert.period_start.between(week_of_first, first),
+                ),
+            ),
+        )
         .order_by(SpendBudgetAlert.triggered_at)
     ).all()
     latest: dict[int, tuple[SpendBudgetAlert, SpendBudget]] = {}

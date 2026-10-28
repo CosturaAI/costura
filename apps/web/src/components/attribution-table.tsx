@@ -49,6 +49,8 @@ function usageRowKey(row: UsageRow): string {
  * amount column. `compact` is the overview card, about 330 px wide under the `all` scope: the
  * figure columns size to their own content, the name column takes what is left and clips, and
  * the provider and status badges sit on the secondary line instead of beside the name.
+ * `other` is the spend outside the listed rows: one unranked, unlinked "Other rows" line that
+ * stays last under every sort, so the amounts and shares add up to the total.
  */
 export function AttributionTable({
   rows,
@@ -59,6 +61,7 @@ export function AttributionTable({
   tokensDefault = false,
   showProvider = false,
   caption,
+  other = null,
 }: {
   rows: UsageRow[];
   dimension: string;
@@ -68,9 +71,28 @@ export function AttributionTable({
   tokensDefault?: boolean;
   showProvider?: boolean;
   caption?: string;
+  other?: { amount: string; share: string | null } | null;
 }) {
   const [showTokens, setShowTokens] = useState(tokensDefault);
-  const maxShare = rows.reduce((max, row) => Math.max(max, Number(row.share ?? 0)), 0);
+  const otherRow = useMemo<UsageRow | null>(
+    () =>
+      other === null
+        ? null
+        : {
+            key: null,
+            label: "Other rows",
+            provider: null,
+            details: {},
+            amount: other.amount,
+            share: other.share,
+            tokens: {},
+            total_tokens: 0,
+            web_search_requests: 0,
+          },
+    [other],
+  );
+  const shown = useMemo(() => (otherRow ? [...rows, otherRow] : rows), [rows, otherRow]);
+  const maxShare = shown.reduce((max, row) => Math.max(max, Number(row.share ?? 0)), 0);
   const rank = useMemo(() => new Map(rows.map((row, i) => [usageRowKey(row), i + 1])), [rows]);
   const tokenColumns = useMemo(
     () => (showTokens ? activeTokenTypes(rows.map((row) => row.tokens)) : []),
@@ -88,17 +110,17 @@ export function AttributionTable({
       align: "right",
       headClassName: "w-8",
       className: "w-8 font-mono text-xs whitespace-nowrap text-muted-foreground",
-      render: (row) => rank.get(usageRowKey(row)),
+      render: (row) => (row === otherRow ? null : rank.get(usageRowKey(row))),
     },
     {
       id: "name",
       header: label,
       priority: "primary",
-      sortValue: (row) => splitLabel(row.label).name,
+      sortValue: (row) => (row === otherRow ? null : splitLabel(row.label).name),
       // Compact cards are narrow: the name column takes what the figures leave and clips.
       className: compact ? "w-full max-w-0" : "min-w-40 max-w-md",
       render: (row) => {
-        const href = entityHref(dimension, row.key, row.person);
+        const href = entityHref(dimension, row.key, row.person, row.provider);
         const status = row.details.status ?? "";
         const missing = status.endsWith(" [missing]");
         const { name, id } = splitLabel(row.label);
@@ -164,7 +186,7 @@ export function AttributionTable({
             priority: "summary",
             align: "right",
             className: "font-mono whitespace-nowrap",
-            sortValue: (row) => Number(row.amount ?? 0),
+            sortValue: (row) => (row === otherRow ? null : Number(row.amount ?? 0)),
             render: (row) => formatUsd(row.amount),
           },
           {
@@ -172,7 +194,7 @@ export function AttributionTable({
             header: "share",
             priority: "summary",
             headClassName: compact ? undefined : "w-40",
-            sortValue: (row) => Number(row.share ?? 0),
+            sortValue: (row) => (row === otherRow ? null : Number(row.share ?? 0)),
             render: (row) => {
               const share = Number(row.share ?? 0);
               return (
@@ -209,7 +231,7 @@ export function AttributionTable({
             header: <abbr title={BYOK_NOTE}>BYOK</abbr>,
             align: "right",
             className: "font-mono whitespace-nowrap text-muted-foreground",
-            sortValue: (row) => Number(row.byok_amount ?? 0),
+            sortValue: (row) => (row === otherRow ? null : Number(row.byok_amount ?? 0)),
             render: (row) => formatUsd(row.byok_amount),
           },
         ] satisfies Column<UsageRow>[])
@@ -219,8 +241,8 @@ export function AttributionTable({
       header: column.short.toLowerCase(),
       align: "right",
       className: "font-mono text-xs text-muted-foreground",
-      sortValue: (row) => row.tokens[column.key] ?? 0,
-      render: (row) => formatTokens(row.tokens[column.key] ?? 0),
+      sortValue: (row) => (row === otherRow ? null : (row.tokens[column.key] ?? 0)),
+      render: (row) => (row === otherRow ? "-" : formatTokens(row.tokens[column.key] ?? 0)),
     })),
     ...(compact
       ? []
@@ -231,19 +253,19 @@ export function AttributionTable({
             priority: "detail",
             align: "right",
             className: "font-mono text-muted-foreground",
-            sortValue: (row) => row.total_tokens,
-            render: (row) => formatTokens(row.total_tokens),
+            sortValue: (row) => (row === otherRow ? null : row.total_tokens),
+            render: (row) => (row === otherRow ? "-" : formatTokens(row.total_tokens)),
           },
         ] satisfies Column<UsageRow>[])),
   ];
 
   return (
     <DataTable
-      rows={rows}
+      rows={shown}
       columns={columns}
       rowKey={usageRowKey}
       caption={caption ?? `Spend by ${label.toLowerCase()}`}
-      pageSize={compact ? rows.length || 1 : undefined}
+      pageSize={compact ? shown.length || 1 : undefined}
       rowClassName={() => cn(!compact && "hover:bg-background")}
       toolbar={
         compact ? undefined : (

@@ -48,6 +48,7 @@ WORKER_STEPS = {
     ("budgets.py", "evaluate_budgets"),
     ("projection.py", "run_projection"),
     ("delivery.py", "deliver_all"),
+    ("delivery.py", "deliver"),
 }
 
 

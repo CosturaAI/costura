@@ -165,6 +165,20 @@ export function coverageNote(
   return parts.length > 0 ? parts.join(" ") : null;
 }
 
+/**
+ * The last complete day when a free range runs past it (a range ending today, or after a sync
+ * gap), else null. The previous range is complete, so a drop there is not savings.
+ */
+export function rangeRunsPast(
+  to: string,
+  summary: Pick<Summary, "complete_through">,
+  today: Date = new Date(),
+): string | null {
+  const yesterday = new Date(today.getTime() - 86_400_000).toISOString().slice(0, 10);
+  const through = summary.complete_through ?? yesterday;
+  return to > through ? through : null;
+}
+
 /** A change measured over part of a period: never shown as good news. */
 export function partialCoverage(summary: Pick<Summary, "comparison_basis">): boolean {
   return summary.comparison_basis === "month_to_date";

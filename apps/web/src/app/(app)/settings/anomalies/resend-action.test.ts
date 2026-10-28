@@ -53,7 +53,7 @@ describe("resendDeliveryAction", () => {
     );
     const state = await resendDeliveryAction(idleAction, formOf({ delivery_id: "12" }));
     expect(state.ok).toBe(false);
-    expect(state.message).toContain("the signal closed");
+    expect(state.message).toContain("The signal closed.");
   });
 
   it("refuses a missing id before calling the API", async () => {

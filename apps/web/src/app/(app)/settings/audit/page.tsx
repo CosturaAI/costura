@@ -22,9 +22,51 @@ export const metadata: Metadata = { title: "Audit" };
 
 const PAGE_SIZE = 50;
 
-/** "provider_key_connected" -> "provider key connected". */
+/** The events the API records (`audit.record` calls), in words; anything newer falls back to
+ * the raw name with spaces. */
+const EVENT_LABELS: Record<string, string> = {
+  anomaly_settings_updated: "Anomaly detection changed",
+  anomaly_status_changed: "Anomaly status changed",
+  copilot_logins_set: "Copilot logins mapped",
+  invitation_created: "Invitation sent",
+  invitation_revoked: "Invitation revoked",
+  invoice_removed: "Invoice total removed",
+  invoice_set: "Invoice total entered",
+  member_joined: "Member joined",
+  member_left: "Member left",
+  member_removed: "Member removed",
+  member_role_changed: "Member role changed",
+  organization_deleted: "Organization deleted",
+  organization_renamed: "Organization renamed",
+  organization_reset: "Onboarding reset",
+  personal_key_removed: "Personal key removed",
+  personal_key_set: "Personal key saved",
+  provider_account_removed: "Provider account removed",
+  provider_key_connected: "Provider key connected",
+  provider_key_removed: "Provider key removed",
+  provider_key_replaced: "Provider key replaced",
+  sign_in: "Signed in",
+  sign_in_failed: "Sign-in refused",
+  sign_out: "Signed out",
+  sign_out_everywhere: "Signed out everywhere",
+  signal_snooze_lifted: "Signal snooze lifted",
+  signal_snoozed: "Signal snoozed",
+  team_deleted: "Team removed",
+  team_member_removed: "Removed from a team",
+  team_member_set: "Added to a team",
+  team_saved: "Team saved",
+  webhook_digest_set: "Webhook digest changed",
+  webhook_removed: "Webhook removed",
+  webhook_resent: "Webhook delivery resent",
+  webhook_saved: "Webhook saved",
+};
+
+/** "provider_key_connected" -> "Provider key connected"; an unknown name keeps its words. */
 function eventLabel(event: string): string {
-  return event.replaceAll("_", " ");
+  const known = EVENT_LABELS[event];
+  if (known) return known;
+  const words = event.replaceAll("_", " ");
+  return words ? `${words[0]!.toUpperCase()}${words.slice(1)}` : words;
 }
 
 function detailsText(details: Record<string, string>): string {
@@ -53,6 +95,7 @@ export default async function AuditSettingsPage({
     trail = null;
   }
   const last = trail ? Math.max(1, Math.ceil(trail.total / PAGE_SIZE)) : 1;
+  const pastEnd = trail !== null && trail.events.length === 0 && trail.total > 0;
   return (
     <Card>
       <CardHeader>
@@ -67,6 +110,14 @@ export default async function AuditSettingsPage({
         {trail === null ? (
           <p className="text-sm text-severity-critical">
             Could not load the audit trail; reload to retry.
+          </p>
+        ) : pastEnd ? (
+          <p className="text-sm text-muted-foreground">
+            Page {page} is past the end of the trail, which has {last}{" "}
+            {last === 1 ? "page" : "pages"}.{" "}
+            <Link href="/settings/audit" className="text-primary hover:underline">
+              Open the newest events
+            </Link>
           </p>
         ) : trail.events.length === 0 ? (
           <p className="text-sm text-muted-foreground">Nothing recorded yet.</p>
@@ -111,7 +162,7 @@ export default async function AuditSettingsPage({
             </Table>
           </div>
         )}
-        {trail && trail.total > PAGE_SIZE ? (
+        {trail && trail.total > PAGE_SIZE && !pastEnd ? (
           <nav aria-label="Audit pages" className="flex items-center gap-3 text-sm">
             {page > 1 ? (
               <Link

@@ -4,7 +4,15 @@ import { useRouter } from "next/navigation";
 import { useActionState, useEffect, useState } from "react";
 
 import { SubmitButton } from "@/components/submit-button";
-import { ConfirmSubmit, Feedback, FieldError, invalid } from "@/components/form-feedback";
+import {
+  ConfirmSubmit,
+  Feedback,
+  FieldError,
+  OrgField,
+  RemovalFeedback,
+  invalid,
+  useRemovalFeedback,
+} from "@/components/form-feedback";
 import { RunStatusPill, SyncProgress } from "@/components/sync-progress";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -33,11 +41,17 @@ const POLL_MS = 2000;
 
 type Progress = { source: SyncState; runs: SchedulerRun[]; error: string | null; done: boolean };
 
-/** The organization comes from the view cookie; the card's provider is posted. */
-type Scope = { provider: string };
+/** The organization comes from the view cookie and the page's one is posted to check it; the
+ * card's provider is posted. */
+type Scope = { org: string; provider: string };
 
-function ScopeInputs({ provider }: Scope) {
-  return <input type="hidden" name="provider" value={provider} />;
+function ScopeInputs({ org, provider }: Scope) {
+  return (
+    <>
+      <OrgField org={org} />
+      <input type="hidden" name="provider" value={provider} />
+    </>
+  );
 }
 
 /** Which write the key field performs. */
@@ -54,6 +68,7 @@ type ConnectMode = "connect" | "add" | "replace";
  * where the key comes from.
  */
 export function ConnectForm({
+  org,
   info,
   mode = "connect",
   account,
@@ -77,10 +92,13 @@ export function ConnectForm({
   const id = `${info.provider}${suffix}_admin_key`;
   const labelId = `${info.provider}_new_label`;
   const keyLabel = info.key_label;
+  const workspaceId = `${info.provider}${suffix}_workspace_id`;
+  const [accountLabel, setAccountLabel] = useState("");
+  const [workspace, setWorkspace] = useState("");
   useOnSuccess(state, onConnected);
   return (
     <form action={action} className="space-y-3">
-      <ScopeInputs provider={info.provider} />
+      <ScopeInputs org={org} provider={info.provider} />
       <input type="hidden" name="key_prefix" value={info.key_prefix} />
       <input type="hidden" name="key_label" value={keyLabel} />
       <input type="hidden" name="mode" value={mode} />
@@ -97,6 +115,8 @@ export function ConnectForm({
             maxLength={120}
             placeholder={`What ${info.label} calls it, unless named here`}
             className="mt-1 h-9 max-w-md"
+            value={accountLabel}
+            onChange={(event) => setAccountLabel(event.target.value)}
             aria-invalid={badLabel || undefined}
             aria-describedby={badLabel ? `${labelId}_error` : undefined}
           />
@@ -116,48 +136,46 @@ export function ConnectForm({
         <div>
           <label
             className="block text-sm font-medium text-secondary-foreground"
-            htmlFor={`${info.provider}${suffix}_workspace_id`}
+            htmlFor={workspaceId}
           >
             GitHub organization
           </label>
           <Input
-            id={`${info.provider}${suffix}_workspace_id`}
+            id={workspaceId}
             name="workspace_id"
             type="text"
             placeholder="acme-inc"
             className="mt-1 h-9 max-w-md font-mono"
             required
+            value={workspace}
+            onChange={(event) => setWorkspace(event.target.value)}
             aria-invalid={badWorkspace || undefined}
+            aria-describedby={badWorkspace ? `${workspaceId}_error` : undefined}
           />
-          <FieldError
-            state={state}
-            field="workspace_id"
-            id={`${info.provider}${suffix}_workspace_id_error`}
-          />
+          <FieldError state={state} field="workspace_id" id={`${workspaceId}_error`} />
         </div>
       ) : null}
       {info.provider === "codex" && mode !== "replace" ? (
         <div>
           <label
             className="block text-sm font-medium text-secondary-foreground"
-            htmlFor={`${info.provider}${suffix}_workspace_id`}
+            htmlFor={workspaceId}
           >
             Workspace ID
           </label>
           <Input
-            id={`${info.provider}${suffix}_workspace_id`}
+            id={workspaceId}
             name="workspace_id"
             type="text"
             placeholder="00000000-0000-0000-0000-000000000000"
             className="mt-1 h-9 max-w-md font-mono"
             required
+            value={workspace}
+            onChange={(event) => setWorkspace(event.target.value)}
             aria-invalid={badWorkspace || undefined}
+            aria-describedby={badWorkspace ? `${workspaceId}_error` : undefined}
           />
-          <FieldError
-            state={state}
-            field="workspace_id"
-            id={`${info.provider}${suffix}_workspace_id_error`}
-          />
+          <FieldError state={state} field="workspace_id" id={`${workspaceId}_error`} />
         </div>
       ) : null}
       <div>
@@ -222,6 +240,8 @@ function CursorSettingsFields({
   idSuffix: string;
 }) {
   const priceId = `cursor${idSuffix}_seat_price`;
+  const [price, setPrice] = useState(seatPrice);
+  const [included, setIncluded] = useState(includeIncluded);
   return (
     <fieldset className="grid gap-3 rounded-md border border-border p-3 sm:grid-cols-2">
       <legend className="px-1 text-sm font-medium text-secondary-foreground">
@@ -237,10 +257,12 @@ function CursorSettingsFields({
           type="number"
           min="0"
           step="0.01"
-          defaultValue={seatPrice}
+          value={price}
+          onChange={(event) => setPrice(event.target.value)}
           required
           className="mt-1 h-9"
           aria-invalid={badSeatPrice || undefined}
+          aria-describedby={badSeatPrice ? `${priceId}_error` : undefined}
         />
         <FieldError state={state} field="seat_price_usd" id={`${priceId}_error`} />
       </div>
@@ -248,7 +270,8 @@ function CursorSettingsFields({
         <input
           name="include_included_in_business"
           type="checkbox"
-          defaultChecked={includeIncluded}
+          checked={included}
+          onChange={(event) => setIncluded(event.target.checked)}
         />
         Include Included in Business usage
       </label>
@@ -257,8 +280,10 @@ function CursorSettingsFields({
 }
 
 export function CursorSettingsForm({
+  org,
   account,
 }: {
+  org: string;
   account: Pick<
     Account,
     "id" | "label" | "seat_price_usd" | "include_included_in_business" | "settings_effective_from"
@@ -267,7 +292,7 @@ export function CursorSettingsForm({
   const [state, action, pending] = useActionState(renameAccountAction, idleAction);
   return (
     <form action={action} className="space-y-2 rounded-md bg-background p-3">
-      <ScopeInputs provider="cursor" />
+      <ScopeInputs org={org} provider="cursor" />
       <input type="hidden" name="account_id" value={account.id} />
       <input type="hidden" name="label" value={account.label} />
       <CursorSettingsFields
@@ -289,49 +314,66 @@ export function CursorSettingsForm({
 }
 
 export function CodexCreditPriceSchedule({
+  org,
   account,
   prices,
   canOperate,
 }: {
+  org: string;
   account: Pick<Account, "id" | "label">;
   prices: CreditPrice[];
   canOperate: boolean;
 }) {
   const [state, action, pending] = useActionState(addCreditPriceAction, idleAction);
+  const [effectiveFrom, setEffectiveFrom] = useState("");
+  const [price, setPrice] = useState("");
+  useOnSuccess(state, () => {
+    setEffectiveFrom("");
+    setPrice("");
+  });
   const dateId = `codex_${account.id}_effective_from`;
   const priceId = `codex_${account.id}_price_per_credit`;
+  const headingId = `codex_${account.id}_schedule_heading`;
+  const badDate = invalid(state, "effective_from");
+  const badPrice = invalid(state, "price_per_credit");
   return (
     <section
       className="space-y-3 rounded-md border border-border p-3"
       aria-label={`${account.label} credit price schedule`}
     >
-      <div>
-        <p className="text-sm font-medium text-foreground">Credit price schedule</p>
-        <p className="text-xs text-muted-foreground">
-          Codex credit costs use the rate effective on each usage day.
-        </p>
-      </div>
-      {prices.length === 0 ? (
-        <div
-          role="alert"
-          className="rounded-md border border-severity-warning/30 bg-severity-warning-bg p-3 text-sm text-secondary-foreground"
-        >
-          Pricing required. Usage can sync, but Costura will not create USD cost rows until a credit
-          rate covers the usage date.
+      <RemovalFeedback headingId={headingId}>
+        <div>
+          <p id={headingId} tabIndex={-1} className="text-sm font-medium text-foreground">
+            Credit price schedule
+          </p>
+          <p className="text-xs text-muted-foreground">
+            Codex credit costs use the rate effective on each usage day.
+          </p>
         </div>
-      ) : (
-        <ul className="divide-y divide-border" aria-label="Effective credit rates">
-          {prices.map((price) => (
-            <CodexCreditPriceRow
-              key={price.id}
-              accountId={account.id}
-              price={price}
-              canOperate={canOperate}
-            />
-          ))}
-        </ul>
-      )}
+        {prices.length === 0 ? (
+          <div
+            role="alert"
+            className="rounded-md border border-severity-warning/30 bg-severity-warning-bg p-3 text-sm text-secondary-foreground"
+          >
+            Pricing required. Usage can sync, but Costura will not create USD cost rows until a
+            credit rate covers the usage date.
+          </div>
+        ) : (
+          <ul className="divide-y divide-border" aria-label="Effective credit rates">
+            {prices.map((price) => (
+              <CodexCreditPriceRow
+                key={price.id}
+                org={org}
+                account={account}
+                price={price}
+                canOperate={canOperate}
+              />
+            ))}
+          </ul>
+        )}
+      </RemovalFeedback>
       <form action={action} className="grid gap-2 sm:grid-cols-[1fr_1fr_auto]">
+        <OrgField org={org} />
         <div>
           <label className="block text-xs font-medium text-secondary-foreground" htmlFor={dateId}>
             Effective from
@@ -342,7 +384,10 @@ export function CodexCreditPriceSchedule({
             type="date"
             required
             disabled={!canOperate}
-            aria-invalid={invalid(state, "effective_from") || undefined}
+            value={effectiveFrom}
+            onChange={(event) => setEffectiveFrom(event.target.value)}
+            aria-invalid={badDate || undefined}
+            aria-describedby={badDate ? `${dateId}_error` : undefined}
           />
           <FieldError state={state} field="effective_from" id={`${dateId}_error`} />
         </div>
@@ -359,7 +404,10 @@ export function CodexCreditPriceSchedule({
             inputMode="decimal"
             required
             disabled={!canOperate}
-            aria-invalid={invalid(state, "price_per_credit") || undefined}
+            value={price}
+            onChange={(event) => setPrice(event.target.value)}
+            aria-invalid={badPrice || undefined}
+            aria-describedby={badPrice ? `${priceId}_error` : undefined}
           />
           <FieldError state={state} field="price_per_credit" id={`${priceId}_error`} />
         </div>
@@ -381,16 +429,19 @@ export function CodexCreditPriceSchedule({
 }
 
 function CodexCreditPriceRow({
-  accountId,
+  org,
+  account,
   price,
   canOperate,
 }: {
-  accountId: number;
+  org: string;
+  account: Pick<Account, "id" | "label">;
   price: CreditPrice;
   canOperate: boolean;
 }) {
-  const [state, action, pending] = useActionState(deleteCreditPriceAction, idleAction);
-  const formId = `delete-credit-price-${accountId}-${price.id}`;
+  const [result, action, pending] = useActionState(deleteCreditPriceAction, idleAction);
+  const state = useRemovalFeedback(result);
+  const formId = `delete-credit-price-${account.id}-${price.id}`;
   return (
     <li className="flex flex-wrap items-center justify-between gap-3 py-2">
       <p className="text-sm text-secondary-foreground">
@@ -400,14 +451,16 @@ function CodexCreditPriceRow({
       </p>
       {canOperate ? (
         <form id={formId} action={action} className="flex items-center gap-2">
-          <input type="hidden" name="account_id" value={accountId} />
+          <OrgField org={org} />
+          <input type="hidden" name="account_id" value={account.id} />
           <input type="hidden" name="price_id" value={price.id} />
           <ConfirmSubmit
             formId={formId}
-            title="Delete this credit rate?"
-            description="Usage on or after this date will fall back to the previous rate. Days with no earlier rate will have no USD cost."
+            title={`Delete the ${price.price_per_credit} USD rate from ${price.effective_from}?`}
+            description={`Usage of ${account.label} on or after ${price.effective_from} will fall back to the previous rate. Days with no earlier rate will have no USD cost.`}
             confirmLabel="Delete rate"
             pending={pending}
+            aria-label={`Delete the rate from ${price.effective_from}`}
           >
             {pending ? "Deleting..." : "Delete"}
           </ConfirmSubmit>
@@ -481,23 +534,28 @@ export function AddAccountForm({ org, info }: { org: string; info: ProviderInfo 
   );
 }
 
-/** Forgets the key of one account (or of the provider's only account when none is named). */
-export function DisconnectForm({ provider, account }: Scope & { account?: number }) {
-  const [state, action, pending] = useActionState(disconnectAction, idleAction);
-  const formId = `disconnect-form-${provider}${account === undefined ? "" : `-${account}`}`;
+/** Forgets the stored key of one account; the account and its data stay. */
+export function DisconnectForm({
+  org,
+  provider,
+  account,
+}: Scope & { account: Pick<Account, "id" | "label"> }) {
+  const [result, action, pending] = useActionState(disconnectAction, idleAction);
+  const state = useRemovalFeedback(result);
+  const formId = `disconnect-form-${provider}-${account.id}`;
   return (
     <form id={formId} action={action} className="flex flex-wrap items-center gap-3">
-      <ScopeInputs provider={provider} />
-      {account === undefined ? null : <input type="hidden" name="account_id" value={account} />}
+      <ScopeInputs org={org} provider={provider} />
+      <input type="hidden" name="account_id" value={account.id} />
       <ConfirmSubmit
         formId={formId}
-        title="Remove the stored key?"
-        description="The daily sync of this account stops until another key is connected. Data already synced stays."
+        title={`Remove the stored key of ${account.label}?`}
+        description={`The daily sync of ${account.label} stops until another key is connected. Data already synced stays.`}
         confirmLabel="Remove key"
         pending={pending}
         size="lg"
       >
-        {pending ? "Removing..." : "Disconnect"}
+        {pending ? "Removing..." : "Remove key"}
       </ConfirmSubmit>
       <Feedback state={state} />
     </form>
@@ -506,16 +564,21 @@ export function DisconnectForm({ provider, account }: Scope & { account?: number
 
 /** Renames one account; the name is what rows show after the provider ("OpenAI - Acme"). */
 export function RenameAccountForm({
+  org,
   provider,
   account,
 }: Scope & { account: Pick<Account, "id" | "label"> }) {
   const [openedFor, setOpenedFor] = useState<typeof idleAction | null>(null);
   const [state, action, pending] = useActionState(renameAccountAction, idleAction);
+  const [label, setLabel] = useState(account.label);
   const id = `${provider}_${account.id}_label`;
   const bad = invalid(state, "label");
   // The field stays open until the action answers ok: a success closes it, an error keeps it.
   const open = openedFor !== null && !(state.ok && openedFor !== state);
-  const setOpen = (next: boolean) => setOpenedFor(next ? state : null);
+  const setOpen = (next: boolean) => {
+    if (next) setLabel(account.label);
+    setOpenedFor(next ? state : null);
+  };
   if (!open) {
     return (
       <div className="flex flex-wrap items-center gap-3">
@@ -528,7 +591,7 @@ export function RenameAccountForm({
   }
   return (
     <form action={action} className="flex flex-wrap items-end gap-2">
-      <ScopeInputs provider={provider} />
+      <ScopeInputs org={org} provider={provider} />
       <input type="hidden" name="account_id" value={account.id} />
       <div>
         <label className="block text-sm font-medium text-secondary-foreground" htmlFor={id}>
@@ -538,7 +601,8 @@ export function RenameAccountForm({
           id={id}
           name="label"
           type="text"
-          defaultValue={account.label}
+          value={label}
+          onChange={(event) => setLabel(event.target.value)}
           maxLength={120}
           required
           className="mt-1 h-9 w-64"
@@ -561,14 +625,16 @@ export function RenameAccountForm({
 /** Removes an account with every row synced under it; only offered once the provider has
  * another account, so a provider never loses its last console by accident. */
 export function RemoveAccountForm({
+  org,
   provider,
   account,
 }: Scope & { account: Pick<Account, "id" | "label"> }) {
-  const [state, action, pending] = useActionState(removeAccountAction, idleAction);
+  const [result, action, pending] = useActionState(removeAccountAction, idleAction);
+  const state = useRemovalFeedback(result);
   const formId = `remove-account-form-${provider}-${account.id}`;
   return (
     <form id={formId} action={action} className="flex flex-wrap items-center gap-3">
-      <ScopeInputs provider={provider} />
+      <ScopeInputs org={org} provider={provider} />
       <input type="hidden" name="account_id" value={account.id} />
       <ConfirmSubmit
         formId={formId}
@@ -591,15 +657,25 @@ export function RemoveAccountForm({
  * success the action redirects, so the form only ever renders a refusal. `syncActive` holds
  * the button while a run is queued or running because reset never waits for the lock.
  */
-export function ResetSetupForm({ syncActive = false }: { syncActive?: boolean }) {
+export function ResetSetupForm({
+  org,
+  name,
+  syncActive = false,
+}: {
+  org: string;
+  /** The organization's display name, which the dialog names. */
+  name: string;
+  syncActive?: boolean;
+}) {
   const [state, action, pending] = useActionState(resetSetupAction, idleAction);
   return (
     <form id="reset-setup-form" action={action} className="space-y-2">
+      <OrgField org={org} />
       <div className="flex flex-wrap items-center gap-3">
         <ConfirmSubmit
           formId="reset-setup-form"
-          title="Reset the onboarding of this organization?"
-          description="Removes the stored provider keys and every synced record for this organization: spend, inventory, runs, anomalies, projections and budgets. The next visit starts at the welcome screen."
+          title={`Reset the onboarding of ${name}?`}
+          description={`Removes the stored provider keys and every synced record of ${name} (${org}): spend, inventory, runs, anomalies, projections and budgets. The next visit starts at the welcome screen.`}
           confirmLabel="Reset everything"
           variant="destructive"
           size="lg"
@@ -625,7 +701,7 @@ export function ResetSetupForm({ syncActive = false }: { syncActive?: boolean })
  * through `setup` every two seconds until none is queued or running, one table per provider. The
  * page data is refreshed at the end so the "Last run" rows pick the result up.
  */
-export function SyncNowForm({ org, provider, hint }: Scope & { org: string; hint?: string }) {
+export function SyncNowForm({ org, provider, hint }: Scope & { hint?: string }) {
   const router = useRouter();
   const [state, action, pending] = useActionState(syncNowAction, idleSync);
   // Keyed by the action result that started it, so a new submit starts from a clean table.
@@ -675,10 +751,10 @@ export function SyncNowForm({ org, provider, hint }: Scope & { org: string; hint
   return (
     <div className="space-y-3">
       <form action={action} className="flex flex-wrap items-center gap-3">
-        <ScopeInputs provider={provider} />
-        <Button type="submit" variant="secondary" size="lg" disabled={busy}>
+        <ScopeInputs org={org} provider={provider} />
+        <SubmitButton variant="secondary" size="lg" pending={busy}>
           {pending ? "Starting..." : tracking ? "Syncing..." : "Sync now"}
-        </Button>
+        </SubmitButton>
         <Feedback state={state} />
       </form>
       {hint && !busy ? <p className="text-xs text-muted-foreground">{hint}</p> : null}

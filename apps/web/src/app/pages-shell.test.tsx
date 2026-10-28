@@ -122,10 +122,7 @@ describe("scope layout", () => {
       "severity",
     );
     expect(mocked.runs).toHaveBeenCalledWith("default", "anthropic", 50);
-    expect(screen.getByRole("link", { name: "Settings" })).toHaveAttribute(
-      "href",
-      "/settings/connections",
-    );
+    expect(screen.getByRole("link", { name: "Settings" })).toHaveAttribute("href", "/settings");
     expect(screen.getByRole("button", { name: "Open navigation" })).toBeInTheDocument();
     expect(screen.getByText("child")).toBeInTheDocument();
   });
@@ -249,7 +246,7 @@ describe("scope layout", () => {
       "New organization",
       "Invitations1",
       "Organization settings",
-      "Log out",
+      "Sign out",
     ]);
     expect(within(menu).getByRole("menuitem", { name: /Default organization/ })).toHaveAttribute(
       "aria-current",
@@ -616,10 +613,7 @@ describe("scope layout", () => {
     expect(mocked.months).toHaveBeenCalledWith("default", "all");
     expect(mocked.runs).toHaveBeenCalledWith("default", "all", 50);
     expect(screen.getByRole("combobox", { name: "Provider" })).toHaveTextContent("All providers");
-    expect(screen.getByRole("link", { name: "Settings" })).toHaveAttribute(
-      "href",
-      "/settings/connections",
-    );
+    expect(screen.getByRole("link", { name: "Settings" })).toHaveAttribute("href", "/settings");
     // The freshness pill dates the data by the newest succeeded cost sync of any provider.
     expect(screen.getByRole("button", { name: /^Data freshness:/ })).toHaveTextContent(
       "Data as of 2026-09-14 13:00",

@@ -2,7 +2,7 @@
 the month-end projection and what needs a person. Weekly on Mondays or monthly on the 2nd,
 once per period, off by default."""
 
-from datetime import UTC, date, datetime
+from datetime import UTC, date, datetime, timedelta
 from decimal import Decimal
 
 from sqlalchemy.orm import Session
@@ -17,6 +17,8 @@ from costura.spend.summary import summary
 
 TOP_SIGNALS = 3
 CENT = Decimal("0.01")
+RETRY_AFTER = timedelta(minutes=30)
+_last_failure: dict[int, datetime] = {}
 
 
 def _usd(value: Decimal) -> str:
@@ -81,15 +83,28 @@ def post_digest(
     today: date | None = None,
     post: Post | None = None,
 ) -> str | None:
-    """Post the digest when it is due; None when it was posted or not due, else the error."""
-    today = today or datetime.now(UTC).date()
+    """Post the digest when it is due; None when it was posted or not due, else the error.
+    A failed post waits `RETRY_AFTER` before the next try that day. `X-Costura-Delivery` is
+    `digest-<day>`, the same for every try of one digest, so a receiver can drop a repeat."""
+    now = datetime.now(UTC)
+    today = today or now.date()
     org = session.get(Organization, row.organization_id)
     if org is None or not due(row, today):
         return None
+    failed_at = _last_failure.get(row.organization_id)
+    if failed_at is not None and now - failed_at < RETRY_AFTER:
+        return None
     error = send_text(
-        settings, row, digest_text(session, settings, org, today), "digest", post or http_post
+        settings,
+        row,
+        digest_text(session, settings, org, today),
+        f"digest-{today.isoformat()}",
+        post or http_post,
     )
     if error is None:
         row.last_digest_on = today
+        _last_failure.pop(row.organization_id, None)
+    else:
+        _last_failure[row.organization_id] = now
     session.flush()
     return error

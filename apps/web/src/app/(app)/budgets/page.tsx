@@ -79,7 +79,7 @@ export default async function BudgetsPage() {
       <AreaNav label="Guardrails" items={GUARDRAILS} current="/budgets" />
       <PageHeader
         title={`Budgets ${periodPhrase(period.from, period.to)}`}
-        description={`A monthly amount for the organization, a workspace or one person across every provider. The daily sync records when spend crosses a threshold.${months.length > 1 ? ` The time frame touches ${touched.length} months; each one has its block below${touched.length > months.length ? `, the newest ${months.length} shown` : ""}.` : ""}`}
+        description={`An amount per month, ISO week or UTC day for an organization total or a workspace, or per month for a team or one person across every provider. The daily sync records when spend crosses a threshold.${months.length > 1 ? ` The time frame touches ${touched.length} months; each one has its block below${touched.length > months.length ? `, the newest ${months.length} shown` : ""}.` : ""}`}
       />
 
       {organization.is_demo ? (
@@ -99,13 +99,13 @@ export default async function BudgetsPage() {
 
       <Card>
         <CardHeader>
-          <CardHeading>Monthly budgets</CardHeading>
+          <CardHeading>All budgets</CardHeading>
           <CardDescription>
             {budgets.budgets.length === 0 && organization.is_demo
               ? sampleCopy.noBudget
               : budgets.budgets.length === 0
                 ? "No budget yet. Set one to see how much of the month is spent on the overview and to record when a threshold is crossed."
-                : `${budgets.budgets.length} budget${budgets.budgets.length === 1 ? "" : "s"}; a budget applies to every month until changed. Progress is for ${formatMonth(months[0]!)}.`}
+                : `${budgets.budgets.length} budget${budgets.budgets.length === 1 ? "" : "s"}; a budget applies to every period until changed. Progress is for ${formatMonth(months[0]!)}, or the week or day shown on a week or day budget.`}
           </CardDescription>
         </CardHeader>
         <CardContent>

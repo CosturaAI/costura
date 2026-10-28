@@ -1,6 +1,7 @@
 import { redirect } from "next/navigation";
 import { cache } from "react";
 
+import { OrganizationMismatchError } from "@/lib/action-errors";
 import { ApiError, api, type Organization, type ProviderInfo } from "@/lib/api";
 import { ALL, PROVIDERS } from "@/lib/providers";
 import { readSessionToken } from "@/lib/session-cookie";
@@ -154,29 +155,45 @@ function urlTimeFrame(
 type ScopeParams = { org: string; provider: string };
 
 /**
+ * A form rendered by a page posts the organization it showed (`org`). Another tab may have
+ * switched the view cookie since; the cookie stays the authority, so a different `org` throws
+ * `OrganizationMismatchError` instead of acting on the organization the form did not name.
+ * `describeError` turns it into the form's message. A form without `org` is not checked.
+ */
+function checkPostedOrg(form: FormData | undefined, active: string): void {
+  const posted = form?.get("org");
+  if (typeof posted === "string" && posted !== "" && posted !== active) {
+    throw new OrganizationMismatchError(posted, active);
+  }
+}
+
+/**
  * The active organization slug alone, for server actions and pollers: no verification,
  * since the API answers 404 or 403 itself for an organization the caller cannot write to.
+ * With `form`, the organization the form posted must be the active one.
  */
-export async function requireActiveOrg(): Promise<string> {
+export async function requireActiveOrg(form?: FormData): Promise<string> {
   const cookie = await readViewCookie();
   if (cookie === null) redirect("/");
+  checkPostedOrg(form, cookie.org);
   return cookie.org;
 }
 
 /** The view a server action posts against: the cookie's organization and hints, unverified. */
-async function activeScope(): Promise<ScopeParams> {
+async function activeScope(form?: FormData): Promise<ScopeParams> {
   const cookie = await readViewCookie();
   if (cookie === null) redirect("/");
+  checkPostedOrg(form, cookie.org);
   return { org: cookie.org, provider: resolveScope(cookie.scope) };
 }
 
 /**
  * What a server action posted from a form acts on: the active organization, and the provider
  * the form row names (`provider` input; a card under `all` acts on its own provider) or else
- * the view's scope.
+ * the view's scope. A posted `org` other than the active one throws, as in `requireActiveOrg`.
  */
 export async function formScope(form: FormData): Promise<ScopeParams> {
-  const view = await activeScope();
+  const view = await activeScope(form);
   const provider = String(form.get("provider") ?? "");
   return { org: view.org, provider: provider || view.provider };
 }

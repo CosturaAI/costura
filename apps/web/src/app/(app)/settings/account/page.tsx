@@ -2,17 +2,15 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 
-import { signOutEverywhereAction } from "@/actions/sign-out";
 import { OptIn } from "@/components/alerts-bell";
 import { CardHeading } from "@/components/card-heading";
 import { StatusBadge } from "@/components/status-badge";
-import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader } from "@/components/ui/card";
 import { api } from "@/lib/api";
-import { ROLE_DESCRIPTIONS } from "@/lib/roles";
+import { ROLE_DESCRIPTIONS, roleLabel } from "@/lib/roles";
 
 import { loadSettings } from "../data";
-import { LeaveOrganizationForm } from "../member-forms";
+import { LeaveOrganizationForm, SignOutEverywhereForm } from "../member-forms";
 
 export const metadata: Metadata = { title: "Account settings" };
 
@@ -57,9 +55,13 @@ export default async function AccountSettingsPage() {
                 {me.user.name ? (
                   <span className="text-muted-foreground">{me.user.name}</span>
                 ) : null}
-                <StatusBadge tone={isOwner ? "info" : "neutral"}>{role ?? "member"}</StatusBadge>
+                {role ? (
+                  <StatusBadge tone={isOwner ? "info" : "neutral"}>{roleLabel(role)}</StatusBadge>
+                ) : null}
               </p>
-              <p className="text-sm text-muted-foreground">{ROLE_DESCRIPTIONS[role ?? "member"]}</p>
+              {role ? (
+                <p className="text-sm text-muted-foreground">{ROLE_DESCRIPTIONS[role]}</p>
+              ) : null}
             </div>
           )}
         </CardContent>
@@ -94,11 +96,7 @@ export default async function AccountSettingsPage() {
           </CardDescription>
         </CardHeader>
         <CardContent>
-          <form action={signOutEverywhereAction}>
-            <Button type="submit" variant="outline" size="sm">
-              Sign out everywhere
-            </Button>
-          </form>
+          <SignOutEverywhereForm />
         </CardContent>
       </Card>
 

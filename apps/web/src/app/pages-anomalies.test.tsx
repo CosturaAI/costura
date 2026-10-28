@@ -165,6 +165,20 @@ describe("anomalies", () => {
     expect(list.textContent).toContain("after 3.5 hours");
   });
 
+  it("says when the API cut the list and what the open figures cover", async () => {
+    page.view = { org: "default", month: "2026-08", scope: "anthropic" };
+    mocked.anomalies.mockResolvedValue({ ...fx.anomalies, total: 812 });
+    render(await AnomaliesPage({ searchParams: fx.noSearch }));
+
+    const count = fx.anomalies.anomalies.length;
+    expect(
+      screen.getByText(new RegExp(`Showing ${count} of 812, the newest days`)),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByText(new RegExp(`covers the ${count} shown of 812 open`)),
+    ).toBeInTheDocument();
+  });
+
   it("names the rule and the run of each episode", async () => {
     page.view = { org: "default", month: "2026-08", scope: "anthropic" };
     page.pathname = "/anomalies";
@@ -183,7 +197,7 @@ describe("anomalies", () => {
     expect(within(feed).getByText(/88.00% under the baseline/)).toBeInTheDocument();
     // Money that stopped arriving is not added to the overspend, and the day says so with a minus.
     expect(screen.getByText(/drops are 880\.00 under it/)).toBeInTheDocument();
-    expect(screen.getByText(/-880\.00 impact/)).toBeInTheDocument();
+    expect(screen.getByText(/; -880\.00 in drops/)).toBeInTheDocument();
     // A driver that fell carries its own minus sign, never "+-".
     expect(within(feed).getByText(/^-380\.00/)).toBeInTheDocument();
     expect(within(feed).queryByText(/\+-/)).not.toBeInTheDocument();
@@ -374,7 +388,10 @@ describe("anomalies", () => {
       expect(entityLinks).toContain("/accounts/user_01");
       expect(within(feed).getByRole("link", { name: "Analyze the day" })).toHaveAttribute(
         "href",
-        "/explore?by=workspace&measure=billed_usd&from=2026-06-13&to=2026-08-11&interval=day&f=provider%3Ais%3Aanthropic&f=provider_account%3Ais%3A1",
+        `/o/default?${new URLSearchParams({
+          scope: "anthropic",
+          next: "/explore?by=workspace&measure=billed_usd&from=2026-06-13&to=2026-08-11&interval=day&f=provider%3Ais%3Aanthropic&f=provider_account%3Ais%3A1",
+        })}`,
       );
       // The org anomaly's top driver still opens the key page under its provider.
       expect(
@@ -615,7 +632,7 @@ describe("anomaly detail", () => {
     // other anomaly.
     expect(screen.getByRole("link", { name: "claude-opus-4-1" })).toHaveAttribute(
       "href",
-      "/models/claude-opus-4-1",
+      "/models/claude-opus-4-1?provider=anthropic",
     );
     expect(screen.getByRole("link", { name: "organization total" })).toHaveAttribute(
       "href",
@@ -623,7 +640,7 @@ describe("anomaly detail", () => {
     );
     expect(screen.getByRole("link", { name: "Open in Analyze" })).toHaveAttribute(
       "href",
-      "/explore?by=account&measure=billed_usd&from=2026-06-13&to=2026-08-11&interval=day&f=provider%3Ais%3Aanthropic&f=provider_account%3Ais%3A1&f=account%3Ais%3Auser_01",
+      `/o/default?${new URLSearchParams({ scope: "anthropic", next: "/explore?by=account&measure=billed_usd&from=2026-06-13&to=2026-08-11&interval=day&f=provider%3Ais%3Aanthropic&f=provider_account%3Ais%3A1&f=account%3Ais%3Auser_01" })}`,
     );
     // Writable scope: the status controls; opening the page marks the anomaly read.
     expect(screen.getByRole("button", { name: "Acknowledge" })).toBeInTheDocument();
@@ -688,7 +705,10 @@ describe("anomaly detail", () => {
     expect(within(keys).getByText("migration-script").closest("tr")).toHaveTextContent("new");
     expect(within(keys).getAllByRole("link", { name: "Analyze" })[0]).toHaveAttribute(
       "href",
-      "/explore?by=model&f=api_key%3Ais%3Aapikey_1",
+      `/o/default?${new URLSearchParams({
+        scope: "anthropic",
+        next: "/explore?by=model&f=api_key%3Ais%3Aapikey_1",
+      })}`,
     );
 
     // Volume or price, in one sentence and a table.

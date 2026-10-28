@@ -43,8 +43,9 @@ Restart the API and the worker (`docker compose -f docker-compose.prod.yml up -d
 open Settings, Anomalies as an owner, save `https://hooks.example.com/costura`, copy the
 signing secret into `COSTURA_WEBHOOK_SECRET` of the receiver, and press Send a test message.
 The receiver prints `delivery test: Costura test message: ...`. Every new signal follows,
-once each, with the row id as `X-Costura-Delivery`; the Deliveries list on the same card shows
-the outcome and lets an owner resend a row.
+once each, with the row id as `X-Costura-Delivery`; a worker stopped mid-post can repeat that
+one message, so a receiver that must not show it twice drops a repeated id. The Deliveries
+list on the same card shows the outcome and lets an owner resend a row.
 
 For a local trial without a certificate authority, run the terminator with a self-signed
 certificate and add its CA to the worker image's trust store; the worker uses the system

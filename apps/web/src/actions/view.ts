@@ -4,7 +4,7 @@ import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 
 import { ApiError, api } from "@/lib/api";
-import { safeNextPath } from "@/lib/return-path";
+import { safeNextPath, switchedOrgPath } from "@/lib/return-path";
 import { readViewCookie, writeViewCookie } from "@/lib/view-cookie";
 import { ALL } from "@/lib/providers";
 import {
@@ -71,14 +71,15 @@ export async function setViewAction(patch: {
 }
 
 /**
- * The account menu: open another organization on the same page. The membership is checked
+ * The account menu: open another organization on the same page, or on the nearest page that
+ * exists in every organization (`switchedOrgPath`). The membership is checked
  * like `/o/{slug}` does, so a stale menu entry ends on the 404 page instead of a broken view;
  * the month is dropped because the other organization may not have it, and the scope resets
  * to every provider.
  */
 export async function switchOrganizationAction(form: FormData): Promise<void> {
   const slug = String(form.get("slug") ?? "");
-  const next = safeNextPath(String(form.get("next") ?? ""), "/overview");
+  const next = switchedOrgPath(safeNextPath(String(form.get("next") ?? ""), "/overview"));
   try {
     await api.org(slug);
   } catch (error) {

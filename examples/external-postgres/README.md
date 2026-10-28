@@ -34,8 +34,9 @@ COSTURA_COMPOSE="docker compose -f docker-compose.prod.yml -f examples/external-
 
 `COSTURA_COMPOSE` points every `just prod::*` recipe at the two files. The same prefix works
 with `prod::down`, `prod::logs` and `prod::ps`. The bundled `postgres` service still starts
-and stays empty; `just prod::backup` and `prod::restore` read that service only, so back up
-the managed database with the provider's tools.
+and stays empty. `just prod::backup` and `prod::restore` reach only that service, so they
+refuse to run while `COSTURA_DATABASE_HOST` names another server, and `just prod::upgrade`
+takes no backup; back up the managed database with the provider's tools.
 
 Check the merged file before the first start:
 

@@ -4,7 +4,7 @@ import { redirect } from "next/navigation";
 import { z } from "zod";
 
 import { describeError, type ActionState } from "@/lib/action-errors";
-import { api } from "@/lib/api";
+import { ApiError, api } from "@/lib/api";
 import { parseForm, text } from "@/lib/form";
 import { EVERY_PAGE, refresh } from "@/lib/mutations";
 import { ALL } from "@/lib/providers";
@@ -38,16 +38,25 @@ export async function acceptInvitationAction(
   return land(slug);
 }
 
+/** The API answers 410 alike for an unknown, revoked, used or expired token and for an
+ * address other than the invited one, so the refusal names every case. */
 export async function claimInvitationAction(
   _prev: ActionState,
   form: FormData,
 ): Promise<ActionState> {
-  const parsed = parseForm(form, z.object({ token: text() }));
+  const parsed = parseForm(form, z.object({ token: text(), email: text() }));
   const token = parsed.ok ? parsed.data.token : "";
+  const email = parsed.ok ? parsed.data.email : "";
   let slug: string;
   try {
     slug = (await api.claimInvitation(token)).slug;
   } catch (error) {
+    if (error instanceof ApiError && error.status === 410) {
+      return {
+        ok: false,
+        message: `This link may not be for ${email || "the address you signed in with"}, or it was revoked or has expired. Sign out and open it again with the invited address, or ask an owner for a new invitation.`,
+      };
+    }
     return { ok: false, message: describeError(error) };
   }
   return land(slug);

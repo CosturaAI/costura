@@ -63,17 +63,21 @@ describe("Codex credit price schedule", () => {
   };
 
   it("lists rates and offers add and delete controls to operators", () => {
-    render(<CodexCreditPriceSchedule account={account} prices={[price]} canOperate />);
+    render(
+      <CodexCreditPriceSchedule org="default" account={account} prices={[price]} canOperate />,
+    );
 
     expect(screen.getByRole("list", { name: "Effective credit rates" })).toHaveTextContent(
       "2026-09-18 - 0.08000000 USD",
     );
     expect(screen.getByRole("button", { name: "Add rate" })).toBeEnabled();
-    expect(screen.getByRole("button", { name: "Delete" })).toBeEnabled();
+    expect(screen.getByRole("button", { name: "Delete the rate from 2026-09-18" })).toBeEnabled();
   });
 
   it("shows required pricing and disables fields for viewers", () => {
-    render(<CodexCreditPriceSchedule account={account} prices={[]} canOperate={false} />);
+    render(
+      <CodexCreditPriceSchedule org="default" account={account} prices={[]} canOperate={false} />,
+    );
 
     expect(screen.getByRole("alert")).toHaveTextContent("Pricing required");
     expect(screen.getByLabelText("Effective from")).toBeDisabled();

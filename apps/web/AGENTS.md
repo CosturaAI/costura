@@ -17,7 +17,9 @@ Read these before changing `apps/web`. The Next.js block below is generated; lea
 
 - A server action validates its form with `parseForm(form, schema)` (`src/lib/form.ts`,
   zod) and reads the organization from the session cookie (`requireActiveOrg`), never from an
-  argument the client sends.
+  argument the client sends. A settings form also posts the organization it rendered in a
+  hidden `OrgField`; `requireActiveOrg(form)` only compares it with the cookie and refuses
+  the write when another tab switched organization.
 - A server action wraps the API call in `runMutation(work, routes)` with a route list from
   `src/lib/mutations.ts`; `EVERY_PAGE` is for writes that change what every page shows.
 - Submit controls use `SubmitButton` or `ConfirmSubmit`, which set `aria-disabled` while

@@ -2,8 +2,10 @@
 
 import Link from "next/link";
 import { useRouter, useSelectedLayoutSegment } from "next/navigation";
+import { useState } from "react";
 
 import { cn } from "@/lib/utils";
+import { Button } from "@/components/ui/button";
 import { NativeSelect } from "@/components/ui/native-select";
 
 type SettingsSection =
@@ -32,32 +34,17 @@ export type SettingsNavItem = {
 const GROUPS: SettingsGroup[] = ["Sample", "Organization", "You"];
 
 /**
- * Section navigation of Settings: a native select below `lg` and a rail beside the content
- * from `lg`. One link per section, so the group labels are decoration that appears only where
+ * Section navigation of Settings: a native select with an Open button below `lg` (choosing an
+ * option navigates nowhere, so arrow keys can move through the list) and a rail beside the
+ * content from `lg`. One link per section, so the group labels are decoration that appears only where
  * the rail does. The dot marks a section holding a rejected key or a failed import, the state
  * a visitor would otherwise have to open every section to find.
  */
 export function SettingsNav({ items }: { items: SettingsNavItem[] }) {
   const active = useSelectedLayoutSegment() ?? items[0]?.segment ?? "connections";
-  const router = useRouter();
   return (
     <>
-      <label className="grid gap-1 text-xs text-muted-foreground lg:hidden">
-        Settings section
-        <NativeSelect
-          aria-label="Settings section"
-          value={active}
-          onChange={(event) => router.push(`/settings/${event.currentTarget.value}`)}
-          className="h-10 w-full px-3"
-        >
-          {items.map((item) => (
-            <option key={item.segment} value={item.segment}>
-              {item.label}
-              {item.attention ? " - needs attention" : ""}
-            </option>
-          ))}
-        </NativeSelect>
-      </label>
+      <SectionPicker key={active} items={items} active={active} />
       <nav aria-label="Settings sections" className="hidden w-44 shrink-0 flex-col gap-5 lg:flex">
         {GROUPS.map((group) => {
           const own = items.filter((item) => item.group === group);
@@ -95,5 +82,39 @@ export function SettingsNav({ items }: { items: SettingsNavItem[] }) {
         })}
       </nav>
     </>
+  );
+}
+
+function SectionPicker({ items, active }: { items: SettingsNavItem[]; active: string }) {
+  const router = useRouter();
+  const [chosen, setChosen] = useState(active);
+  return (
+    <form
+      className="flex items-end gap-2 lg:hidden"
+      onSubmit={(event) => {
+        event.preventDefault();
+        if (chosen !== active) router.push(`/settings/${chosen}`);
+      }}
+    >
+      <div className="grid flex-1 gap-1 text-xs text-muted-foreground">
+        <label htmlFor="settings-section">Settings section</label>
+        <NativeSelect
+          id="settings-section"
+          value={chosen}
+          onChange={(event) => setChosen(event.currentTarget.value)}
+          className="h-10 w-full px-3"
+        >
+          {items.map((item) => (
+            <option key={item.segment} value={item.segment}>
+              {item.label}
+              {item.attention ? " - needs attention" : ""}
+            </option>
+          ))}
+        </NativeSelect>
+      </div>
+      <Button type="submit" variant="outline" size="lg">
+        Open
+      </Button>
+    </form>
   );
 }

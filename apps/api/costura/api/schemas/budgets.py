@@ -13,10 +13,12 @@ from costura.api.schemas.common import (
     OwnerAssignmentKind,
 )
 
+NOTE = Annotated[str, Field(max_length=500)]
+
 
 class OwnerAssignmentIn(BaseModel):
     email: str
-    note: str | None = None
+    note: NOTE | None = None
 
 
 class OwnerAssignmentOut(BaseModel):
@@ -44,8 +46,8 @@ class PersonalKeyOut(BaseModel):
 
 
 class InvoiceIn(BaseModel):
-    amount: Annotated[Decimal, Field(ge=0, lt=Decimal("1e14"))]
-    note: str | None = None
+    amount: Annotated[Decimal, Field(ge=0, lt=Decimal("1e12"))]
+    note: NOTE | None = None
 
 
 class InvoiceOut(BaseModel):
@@ -66,7 +68,7 @@ class InvoicesOut(BaseModel):
 
 
 class BudgetIn(BaseModel):
-    amount: Decimal
+    amount: Annotated[Decimal, Field(lt=Decimal("1e12"))]
     # Percentages of `amount`; omitted means the default 50, 80, 100.
     thresholds: list[int] | None = None
     # The window `amount` applies to; a person budget is monthly.

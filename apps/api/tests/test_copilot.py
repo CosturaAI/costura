@@ -252,3 +252,18 @@ def test_budgets_the_token_cannot_read_are_skipped_not_failed(db_session: Sessio
         _seats, budgets = run_inventory_sync(db_session, unit, client)
     assert budgets.skipped_workspaces == ["acme"]
     assert db_session.scalars(select(ProviderLimit)).all() == []
+
+
+def test_a_past_day_seat_cost_goes_to_who_held_a_seat_that_day() -> None:
+    from datetime import date as day_type
+
+    from costura.providers.copilot.sync import holders_on
+
+    history = [
+        ("ana", day_type(2026, 8, 1), None),
+        ("left", day_type(2026, 8, 1), day_type(2026, 10, 10)),
+        ("late", day_type(2026, 10, 20), None),
+        ("unknown", None, None),
+    ]
+    assert holders_on(history, day_type(2026, 9, 15)) == ["ana", "left", "unknown"]
+    assert holders_on(history, day_type(2026, 10, 25)) == ["ana", "late", "unknown"]

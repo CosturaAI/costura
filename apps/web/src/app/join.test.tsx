@@ -154,6 +154,20 @@ describe("/join/[token]", () => {
     // The claim stays available: the API is the authority on the token.
     expect(screen.getByRole("button", { name: "Accept invitation" })).toBeInTheDocument();
   });
+
+  it("names no organization when several invitations wait", async () => {
+    mocked.me.mockResolvedValue({
+      ...noOrgs,
+      invitations: [
+        invitation,
+        { ...invitation, id: 8, organization: { ...acme, slug: "beta", name: "Beta" } },
+      ],
+    });
+    render(await ClaimInvitationPage({ params }));
+
+    expect(screen.getByRole("heading", { level: 1 })).toHaveTextContent("Join an organization");
+    expect(screen.getByText(/2 invitations wait for newcomer@example.com/)).toBeInTheDocument();
+  });
 });
 
 describe("/new with an invitation", () => {
@@ -205,11 +219,13 @@ describe("accepting", () => {
     );
     const form = new FormData();
     form.set("token", "abc123");
+    form.set("email", "newcomer@example.com");
     const state = await claimInvitationAction(idle, form);
 
     expect(state.ok).toBe(false);
-    expect(state.message).toContain("no longer valid");
-    expect(state.message).not.toContain("@");
+    expect(state.message).toBe(
+      "This link may not be for newcomer@example.com, or it was revoked or has expired. Sign out and open it again with the invited address, or ask an owner for a new invitation.",
+    );
   });
 
   it("reports an expired or revoked invitation", async () => {

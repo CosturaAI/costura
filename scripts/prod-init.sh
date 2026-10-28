@@ -32,7 +32,7 @@ while [[ $# -gt 0 ]]; do
 done
 
 if [[ -f .env ]]; then
-  echo "error: .env already exists; move it away to start over" >&2
+  echo "error: .env already exists; move it away to start over. A development checkout's .env is not a production one: run production from its own checkout or the Docker-only bundle (docs/operations/install.md)" >&2
   exit 1
 fi
 if [[ -z "$email" ]]; then
@@ -103,9 +103,12 @@ for line in Path(".env.example").read_text().splitlines():
 for name, value in values.items():
     if name not in seen:
         lines.append(f"{name}={value}")
-env = Path(".env")
-env.write_text("\n".join(lines) + "\n")
-env.chmod(0o600)
+try:
+    descriptor = os.open(".env", os.O_WRONLY | os.O_CREAT | os.O_EXCL, 0o600)
+except FileExistsError:
+    raise SystemExit("error: .env already exists; move it away to start over") from None
+with os.fdopen(descriptor, "w") as env:
+    env.write("\n".join(lines) + "\n")
 print(f"wrote .env for {origin} (mode 600)")
 print(f"operator secret for {email}: {operator_secret}")
 print("keep a copy of COSTURA_SECRET_KEY outside this host")

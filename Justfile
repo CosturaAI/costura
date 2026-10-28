@@ -66,7 +66,8 @@ dev:
       done
       wait 2>/dev/null || true
     }
-    trap stop EXIT INT TERM
+    trap stop EXIT
+    trap 'stop; exit 0' INT TERM
     (cd apps/api && exec uv run uvicorn costura.main:app --reload --host 127.0.0.1 --port 8000) &
     api_pid=$!
     (cd apps/web && exec pnpm exec next dev --hostname 127.0.0.1 --port 3000) &
@@ -97,6 +98,12 @@ dev:
     while kill -0 "$api_pid" 2>/dev/null && kill -0 "$web_pid" 2>/dev/null && kill -0 "$worker_pid" 2>/dev/null; do
       sleep 1
     done
+    dead=""
+    kill -0 "$api_pid" 2>/dev/null || dead="api"
+    kill -0 "$web_pid" 2>/dev/null || dead="${dead:+$dead, }web"
+    kill -0 "$worker_pid" 2>/dev/null || dead="${dead:+$dead, }worker"
+    echo "error: the $dead process exited; its output is above. Stopping the stack." >&2
+    exit 1
 
 # Check that the required tools are installed, the ports are free, and the local .env is usable, without printing secrets.
 doctor:

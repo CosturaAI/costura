@@ -120,7 +120,13 @@ def _money(row: dict[str, Any], field: str) -> Decimal:
     if isinstance(value, bool) or not isinstance(value, (int, float, str)):
         raise NormalizeError(f"{field} is not a number: {value!r}")
     # `str()` keeps the shortest repr of the double the API sent; Decimal(float) would not.
-    return Decimal(str(value))
+    try:
+        amount = Decimal(str(value))
+    except ArithmeticError as exc:
+        raise NormalizeError(f"{field} is not a number: {value!r}") from exc
+    if not amount.is_finite():
+        raise NormalizeError(f"{field} is not a finite number: {value!r}")
+    return amount
 
 
 def _text(row: dict[str, Any], field: str) -> str:

@@ -15,7 +15,7 @@ import { createOrgAction, type NewOrgState } from "./actions";
 const idleNewOrg: NewOrgState = { ok: false, message: null, suggestion: null };
 
 /**
- * Name with the address derived live (`slugify`) until Edit turns the address into its own
+ * Name with the organization ID derived live (`slugify`) until Edit turns the ID into its own
  * field. Controlled inputs, because React resets a form's fields once its action settles, and
  * a refused creation must keep what was typed.
  */
@@ -31,7 +31,7 @@ export function NewOrgForm({ suggestedName }: { suggestedName: string }) {
       <CardHeader>
         <CardHeading>New organization</CardHeading>
         <CardDescription>
-          The address is where its pages live; it cannot change later.
+          The organization ID is part of every link to it (/o/ID) and cannot change later.
         </CardDescription>
       </CardHeader>
       <CardContent>
@@ -58,10 +58,10 @@ export function NewOrgForm({ suggestedName }: { suggestedName: string }) {
             {editing ? (
               <>
                 <label htmlFor="org-slug" className="text-sm font-medium text-foreground">
-                  Address
+                  Organization ID
                 </label>
                 <div className="flex items-center gap-1">
-                  <span className="font-mono text-sm text-muted-foreground">/</span>
+                  <span className="font-mono text-sm text-muted-foreground">/o/</span>
                   <Input
                     id="org-slug"
                     name="slug"
@@ -79,7 +79,9 @@ export function NewOrgForm({ suggestedName }: { suggestedName: string }) {
             ) : (
               <p className="flex flex-wrap items-center gap-2 text-sm text-muted-foreground">
                 <span>
-                  Address: <span className="font-mono text-foreground">/{slug || "..."}</span>
+                  Organization ID:{" "}
+                  <span className="font-mono text-foreground">{slug || "..."}</span>, opened at{" "}
+                  <span className="font-mono text-foreground">/o/{slug || "..."}</span>
                 </span>
                 <button
                   type="button"
@@ -99,7 +101,7 @@ export function NewOrgForm({ suggestedName }: { suggestedName: string }) {
                 size="sm"
                 onClick={() => setCustomSlug(state.suggestion)}
               >
-                Use /{state.suggestion}
+                Use {state.suggestion}
               </Button>
             ) : null}
           </div>

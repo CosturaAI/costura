@@ -187,13 +187,13 @@ describe("connectAction", () => {
 
     // Other 422 sentences are the API's own (a management key check, for instance).
     connect.mockRejectedValue(
-      rejected("OpenRouter accepted the key but it is not a management key", "openrouter"),
+      rejected("OpenRouter accepted the key but it is not a management key.", "openrouter"),
     );
     await expect(
       connectAction(idle, connectForm("sk-or-v1-abc", "openrouter")),
     ).resolves.toMatchObject({
       ok: false,
-      message: "OpenRouter accepted the key but it is not a management key",
+      message: "OpenRouter accepted the key but it is not a management key.",
       field: "admin_key",
     });
   });
@@ -204,7 +204,7 @@ describe("connectAction", () => {
     );
     await expect(connectAction(idle, connectForm("sk-ant-admin-abc"))).resolves.toEqual({
       ok: false,
-      message: "boom Retry in a moment.",
+      message: "Boom. Retry in a moment.",
       field: undefined,
     });
 
@@ -316,10 +316,24 @@ describe("Codex credit price actions", () => {
 });
 
 describe("resetSetupAction", () => {
+  it("refuses when the tab shows another organization than the active one", async () => {
+    const form = new FormData();
+    form.set("org", "acme");
+
+    await expect(resetSetupAction({ ok: false, message: null }, form)).resolves.toEqual({
+      ok: false,
+      message:
+        "This tab shows acme but default was opened in another tab; reload before changing anything.",
+    });
+    expect(resetSetup).not.toHaveBeenCalled();
+  });
+
   it("resets the organization, revalidates it and lands on the welcome page", async () => {
     resetSetup.mockResolvedValue(fx.setupConnect);
 
-    await expect(resetSetupAction()).rejects.toThrow("NEXT_REDIRECT /welcome");
+    await expect(resetSetupAction({ ok: false, message: null }, new FormData())).rejects.toThrow(
+      "NEXT_REDIRECT /welcome",
+    );
 
     expect(resetSetup).toHaveBeenCalledWith("default");
     expect(revalidatePath).toHaveBeenCalledWith("/", "layout");
@@ -334,7 +348,7 @@ describe("resetSetupAction", () => {
       ),
     );
 
-    await expect(resetSetupAction()).resolves.toEqual({
+    await expect(resetSetupAction({ ok: false, message: null }, new FormData())).resolves.toEqual({
       ok: false,
       message:
         "This Costura instance does not accept changes from the browser: connecting a key, Sync now and reset are turned off here.",
@@ -346,7 +360,10 @@ describe("resetSetupAction", () => {
   it("passes a server error through", async () => {
     resetSetup.mockRejectedValue(new ApiError(500, "/orgs/default/setup/reset", "boom"));
 
-    await expect(resetSetupAction()).resolves.toEqual({ ok: false, message: "boom" });
+    await expect(resetSetupAction({ ok: false, message: null }, new FormData())).resolves.toEqual({
+      ok: false,
+      message: "Boom.",
+    });
     expect(redirect).not.toHaveBeenCalled();
   });
 });
@@ -514,7 +531,7 @@ describe("syncNowAction", () => {
     vi.mocked(api.syncNow).mockRejectedValue(new ApiError(500, "/orgs/default/sync", "boom"));
     await expect(syncNowAction(idleSync, syncForm("anthropic"))).resolves.toEqual({
       ok: false,
-      message: "boom",
+      message: "Boom.",
       results: [],
     });
   });

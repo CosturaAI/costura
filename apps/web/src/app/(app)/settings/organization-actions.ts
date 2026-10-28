@@ -54,15 +54,15 @@ const AnomalySettings = z.object({
   detect_new_principals: checkbox(),
 });
 
-/** Owner only. The slug stays: it is the id the API and the links use. */
+/** Owner only. The organization ID stays: it is the slug the API and the links use. */
 export async function renameOrganizationAction(
   _prev: ActionState,
   form: FormData,
 ): Promise<ActionState> {
-  const org = await requireActiveOrg();
   const parsed = parseForm(form, Rename, ["name"]);
   if (!parsed.ok) return parsed.error;
   try {
+    const org = await requireActiveOrg(form);
     const renamed = await api.renameOrg(org, parsed.data.name);
     refresh(EVERY_PAGE);
     return { ok: true, message: `Renamed to ${renamed.name}.` };
@@ -84,11 +84,10 @@ export async function leaveOrganizationAction(
   _prev: ActionState,
   form: FormData,
 ): Promise<ActionState> {
-  const org = await requireActiveOrg();
   const parsed = parseForm(form, Leave);
   if (!parsed.ok) return parsed.error;
   try {
-    await api.removeMember(org, parsed.data.user_id);
+    await api.removeMember(await requireActiveOrg(form), parsed.data.user_id);
   } catch (error) {
     return { ok: false, message: describeError(error) };
   }
@@ -100,7 +99,6 @@ export async function saveAnomalySettingsAction(
   _prev: ActionState,
   form: FormData,
 ): Promise<ActionState> {
-  const org = await requireActiveOrg();
   const parsed = parseForm(form, AnomalySettings, [
     "sensitivity",
     "retention_days",
@@ -117,7 +115,7 @@ export async function saveAnomalySettingsAction(
     detect_new_principals,
   } = parsed.data;
   return runMutation(async () => {
-    await api.saveAnomalySettings(org, {
+    await api.saveAnomalySettings(await requireActiveOrg(form), {
       sensitivity,
       detect_drops,
       detect_new_principals,
@@ -133,10 +131,15 @@ export async function deleteOrganizationAction(
   _prev: ActionState,
   form: FormData,
 ): Promise<ActionState> {
-  const org = await requireActiveOrg();
+  let org: string;
+  try {
+    org = await requireActiveOrg(form);
+  } catch (error) {
+    return { ok: false, message: describeError(error) };
+  }
   const slug = parseForm(form, z.object({ slug: text() }));
   if (!slug.ok || slug.data.slug !== org) {
-    return { ok: false, message: "Type the organization slug to confirm.", field: "slug" };
+    return { ok: false, message: `Type the organization ID (${org}) to confirm.`, field: "slug" };
   }
   try {
     await api.deleteOrganization(org, slug.data.slug);

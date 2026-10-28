@@ -76,7 +76,7 @@ The three URL variables must name the same origin. `just prod::init` sets them t
 | `COSTURA_BACKUP_AGE_RECIPIENT`    | `prod::backup`  | empty           | age public key; when set, backups are written encrypted (`*.dump.age`). |
 | `COSTURA_BACKUP_AGE_IDENTITY`     | `prod::restore` | empty           | Path to the age private key that opens a `*.dump.age` dump.             |
 | `COSTURA_RATE_LIMIT_DEMO`         | api             | `3000`          | Public sample reads per minute per client.                              |
-| `COSTURA_RATE_LIMIT_READ`         | api             | `1200`          | Member reads per minute per session.                                    |
+| `COSTURA_RATE_LIMIT_READ`         | api             | `1200`          | Member reads per minute per session; reads with an unknown token count per address. |
 | `COSTURA_RATE_LIMIT_CONNECT`      | api             | `10`            | Provider key stores per minute per organization.                        |
 | `COSTURA_LOG_LEVEL`               | all three       | `INFO`          | `DEBUG`, `INFO`, `WARNING` or `ERROR` for the `costura` loggers.        |
 

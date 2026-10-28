@@ -96,16 +96,24 @@ def get_organization(
 ) -> Organization:
     """The organization named in the path. The demo organization is public: anyone, signed
     in or not, reads it. Every other organization needs a session (401) and a membership;
-    an unknown slug and an organization the user cannot see answer the same 404."""
-    found = get_org(session, org)
+    an unknown slug and an organization the user cannot see answer the same 404, and without
+    a session an unknown slug answers the same 401 as a private one, so no caller learns
+    which slugs exist."""
+    unauthenticated = HTTPException(
+        status_code=401, detail=UNAUTHENTICATED, headers={"WWW-Authenticate": "Bearer"}
+    )
+    try:
+        found = get_org(session, org)
+    except UnknownOrganization:
+        if user is None:
+            raise unauthenticated from None
+        raise
     if found.is_demo:
         return found
     if user is None:
-        raise HTTPException(
-            status_code=401, detail=UNAUTHENTICATED, headers={"WWW-Authenticate": "Bearer"}
-        )
+        raise unauthenticated
     if membership(session, found.id, user.id) is None:
-        raise HTTPException(status_code=404, detail=str(UnknownOrganization(org)))
+        raise UnknownOrganization(org)
     return found
 
 

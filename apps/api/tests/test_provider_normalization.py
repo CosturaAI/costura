@@ -33,3 +33,14 @@ def test_rfc3339_requires_timezone_and_normalizes_to_utc() -> None:
     assert rfc3339(aware) == "2026-10-10T08:30:00Z"
     with pytest.raises(ValueError, match="timezone-aware"):
         rfc3339(datetime(2026, 10, 10))
+
+
+@pytest.mark.parametrize("value", ["NaN", "Infinity", "-inf", float("nan")])
+def test_amounts_that_are_not_finite_are_refused(value: object) -> None:
+    from costura.providers.normalization import optional_decimal
+    from costura.providers.openai.normalize import result_amount
+
+    with pytest.raises(NormalizeError, match="finite"):
+        result_amount({"amount": {"value": value, "currency": "usd"}})
+    with pytest.raises(NormalizeError, match="finite"):
+        optional_decimal(value, field="cost")

@@ -27,7 +27,7 @@ import { DIMENSION_LABELS, drillDownHref } from "@/lib/dimensions";
 import { ENTITY_KIND_LABELS, type EntityData } from "@/lib/entity";
 import { changePercent, formatDelta, formatUsd } from "@/lib/format";
 import { providerLabel, sourceLabel } from "@/lib/providers";
-import { runsAction } from "@/lib/setup";
+import { openOrgHref, runsAction } from "@/lib/setup";
 import { periodPhrase } from "@/lib/time-range";
 
 /**
@@ -39,15 +39,19 @@ import { periodPhrase } from "@/lib/time-range";
  */
 export function EntityPage({
   data,
+  org,
   currency = "USD",
   isDemo = false,
 }: {
   data: EntityData;
+  /** Analyze opens through `/o/{org}` under the entity's own provider, whatever the scope. */
+  org: string;
   currency?: string;
   /** The read-only sample: no link to set a budget it would refuse. */
   isDemo?: boolean;
 }) {
-  const exploreHref = drillDownHref(data.kind, data.id, data.nextBy);
+  const drill = drillDownHref(data.kind, data.id, data.nextBy);
+  const exploreHref = drill ? openOrgHref(org, drill, { scope: data.provider }) : null;
   const month = data.period.to.slice(0, 7);
   const inPeriod = periodPhrase(data.period.from, data.period.to);
   const amount = data.current?.amount ?? null;
@@ -98,10 +102,19 @@ export function EntityPage({
       >
         {exploreHref ? (
           <Button asChild variant="outline" size="lg">
-            <Link href={exploreHref}>Open in Analyze</Link>
+            <Link href={exploreHref} prefetch={false}>
+              Open in Analyze
+            </Link>
           </Button>
         ) : null}
       </PageHeader>
+
+      {data.widenedFrom ? (
+        <p className="text-sm text-muted-foreground">
+          This person has no {providerLabel(data.widenedFrom)} account; the page shows every
+          provider.
+        </p>
+      ) : null}
 
       {data.partial ? (
         <p className="text-sm text-severity-critical">
@@ -167,7 +180,7 @@ export function EntityPage({
         />
       ) : (
         <>
-          <section aria-label="Headline figures" className="grid gap-4 sm:grid-cols-2">
+          <section aria-label="Headline figures">
             <KpiCard
               label={`Spend ${inPeriod}`}
               value={hasAmount ? formatUsd(amount) : "-"}
@@ -208,6 +221,7 @@ export function EntityPage({
                 {exploreHref ? (
                   <Link
                     href={exploreHref}
+                    prefetch={false}
                     className="shrink-0 text-sm text-primary hover:underline"
                   >
                     All rows

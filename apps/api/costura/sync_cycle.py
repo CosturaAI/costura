@@ -115,6 +115,8 @@ def _attempt(
             break
         except Exception as exc:
             result.detail = public_message(exc)
+            if _permanent(exc):
+                break
             if attempt < STEP_ATTEMPTS:
                 sleep(RETRY_BACKOFF_SECONDS[min(attempt - 1, len(RETRY_BACKOFF_SECONDS) - 1)])
         else:
@@ -123,6 +125,19 @@ def _attempt(
             break
     result.duration_seconds = round(time.monotonic() - started, 3)
     return result
+
+
+def _permanent(exc: Exception) -> bool:
+    """A 4xx other than a timeout or a rate limit answers the same on the next try."""
+    status = getattr(exc, "status_code", None)
+    unavailable = getattr(exc, "unavailable", False)
+    return (
+        isinstance(exc, ProviderApiError)
+        and not unavailable
+        and isinstance(status, int)
+        and 400 <= status < 500
+        and status not in (408, 429)
+    )
 
 
 def _dependent_attempt(
@@ -246,9 +261,9 @@ def sync_all(
             by_month = cycle.reports(client, months or months_to_sync(today, count))
             for month, reports in by_month.items():
                 cycle.derived(month, reports)
-    except TerminationSignal, KeyboardInterrupt:
+    except (TerminationSignal, KeyboardInterrupt) as exc:
         session.rollback()
-        _requeue(session, run)
+        _requeue(session, run, keep_attempt=getattr(exc, "stalled", False))
         raise
     except BaseException as exc:
         session.rollback()
@@ -267,11 +282,14 @@ def sync_all(
     return result
 
 
-def _requeue(session: Session, run: SchedulerRun) -> None:
+def _requeue(session: Session, run: SchedulerRun, *, keep_attempt: bool = False) -> None:
     """An operator stop (SIGTERM, Ctrl-C) is not a failed import: the row goes back to the
-    queue with the claim's attempt undone, and the next worker runs it again."""
+    queue with the claim's attempt undone, and the next worker runs it again. A stop from
+    the stall watchdog keeps the attempt, so a run that never finishes is failed once its
+    attempts are spent instead of starving the queue."""
     run.status = "queued"
-    run.attempt_count = max(0, run.attempt_count - 1)
+    if not keep_attempt:
+        run.attempt_count = max(0, run.attempt_count - 1)
     run.error = None
     run.finished_at = None
     run.steps = []
@@ -397,7 +415,7 @@ class _Cycle:
             ),
             [allocation],
         )
-        budget_step = self._step(
+        self._step(
             "budgets",
             month,
             lambda: evaluate_budgets(session, org_id, provider, window, today=today),
@@ -418,7 +436,7 @@ class _Cycle:
             "person_budgets",
             month,
             lambda: evaluate_budgets(session, org_id, PERSON_BUDGET_PROVIDER, window, today=today),
-            [budget_step],
+            [],
         )
 
     def _step(

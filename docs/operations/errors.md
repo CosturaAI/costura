@@ -11,12 +11,28 @@ page, and "Copy details" there and on Run history copies route, status, code, me
 { "detail": "organization 'acme' already exists", "code": "duplicate_slug" }
 ```
 
-Codes come from the `DomainError` subclasses in `apps/api/costura`;
-`apps/api/tests/test_errors_doc.py` fails when this page and the code disagree. Symptoms that
-are not API refusals (a stack that does not start, a cookie that does not stick) are in
-[troubleshooting](troubleshooting.md).
+Codes come from the `DomainError` subclasses in `apps/api/costura`; a refusal raised before
+any domain code (session, role, date range, rate limit) carries the code of its status:
+`bad_request`, `unauthenticated`, `forbidden`, `not_found`, `invalid_input`, `rate_limited` or
+`service_unavailable`; `apps/api/tests/test_errors_doc.py` fails when this page and the code
+disagree. Symptoms that are not API refusals (a stack that does not start, a cookie that does
+not stick) are in [troubleshooting](troubleshooting.md).
 
 ## Error schema
+
+### `bad_request`
+
+- **Status:** 400
+- **Message:** no provider is connected; or a sign-in request the identity provider refused
+- **Suggested action:** Connect a provider in Settings, Connections, or sign in again from the
+  start.
+
+### `unauthenticated`
+
+- **Status:** 401
+- **Message:** not signed in
+- **Suggested action:** Sign in again. The session ended, the token is unknown, or the
+  organization is private; without a session an unknown organization answers the same way.
 
 ### `budget_needs_provider`
 
@@ -33,6 +49,14 @@ are not API refusals (a stack that does not start, a cookie that does not stick)
 - **Suggested action:** Ask an owner of the organization for an invitation. The operator
   opens sign-up with `COSTURA_SIGN_UP=open` or lists domains in
   `COSTURA_ALLOWED_EMAIL_DOMAINS` ([configuration](configuration.md)).
+
+### `forbidden`
+
+- **Status:** 403
+- **Message:** the role, read-only or write-off sentence of the refusal
+- **Suggested action:** The message names the role the action needs (owner or member), the
+  read-only sample organization, or an instance that does not accept changes from the browser.
+  Ask an owner, or use your own organization.
 
 ### `not_found`
 
@@ -88,8 +112,8 @@ are not API refusals (a stack that does not start, a cookie that does not stick)
 
 - **Status:** 409
 - **Message:** {provider} account '{label}' is still connected
-- **Suggested action:** Disconnect the key on the account's card first, or repeat the removal
-  with `force` to drop the account together with its rows and credential.
+- **Suggested action:** Remove the key on the account's card first ("Remove key"), or repeat
+  the removal with `force` to drop the account together with its rows and credential.
 
 ### `already_invited`
 
@@ -293,6 +317,13 @@ are not API refusals (a stack that does not start, a cookie that does not stick)
 - **Suggested action:** Connect a key on the account's card in Settings, Connections before
   running a sync or validation.
 
+### `rate_limited`
+
+- **Status:** 429
+- **Message:** too many requests from this address; wait a minute and retry
+- **Suggested action:** Wait for the seconds in `Retry-After`, then retry. The limits are
+  `COSTURA_RATE_LIMIT_*` ([configuration](configuration.md)).
+
 ### `validation_failed`
 
 - **Status:** 422
@@ -315,3 +346,10 @@ are not API refusals (a stack that does not start, a cookie that does not stick)
   unavailable: {reason}
 - **Suggested action:** Retry in a moment; the key was not stored. The provider's status page
   tells whether the outage is on their side.
+
+### `service_unavailable`
+
+- **Status:** 503
+- **Message:** database unreachable; or key storage is not configured
+- **Suggested action:** Check that PostgreSQL is up (`/ready`), or ask the operator to set
+  `COSTURA_SECRET_KEY`.

@@ -71,6 +71,7 @@ export function BucketedSpendChart({
   axis = "time",
   valueLabel,
   markers = [],
+  dimensionScale = 1,
   ...props
 }: Omit<SpendChartProps, "data" | "futureProjection"> & {
   data: BucketedSeriesData;
@@ -78,6 +79,8 @@ export function BucketedSpendChart({
   future?: DisplayProjection | null;
   axis?: "time" | "dimension";
   valueLabel?: string;
+  /** Dimension axis only: the factor applied to each value's total (see `dimensionTotals`). */
+  dimensionScale?: number;
 }) {
   if (axis === "dimension") {
     return (
@@ -86,6 +89,7 @@ export function BucketedSpendChart({
         currency={props.currency}
         height={props.height}
         valueLabel={valueLabel}
+        scale={dimensionScale}
       />
     );
   }
@@ -426,14 +430,16 @@ function DimensionSpendChart({
   currency = "USD",
   height = 280,
   valueLabel = "Total across shown buckets",
+  scale = 1,
 }: {
   data: BucketedSeriesData;
   currency?: string;
   height?: number;
   valueLabel?: string;
+  scale?: number;
 }) {
   const wide = useMinWidth(640);
-  const rows = dimensionTotals(data).map((row) => ({
+  const rows = dimensionTotals(data, scale).map((row) => ({
     ...row,
     label: row.index === null ? row.label : splitLabel(row.label).name,
     title: row.label,

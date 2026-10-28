@@ -15,7 +15,7 @@ import {
   formatSignedUsd,
   formatUsd,
 } from "@/lib/format";
-import { partialCoverage, providerVerdict, type ScopeProjection } from "@/lib/overview";
+import { providerVerdict, type ScopeProjection } from "@/lib/overview";
 import { cn } from "@/lib/utils";
 import { intervalLabel, rangeDays, type QueryInterval } from "@/lib/time-range";
 
@@ -31,6 +31,8 @@ type OverviewFigures = {
   inPeriod: string;
   currency: string;
   isMonthView: boolean;
+  /** The figures cover part of the period they compare with a complete one. */
+  partial: boolean;
   rangeTotal: string;
   displayedTotal: string;
   displayedChange: string | null;
@@ -96,7 +98,7 @@ function dailyAverageOf({
 }
 
 function TotalKpi(figures: OverviewFigures) {
-  const { summary, series, from, to, currency, isMonthView } = figures;
+  const { summary, series, from, to, currency, isMonthView, partial } = figures;
   const { displayedTotal, displayedChange, previousRangeTotal } = figures;
   const days = rangeDays(from, to);
   const change = Number.parseFloat(displayedChange ?? "0");
@@ -108,13 +110,7 @@ function TotalKpi(figures: OverviewFigures) {
       value={mixed ? "-" : formatUsd(displayedTotal)}
       unit={mixed ? "several currencies" : currency}
       delta={formatDelta(displayedChange)}
-      deltaTone={
-        change > 0
-          ? "critical"
-          : change < 0 && !(isMonthView && partialCoverage(summary))
-            ? "success"
-            : "neutral"
-      }
+      deltaTone={change > 0 ? "critical" : change < 0 && !partial ? "success" : "neutral"}
       hint={
         isMonthView && summary.previous_total
           ? `${summary.comparison_basis === "month_to_date" ? formatDayRange(summary.previous_start, summary.previous_end) : formatMonth(summary.previous_month)}: ${formatUsd(summary.previous_total)}`

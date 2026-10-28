@@ -163,7 +163,13 @@ const RemoveAccount = z.object({
  * key of `account_id`. A label the API refuses (blank, too long, taken) lands on its field.
  */
 export async function connectAction(_prev: ActionState, form: FormData): Promise<ActionState> {
-  const { org, provider } = await formScope(form);
+  let scope: { org: string; provider: string };
+  try {
+    scope = await formScope(form);
+  } catch (error) {
+    return { ok: false, message: describeError(error) };
+  }
+  const { org, provider } = scope;
   const parsed = parseForm(form, connectSchema(provider), [
     "admin_key",
     "workspace_id",
@@ -224,7 +230,6 @@ export async function addCreditPriceAction(
   _prev: ActionState,
   form: FormData,
 ): Promise<ActionState> {
-  const org = await requireActiveOrg();
   const parsed = parseForm(form, CreditPrice, ["effective_from", "price_per_credit"]);
   if (!parsed.ok) return parsed.error;
   const {
@@ -233,7 +238,7 @@ export async function addCreditPriceAction(
     price_per_credit: price,
   } = parsed.data;
   try {
-    await api.addCreditPrice(org, account as number, {
+    await api.addCreditPrice(await requireActiveOrg(form), account as number, {
       effective_from: effectiveFrom,
       price_per_credit: price,
     });
@@ -244,7 +249,11 @@ export async function addCreditPriceAction(
     return {
       ok: false,
       message: describeError(error),
-      field: /effective_from|date/i.test(detail) ? "effective_from" : "price_per_credit",
+      field: !(error instanceof ApiError)
+        ? undefined
+        : /effective_from|date/i.test(detail)
+          ? "effective_from"
+          : "price_per_credit",
     };
   }
 }
@@ -253,12 +262,11 @@ export async function deleteCreditPriceAction(
   _prev: ActionState,
   form: FormData,
 ): Promise<ActionState> {
-  const org = await requireActiveOrg();
   const parsed = parseForm(form, DeleteCreditPrice);
   if (!parsed.ok) return parsed.error;
   const { account_id: account, price_id: priceId } = parsed.data;
   try {
-    await api.deleteCreditPrice(org, account as number, priceId);
+    await api.deleteCreditPrice(await requireActiveOrg(form), account as number, priceId);
     refresh([...SETTINGS_PAGES, ...RECONCILE_PAGES]);
     return { ok: true, message: "Credit rate deleted." };
   } catch (error) {
@@ -268,11 +276,11 @@ export async function deleteCreditPriceAction(
 
 /** Forgets the key of `account_id`, or of the provider's only account without it. */
 export async function disconnectAction(_prev: ActionState, form: FormData): Promise<ActionState> {
-  const { org, provider } = await formScope(form);
   const parsed = parseForm(form, AccountOnly);
   if (!parsed.ok) return parsed.error;
   const account = parsed.data.account_id;
   try {
+    const { org, provider } = await formScope(form);
     if (account === undefined) await api.disconnect(org, provider);
     else await api.disconnectAccount(org, provider, account);
     refresh(EVERY_PAGE);
@@ -286,10 +294,16 @@ export async function renameAccountAction(
   _prev: ActionState,
   form: FormData,
 ): Promise<ActionState> {
-  const { org, provider } = await formScope(form);
   const parsed = parseForm(form, RenameAccount, ["label"]);
   if (!parsed.ok) return parsed.error;
   const { account_id: account, label } = parsed.data;
+  let scope: { org: string; provider: string };
+  try {
+    scope = await formScope(form);
+  } catch (error) {
+    return { ok: false, message: describeError(error) };
+  }
+  const { org, provider } = scope;
   const settings = cursorSettings(
     provider,
     parsed.data.seat_price_usd,
@@ -319,10 +333,10 @@ export async function removeAccountAction(
   _prev: ActionState,
   form: FormData,
 ): Promise<ActionState> {
-  const { org, provider } = await formScope(form);
   const parsed = parseForm(form, RemoveAccount);
   if (!parsed.ok) return parsed.error;
   try {
+    const { org, provider } = await formScope(form);
     await api.removeAccount(org, provider, parsed.data.account_id as number);
     refresh(EVERY_PAGE);
     return { ok: true, message: "Account removed with its synced data." };
@@ -353,10 +367,9 @@ function syncMessage(results: SyncResult[]): string {
  * row, then the browser lands on the welcome page. `redirect` throws on purpose and must stay
  * outside the try, which only turns API refusals into the form's message.
  */
-export async function resetSetupAction(): Promise<ActionState> {
-  const org = await requireActiveOrg();
+export async function resetSetupAction(_prev: ActionState, form: FormData): Promise<ActionState> {
   try {
-    await api.resetSetup(org);
+    await api.resetSetup(await requireActiveOrg(form));
   } catch (error) {
     return { ok: false, message: describeError(error) };
   }
@@ -365,10 +378,10 @@ export async function resetSetupAction(): Promise<ActionState> {
 }
 
 export async function syncNowAction(_prev: SyncState, form: FormData): Promise<SyncState> {
-  const { org, provider } = await formScope(form);
   const parsed = parseForm(form, AccountOnly);
   const account = parsed.ok ? parsed.data.account_id : undefined;
   try {
+    const { org, provider } = await formScope(form);
     const { results } = await api.syncNow(org, provider, account);
     refresh([...SETTINGS_PAGES, ["/runs"]]);
     return {

@@ -4,6 +4,7 @@ import { notFound } from "next/navigation";
 import { CardHeading } from "@/components/card-heading";
 import { Card, CardContent, CardDescription, CardHeader } from "@/components/ui/card";
 import { anyRunning } from "@/lib/setup";
+import { requireView } from "@/lib/view";
 
 import { ResetSetupForm } from "../connection-forms";
 import { loadSettings } from "../data";
@@ -20,6 +21,8 @@ export default async function AdvancedSettingsPage() {
   const settings = await loadSettings();
   if (!settings.canManage) notFound();
   const syncActive = anyRunning(settings.setup.runs);
+  const { organization } = await requireView();
+  const name = organization.name;
 
   return (
     <div className="space-y-5">
@@ -33,7 +36,7 @@ export default async function AdvancedSettingsPage() {
           </CardDescription>
         </CardHeader>
         <CardContent>
-          <ResetSetupForm syncActive={syncActive} />
+          <ResetSetupForm org={settings.org} name={name} syncActive={syncActive} />
         </CardContent>
       </Card>
       <Card className="border-severity-critical/30">

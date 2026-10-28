@@ -6,6 +6,11 @@
 .env.*
 !.env.example
 *.dump
+*.dump.age
+*.dump.version
+*.dump.age.version
+*.partial
+*.partial.version
 
 # Python
 __pycache__/

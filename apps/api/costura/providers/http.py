@@ -5,6 +5,7 @@ property of the client rather than a convention in calling code.
 """
 
 import logging
+import math
 import re
 import time
 from collections.abc import Callable
@@ -145,8 +146,9 @@ def request_json(
     auth_error: type[ProviderAuthError] = ProviderAuthError,
 ) -> dict[str, Any]:
     """One logical request with exponential backoff on transport errors, 429 and 5xx.
-    `retry-after` is honoured up to MAX_RETRY_AFTER_SECONDS. Other 4xx raise at once; 401 and
-    403 raise `auth_error`."""
+    `retry-after` is honoured up to MAX_RETRY_AFTER_SECONDS. A 403 that carries a rate-limit
+    header (GitHub answers its rate limits that way) is retried like a 429 and never counts as
+    a rejected key. Other 4xx raise at once; 401 and 403 raise `auth_error`."""
     last_error: Exception | None = None
     for attempt in range(max_retries + 1):
         delay = float(min(2**attempt, 8))
@@ -155,7 +157,11 @@ def request_json(
         except httpx.HTTPError as exc:
             last_error = exc
         else:
-            retryable = response.status_code == 429 or response.status_code >= 500
+            rate_limited = response.status_code == 403 and (
+                response.headers.get("x-ratelimit-remaining") == "0"
+                or "retry-after" in response.headers
+            )
+            retryable = response.status_code == 429 or response.status_code >= 500 or rate_limited
             if response.is_success:
                 try:
                     payload = response.json()
@@ -188,10 +194,7 @@ def request_json(
                 f"{label} request failed: status={response.status_code} path={path}",
                 status_code=response.status_code,
             )
-            retry_after = response.headers.get("retry-after")
-            if retry_after is not None:
-                with suppress(ValueError):
-                    delay = min(float(retry_after), MAX_RETRY_AFTER_SECONDS)
+            delay = _retry_delay(response.headers, delay)
         if attempt == max_retries:
             break
         sleep(delay)
@@ -204,6 +207,20 @@ def request_json(
         unavailable=True,
         public=(f"{label} did not answer {path} after {max_retries + 1} attempts{status_note}"),
     ) from last_error
+
+
+def _retry_delay(headers: httpx.Headers, default: float) -> float:
+    """`retry-after` seconds, else GitHub's `x-ratelimit-reset` epoch, clamped to
+    `[0, MAX_RETRY_AFTER_SECONDS]`; `default` when neither is a finite number."""
+    wait: float | None = None
+    with suppress(ValueError):
+        if "retry-after" in headers:
+            wait = float(headers["retry-after"])
+        elif "x-ratelimit-reset" in headers:
+            wait = float(headers["x-ratelimit-reset"]) - time.time()
+    if wait is None or not math.isfinite(wait):
+        return default
+    return min(max(wait, 0.0), MAX_RETRY_AFTER_SECONDS)
 
 
 class ProviderHttpClient:

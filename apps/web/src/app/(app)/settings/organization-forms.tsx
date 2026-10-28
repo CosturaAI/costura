@@ -1,22 +1,25 @@
 "use client";
 
-import { useActionState } from "react";
+import { useActionState, useState } from "react";
 
 import { SubmitButton } from "@/components/submit-button";
-import { Feedback, FieldError, invalid } from "@/components/form-feedback";
+import { Feedback, FieldError, OrgField, invalid } from "@/components/form-feedback";
 import { Input } from "@/components/ui/input";
 import { idleAction } from "@/lib/action-errors";
 
 import { renameOrganizationAction } from "./organization-actions";
 
 /**
- * The display name of the organization. Only the name changes: the slug is the id that the
- * API and every invitation link use, so it is shown next to the form as read-only.
+ * The display name of the organization. Only the name changes: the organization ID is what
+ * the API and every invitation link use, so it is shown next to the form as read-only. The
+ * field is controlled so a refused name stays as typed.
  */
-export function RenameOrganizationForm({ name }: { name: string }) {
+export function RenameOrganizationForm({ org, name }: { org: string; name: string }) {
   const [state, action, pending] = useActionState(renameOrganizationAction, idleAction);
+  const [value, setValue] = useState(name);
   return (
     <form action={action} className="space-y-3">
+      <OrgField org={org} />
       <div className="max-w-sm">
         <label htmlFor="organization-name" className="mb-1 block text-sm text-secondary-foreground">
           Name
@@ -24,7 +27,8 @@ export function RenameOrganizationForm({ name }: { name: string }) {
         <Input
           id="organization-name"
           name="name"
-          defaultValue={name}
+          value={value}
+          onChange={(event) => setValue(event.target.value)}
           maxLength={120}
           autoComplete="organization"
           aria-invalid={invalid(state, "name")}

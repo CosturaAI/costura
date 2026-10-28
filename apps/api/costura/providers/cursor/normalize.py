@@ -283,10 +283,13 @@ def seat_lines_from_daily_usage(
     *,
     seat_price_usd: Decimal,
     effective_from: date,
+    seen: set[tuple[date, str]] | None = None,
 ) -> tuple[list[CostLine], list[UsageLine]]:
+    """`seen` carries the (day, person) pairs of earlier pages, so a row repeated on a later
+    page is not priced twice."""
     cost_by_day: dict[date, Decimal] = {}
     usage: list[UsageLine] = []
-    seen: set[tuple[date, str]] = set()
+    seen = set() if seen is None else seen
     for row in rows:
         raw_day = row.get("day")
         try:

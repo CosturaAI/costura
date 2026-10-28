@@ -34,8 +34,10 @@ up-local:
     {{_compose}} run --rm --build migrate
     {{_compose}} up -d --build --wait --remove-orphans
 
-# Runs prod::doctor, a backup next to .env, the COSTURA_VERSION change, prod::up and
-# secret-check. Check out the new tag first. Asks once; COSTURA_ASSUME_YES=1 skips it.
+# Pulls the new images, runs prod::doctor against them, takes a backup next to .env (none
+# with an external PostgreSQL), changes COSTURA_VERSION, stops api, worker, scheduler and web,
+# then runs prod::up and secret-check. Check out the new tag first. Asks once;
+# COSTURA_ASSUME_YES=1 skips it.
 # Move to the release this checkout is at (version.txt).
 upgrade:
     #!/usr/bin/env bash
@@ -58,18 +60,30 @@ upgrade:
     known() { sed -n 's/^#\{0,1\} \{0,1\}\([A-Z][A-Z0-9_]*\)[=:].*/\1/p' "$1" | sort -u; }
     added=$(comm -13 <(known "$env_file") <(names .env.example) | tr '\n' ' ')
     [[ -z "$added" ]] || echo "variables in .env.example that $env_file does not set (read CHANGELOG.md): $added"
-    bash scripts/prod-doctor.sh
-    confirm_or_exit "Upgrade from ${from:-an unknown release} to $to? A backup is taken first."
-    recipient="${COSTURA_BACKUP_AGE_RECIPIENT:-$(sed -n 's/^COSTURA_BACKUP_AGE_RECIPIENT=//p' "$env_file" | tail -n 1)}"
-    dump="$(dirname "$env_file")/costura-${from:-unknown}-$(date -u +%Y%m%dT%H%M%SZ).dump${recipient:+.age}"
-    just prod::backup "$dump"
-    trap 'echo "the upgrade stopped; to roll back set COSTURA_VERSION=$from in $env_file, check out v$from and run: just prod::restore $dump" >&2' ERR
+    bash scripts/prod-password.sh
+    COSTURA_VERSION="$to" {{_compose}} pull
+    COSTURA_TARGET_VERSION="$to" bash scripts/prod-doctor.sh
+    dump=""
+    if external_database; then
+      echo "COSTURA_DATABASE_HOST names an external PostgreSQL; the upgrade takes no backup of it."
+      echo "Take a snapshot with the provider's backups before answering (docs/operations/install.md#a-managed-postgresql-instead-of-the-bundled-one)."
+      confirm_or_exit "Upgrade from ${from:-an unknown release} to $to without a backup?"
+      restore_step="restore the provider snapshot taken before the upgrade"
+    else
+      confirm_or_exit "Upgrade from ${from:-an unknown release} to $to? A backup is taken first."
+      recipient=$(env_value COSTURA_BACKUP_AGE_RECIPIENT)
+      dump="$(dirname "$env_file")/costura-${from:-unknown}-$(date -u +%Y%m%dT%H%M%SZ).dump${recipient:+.age}"
+      just prod::backup "$dump"
+      restore_step="run: just prod::restore $dump"
+    fi
+    trap 'echo "the upgrade stopped; to roll back set COSTURA_VERSION=$from in $env_file, check out v$from, $restore_step, then run: just prod::up" >&2' ERR
     sed -i.bak "s/^COSTURA_VERSION=.*/COSTURA_VERSION=$to/" "$env_file"
     rm -f "$env_file.bak"
     export COSTURA_VERSION="$to"
+    {{_compose}} stop api worker scheduler web
     just prod::up
     just prod::secret-check
-    echo "upgraded from ${from:-an unknown release} to $to; backup $dump"
+    echo "upgraded from ${from:-an unknown release} to $to${dump:+; backup $dump}"
 
 # Apply Alembic migrations against the production database.
 migrate:
@@ -139,16 +153,22 @@ secret-check:
 # Write a custom-format dump readable only by this user, and `<dest>.version` with the
 # release and Alembic revision it came from. With COSTURA_BACKUP_AGE_RECIPIENT set the dump
 # is encrypted to that age recipient on the way out and no plaintext reaches the disk.
+# Refuses an external PostgreSQL (COSTURA_DATABASE_HOST), which the provider backs up.
 # Usage: just prod::backup costura.dump (costura.dump.age when encrypted)
 backup dest:
     #!/usr/bin/env bash
     set -euo pipefail
     cd "{{_root}}"
     umask 077
+    source scripts/prod.sh
+    if external_database; then
+      echo "error: COSTURA_DATABASE_HOST names an external PostgreSQL and prod::backup reads only the bundled postgres service; back it up with the provider's backups (docs/operations/install.md#a-managed-postgresql-instead-of-the-bundled-one)" >&2
+      exit 1
+    fi
     bash scripts/prod-password.sh
     partial="{{dest}}.partial"
     trap 'rm -f "$partial" "$partial.version"' EXIT
-    recipient="${COSTURA_BACKUP_AGE_RECIPIENT:-$(sed -n 's/^COSTURA_BACKUP_AGE_RECIPIENT=//p' "${COSTURA_ENV_FILE:-.env}" | tail -n 1)}"
+    recipient=$(env_value COSTURA_BACKUP_AGE_RECIPIENT)
     if [[ -n "$recipient" ]]; then
       command -v age >/dev/null || { echo "error: age is not installed; run: mise install" >&2; exit 1; }
       [[ "{{dest}}" == *.age ]] || { echo "error: an encrypted dump is named *.dump.age" >&2; exit 1; }
@@ -170,23 +190,44 @@ backup dest:
     [[ -n "$recipient" ]] || echo "encrypt the dump before it leaves this host (COSTURA_BACKUP_AGE_RECIPIENT)"
 
 # Replace the production database from a dump in one transaction, then re-apply the
-# migration and the runtime role's grants. A *.age dump is decrypted with the identity file in
-# COSTURA_BACKUP_AGE_IDENTITY.
+# migration and the runtime role's grants. Refuses an unreadable dump, an external
+# PostgreSQL, and a dump whose <dump>.version names a revision the COSTURA_VERSION image
+# does not have, before it stops anything. A *.age dump is decrypted with the identity file in
+# COSTURA_BACKUP_AGE_IDENTITY. Leaves the API running; prints the command that starts the rest.
 # Usage: just prod::restore costura.dump (or costura.dump.age)
 restore dump:
     #!/usr/bin/env bash
     set -euo pipefail
     cd "{{_root}}"
-    bash scripts/prod-password.sh
     source scripts/prod.sh
+    if external_database; then
+      echo "error: COSTURA_DATABASE_HOST names an external PostgreSQL and prod::restore writes only the bundled postgres service; restore it with the provider's backups (docs/operations/install.md#a-managed-postgresql-instead-of-the-bundled-one)" >&2
+      exit 1
+    fi
+    [[ -f "{{dump}}" && -r "{{dump}}" ]] || { echo "error: {{dump}} is not a readable file" >&2; exit 1; }
+    bash scripts/prod-password.sh
     identity=""
     if [[ "{{dump}}" == *.age ]]; then
       command -v age >/dev/null || { echo "error: age is not installed; run: mise install" >&2; exit 1; }
-      identity="${COSTURA_BACKUP_AGE_IDENTITY:-$(sed -n 's/^COSTURA_BACKUP_AGE_IDENTITY=//p' "${COSTURA_ENV_FILE:-.env}" | tail -n 1)}"
+      identity=$(env_value COSTURA_BACKUP_AGE_IDENTITY)
       [[ -r "$identity" ]] || { echo "error: set COSTURA_BACKUP_AGE_IDENTITY to a readable age identity file" >&2; exit 1; }
       magic=$(age -d -i "$identity" "{{dump}}" 2>/dev/null | head -c 5 || true)
       [[ "$magic" == PGDMP ]] \
         || { echo "error: {{dump}} does not decrypt to a pg_dump archive with that identity" >&2; exit 1; }
+    fi
+    if [[ -f "{{dump}}.version" ]]; then
+      source_release=$(sed -n 's/^COSTURA_VERSION=//p' "{{dump}}.version" | tail -n 1)
+      revision=$(sed -n 's/^alembic_revision=//p' "{{dump}}.version" | tail -n 1)
+      if [[ -n "$revision" ]] && ! shown=$({{_compose}} run --rm --no-deps -T migrate alembic show "$revision" 2>&1); then
+        if grep -q "Can't locate revision" <<<"$shown"; then
+          echo "error: {{dump}} is at Alembic revision $revision from release ${source_release:-unknown}, which the $(env_value COSTURA_VERSION) images do not have; set COSTURA_VERSION=${source_release:-<that release>} (or later) in ${COSTURA_ENV_FILE:-.env}, check out that tag, and run the restore again" >&2
+        else
+          echo "error: could not read the migrations of the configured images: $(tail -n 1 <<<"$shown")" >&2
+        fi
+        exit 1
+      fi
+    else
+      echo "warning: {{dump}}.version is missing, so the dump's release was not checked"
     fi
     confirm_or_exit "Replace the production database from {{dump}}?"
     {{_compose}} up -d --wait postgres
@@ -205,6 +246,8 @@ restore dump:
     {{_compose}} run --rm migrate
     {{_compose}} up -d --wait api
     {{_compose}} run --rm --no-deps api python -m costura.ops.secret check
+    echo "restored {{dump}}; the API is up, and the worker, scheduler, web app and proxy are stopped"
+    echo "next: just prod::up"
 
 # Build the full production stack with synthetic credentials, check it, and delete the volumes.
 smoke:

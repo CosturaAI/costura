@@ -1,5 +1,7 @@
 "use client";
 
+import { createContext, useCallback, useContext, useState } from "react";
+
 import {
   AlertDialog,
   AlertDialogAction,
@@ -13,7 +15,14 @@ import {
 } from "@/components/ui/alert-dialog";
 import { Button } from "@/components/ui/button";
 import type { ActionState } from "@/lib/action-errors";
+import { useOnSuccess } from "@/lib/use-on-success";
 import { cn } from "@/lib/utils";
+
+/** The organization the page rendered, posted so the action can refuse when another tab has
+ * switched the view to a different one (`requireActiveOrg(form)`). */
+export function OrgField({ org }: { org: string }) {
+  return <input type="hidden" name="org" value={org} />;
+}
 
 /** Outcome line of a server action; field-level messages render next to their input instead. */
 export function Feedback({ state, className }: { state: ActionState; className?: string }) {
@@ -30,6 +39,60 @@ export function Feedback({ state, className }: { state: ActionState; className?:
       {state.message}
     </p>
   );
+}
+
+const RemovalContext = createContext<((message: string) => void) | null>(null);
+
+/**
+ * The success line of a removal, kept outside the row it removed: the row and its form leave
+ * the page once the action refreshes it, so the line renders here, after `children`, and focus
+ * moves to the heading `headingId` (which needs `tabIndex={-1}`) instead of falling to the body.
+ */
+export function RemovalFeedback({
+  headingId,
+  children,
+  className,
+  statusFirst = false,
+}: {
+  headingId: string;
+  children: React.ReactNode;
+  className?: string;
+  /** The line goes before `children`, next to the heading, when what is removed is a whole
+   * section below it. */
+  statusFirst?: boolean;
+}) {
+  const [message, setMessage] = useState<string | null>(null);
+  const report = useCallback(
+    (next: string) => {
+      setMessage(next);
+      document.getElementById(headingId)?.focus();
+    },
+    [headingId],
+  );
+  const status = (
+    <p role="status" className={cn("text-sm text-severity-success empty:hidden", className)}>
+      {message}
+    </p>
+  );
+  return (
+    <RemovalContext.Provider value={report}>
+      {statusFirst ? status : null}
+      {children}
+      {statusFirst ? null : status}
+    </RemovalContext.Provider>
+  );
+}
+
+/**
+ * For a form that removes its own row: a success goes to the enclosing `RemovalFeedback`, and
+ * the state returned keeps only a refusal for the form's own `Feedback`. Outside a
+ * `RemovalFeedback` the state is returned as it is.
+ */
+export function useRemovalFeedback(state: ActionState): ActionState {
+  const report = useContext(RemovalContext);
+  const onSuccess = useCallback(() => report?.(state.message ?? ""), [report, state]);
+  useOnSuccess(state, report ? onSuccess : undefined);
+  return report && state.ok ? { ok: false, message: null } : state;
 }
 
 /** Message under the input named by `state.field`; the input gets `aria-invalid` from `invalid()`. */

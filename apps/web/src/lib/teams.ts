@@ -1,4 +1,4 @@
-import type { ApiKey, TeamMember, User, Workspace } from "@/lib/api";
+import type { ApiKey, Team, TeamMember, User, Workspace } from "@/lib/api";
 import { providerLabel } from "@/lib/providers";
 
 /** The slug the API stores for a team name: lowercase words joined by hyphens. */
@@ -64,4 +64,33 @@ export function memberOptions(
         })),
     },
   ].filter((group) => group.options.length > 0);
+}
+
+/**
+ * The add options of one team: what is already in it is left out, and what sits in another
+ * team says which, since adding it here moves it.
+ */
+export function teamMemberOptions(
+  groups: MemberOptionGroups,
+  teams: readonly Pick<Team, "slug" | "name" | "members">[],
+  slug: string,
+): MemberOptionGroups {
+  const owner = new Map<string, string>();
+  for (const team of teams) {
+    for (const member of team.members) owner.set(memberValue(member), team.slug);
+  }
+  const names = new Map(teams.map((team) => [team.slug, team.name]));
+  return groups
+    .map((group) => ({
+      label: group.label,
+      options: group.options
+        .filter((option) => owner.get(option.value) !== slug)
+        .map((option) => {
+          const other = owner.get(option.value);
+          return other === undefined
+            ? option
+            : { ...option, label: `${option.label} (in ${names.get(other) ?? other})` };
+        }),
+    }))
+    .filter((group) => group.options.length > 0);
 }

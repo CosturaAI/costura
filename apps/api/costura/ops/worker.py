@@ -39,7 +39,7 @@ from costura.config import get_settings
 from costura.db import SessionLocal, get_engine
 from costura.models.organization import Organization
 from costura.models.scheduler import SchedulerRun
-from costura.ops import OperationError, run
+from costura.ops import OperationError, mark_stalled, run
 from costura.ops.purge import purge_and_log
 from costura.ops.scheduler import _report_cycles
 from costura.scheduler_lock import (
@@ -290,12 +290,14 @@ def drain(
     sleep: Callable[[float], None] = time.sleep,
     only_ids: Sequence[int] | None = None,
     owner: str | None = None,
+    progress: list[float] | None = None,
 ) -> list[CycleResult]:
     """Claim and run every currently available row, skipping organizations whose lock is held.
 
     `only_ids` drains those rows and no others (the daily `--once` path). An empty result
     means nothing was claimable or every remaining row's organization lock was busy; those
-    rows stay queued.
+    rows stay queued. `progress[0]` is stamped at each claim, so the stall watchdog measures
+    one run rather than the whole pass.
     """
     owner = owner or worker_owner()
     results: list[CycleResult] = []
@@ -305,6 +307,8 @@ def drain(
         if claimed is None:
             return results
         run_id, organization_id = claimed
+        if progress is not None:
+            progress[0] = time.monotonic()
         result = _execute_claimed(run_id, organization_id, owner, factory=factory, sleep=sleep)
         if result is None:
             if organization_id is not None:
@@ -377,6 +381,7 @@ def _pulse() -> None:
 def _terminate_stalled() -> None:
     """Ask the main thread to stop (the cycle requeues its row), then exit hard if a blocking
     call never returns. Compose restarts the container either way."""
+    mark_stalled()
     os.kill(os.getpid(), signal.SIGTERM)
     time.sleep(STOP_GRACE_SECONDS)
     os._exit(1)
@@ -411,7 +416,8 @@ def run_worker(
 ) -> Iterator[list[CycleResult]]:
     """Poll until stopped. `once` drains the claimable rows and returns. The heartbeat row is
     written every `PULSE_SECONDS` from a thread, so a long sync does not age it past the
-    container healthcheck; a pass that runs longer than `STALL_SECONDS` stops the process."""
+    container healthcheck; one run that lasts longer than `STALL_SECONDS` stops the process
+    and keeps the attempt it used, so a run that always overruns ends failed."""
     last_purge = time.monotonic()
     last_delivery = last_purge - DELIVERY_INTERVAL_SECONDS
     last_history = last_purge - HISTORY_INTERVAL_SECONDS
@@ -424,7 +430,7 @@ def run_worker(
     try:
         while True:
             progress[0] = time.monotonic()
-            yield drain(factory=factory, sleep=sleep)
+            yield drain(factory=factory, sleep=sleep, progress=progress)
             if once:
                 return
             last_purge = maintain(last_purge)

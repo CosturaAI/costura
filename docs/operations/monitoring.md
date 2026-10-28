@@ -79,11 +79,15 @@ has them as Prometheus rules:
   `version` as `/health`); `costura_processes` counts the worker and scheduler processes with
   a heartbeat in the last five minutes, by release.
 - `costura_scheduler_queue_depth{status="queued"} > 0` for an hour: rows wait and no worker claims them.
-- An increase of `costura_scheduler_runs{status="failed"}`: a sync cycle failed. The run's
-  steps are on the Setup page and in the worker log.
+- `(costura_scheduler_runs{status="failed"} - costura_scheduler_runs{status="failed"} offset 1h) > 0`:
+  a sync cycle failed in the last hour. The run's steps are on the Setup page and in the
+  worker log. The metric is a row count, a gauge, not a counter: retention deletes old rows
+  and lowers it, so `increase()` would read that drop as a counter reset and report a
+  failure that did not happen. The difference ignores a drop; a purge in the same hour can
+  hide a failure.
 - `costura_metrics_db_up == 0`: the API cannot read PostgreSQL.
-- An increase of `costura_webhook_deliveries{status="failed"}`: a signal was not posted
-  after five attempts. Settings, Anomalies lists the last error of each delivery and lets an
+- `(costura_webhook_deliveries{status="failed"} - costura_webhook_deliveries{status="failed"} offset 1h) > 0`,
+  the same row-count gauge: a signal was not posted after five attempts. Settings, Anomalies lists the last error of each delivery and lets an
   owner resend one; the schedule is in [webhooks](webhooks.md).
 - `costura_http_requests_total{status="429"}` rising: clients hit `COSTURA_RATE_LIMIT_*`.
   Every limited answer under `/api/v1` carries `RateLimit-Limit`, `RateLimit-Remaining` and

@@ -37,7 +37,8 @@ The body is one JSON object with one key, the Slack `text` field:
 anomaly explanation, or the label and the gap), the money at risk, the owner, and a link to
 the item through `{COSTURA_WEB_PUBLIC_URL}/o/{slug}?next=...` (`COSTURA_WEB_ORIGIN` when the
 public URL is unset). The optional digest (`costura/digest.py`) posts the same shape with
-`*Costura digest for {org}*` as its first line.
+`*Costura digest for {org}*` as its first line. A digest is posted once on its day; a failed
+post is tried again after 30 minutes (`RETRY_AFTER`) until the day ends.
 
 ## Headers and signature
 
@@ -45,7 +46,7 @@ public URL is unset). The optional digest (`costura/digest.py`) posts the same s
 | --------------------- | ---------------------------------------------------------- |
 | `Content-Type`        | `application/json`                                         |
 | `User-Agent`          | `Costura-Webhook/1`                                        |
-| `X-Costura-Delivery`  | The delivery row id; `test` for the test message           |
+| `X-Costura-Delivery`  | Row id; `test` for the test; `digest-<day>` for a digest   |
 | `X-Costura-Timestamp` | Unix seconds when the request was signed                   |
 | `X-Costura-Signature` | `v1=` followed by the lowercase hex HMAC described below   |
 
@@ -94,15 +95,20 @@ The worker (`apps/api/costura/ops/worker.py`, `DELIVERY_INTERVAL_SECONDS = 60`) 
 `deliver_all` about once a minute. Each pass, per organization with a destination:
 
 1. Every current signal gets one `webhook_deliveries` row, unique per organization and
-   signal (anomaly id, budget alert id, or key id with the gap kind), so a signal is posted
-   at most once. The `webhook_failing` signal itself is never posted.
+   signal (anomaly id, budget alert id, or key id with the gap kind), so an open signal is
+   posted once. A key gap, a stopped import or another entity signal that closes frees its
+   key (`release_closed`): the row stays in the history with `#closed-<id>` appended to its
+   reference, and the same gap posts again when it comes back. The `webhook_failing` signal
+   itself is never posted.
 2. Rows that are `pending` and due are claimed, 20 per pass (`BATCH`), with
    `FOR UPDATE SKIP LOCKED`, oldest first.
 3. A row whose signal closed since it was recorded is marked `skipped` with the error
    `closed before delivery`.
-4. The others are posted. A 2xx marks the row `sent`. A non-2xx answer records `HTTP {status}`;
-   a transport error records the exception class (`ConnectError`, `ReadTimeout`). Neither
-   records the URL.
+4. The others are posted one at a time. The attempt and the next retry time are committed
+   before the post and the outcome right after it, so a worker stop mid-batch repeats at most
+   the one message in flight; a receiver drops that repeat by its `X-Costura-Delivery` id. A
+   2xx marks the row `sent`. A non-2xx answer records `HTTP {status}`; a transport error
+   records the exception class (`ConnectError`, `ReadTimeout`). Neither records the URL.
 
 The retry schedule is `BACKOFF` in `delivery.py`:
 

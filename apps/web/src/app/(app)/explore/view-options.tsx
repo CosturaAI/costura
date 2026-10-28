@@ -26,7 +26,8 @@ const HORIZON_OPTIONS = [4, 8, 12, 24].map((value) => ({
 }));
 
 /** Rows, display, axis and projection of the Analyze view, folded unless one differs from
- * its default. Each choice is a query parameter, so the URL keeps the view. */
+ * its default. Each choice is a query parameter, so the URL keeps the view. The dimension
+ * axis has one value per row, so it offers no change from the previous bucket. */
 export function ViewOptions({
   top,
   topOptions,
@@ -57,7 +58,11 @@ export function ViewOptions({
         <QueryChips
           name="display"
           value={display}
-          options={DISPLAY_OPTIONS}
+          options={
+            axis === "dimension"
+              ? DISPLAY_OPTIONS.filter((option) => option.value !== "delta")
+              : DISPLAY_OPTIONS
+          }
           label="Display"
           size="sm"
         />

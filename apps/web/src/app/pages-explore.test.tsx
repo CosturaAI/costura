@@ -66,8 +66,64 @@ describe("explore", () => {
         }),
       }),
     ).rejects.toThrow(
-      "NEXT_REDIRECT /o/default?scope=anthropic&from=2026-08-05&to=2026-08-20&next=%2Fexplore%3Fby%3Dmodel%26f%3Dworkspace%253Ais_not%253Asandbox",
+      "NEXT_REDIRECT /o/default?scope=anthropic&from=2026-08-05&to=2026-08-20&next=%2Fexplore%3Fby%3Dmodel%26f%3Dworkspace%253Ais_not%253Asandbox%26was_from%3D2026-08-01%26was_to%3D2026-08-31%26linked%3D2026-08-05..2026-08-20",
     );
+  });
+
+  it("names the time frame a link replaced and offers it back", async () => {
+    page.view = { ...page.view!, from: "2026-08-05", to: "2026-08-20" };
+    render(
+      await ExplorePage({
+        searchParams: Promise.resolve({
+          by: "model",
+          was_from: "2026-08-01",
+          was_to: "2026-08-31",
+          linked: "2026-08-05..2026-08-20",
+        }),
+      }),
+    );
+    expect(screen.getByRole("note")).toHaveTextContent(
+      "The link set the time frame to 2026-08-05 to 2026-08-20 on every page; it was 2026-08-01 to 2026-08-31.",
+    );
+    expect(screen.getByRole("link", { name: "Back to 2026-08-01 to 2026-08-31" })).toHaveAttribute(
+      "href",
+      `/o/default?${new URLSearchParams({
+        scope: "anthropic",
+        from: "2026-08-01",
+        to: "2026-08-31",
+        next: "/explore?by=model",
+      })}`,
+    );
+    cleanup();
+
+    // Once the time frame changes again, the notice no longer applies.
+    render(
+      await ExplorePage({
+        searchParams: Promise.resolve({
+          by: "model",
+          was_from: "2026-08-01",
+          was_to: "2026-08-31",
+          linked: "2026-07-01..2026-07-31",
+        }),
+      }),
+    );
+    expect(screen.queryByRole("note")).not.toBeInTheDocument();
+  });
+
+  it("sums the rows past the top N as one Other line", async () => {
+    mocked.queries.mockImplementation(async (_org: string, request: { measures: string[] }) => ({
+      results: request.measures.map((measure) => ({
+        ...fx.spendQuery,
+        measure,
+        other: fx.spendQuery.buckets.map((_, index) => (index === 0 ? "100.00" : "0")),
+      })),
+    }));
+    render(await ExplorePage({ searchParams: Promise.resolve({ by: "api_key" }) }));
+    const table = screen.getByRole("table", { name: /Spend by api key/ });
+    const other = within(table).getByText("Other rows").closest("tr")!;
+    expect(other).toHaveTextContent("100.00");
+    expect(within(other).queryByRole("link")).not.toBeInTheDocument();
+    expect(screen.getByText(/the rest summed as Other rows/)).toBeInTheDocument();
   });
 
   it("uses URL range overrides and copies every Explore state field", async () => {
@@ -109,11 +165,11 @@ describe("explore", () => {
     );
     fireEvent.click(screen.getByRole("button", { name: "Copy link" }));
     await waitFor(() =>
-      expect(writeText).toHaveBeenCalledWith(
-        expect.stringMatching(
-          /\/explore\?by=model&top=10&f=workspace%3Ais_not%3Asandbox&from=2026-08-05&to=2026-08-20&interval=week&display=delta&compare=none$/,
-        ),
-      ),
+      expect(writeText).toHaveBeenCalledWith(expect.stringContaining("/o/default?scope=anthropic")),
+    );
+    const copied = new URL(String(writeText.mock.calls[0]![0]), "http://web.test");
+    expect(copied.searchParams.get("next")).toBe(
+      "/explore?by=model&top=10&f=workspace%3Ais_not%3Asandbox&from=2026-08-05&to=2026-08-20&interval=week&display=delta&compare=none",
     );
   });
 
@@ -183,7 +239,8 @@ describe("explore", () => {
     fireEvent.click(screen.getByRole("button", { name: "Copy link" }));
     await waitFor(() => expect(writeText).toHaveBeenCalled());
     const shared = new URL(String(writeText.mock.calls[0]![0]), "http://web.test");
-    expect(Object.fromEntries(shared.searchParams)).toMatchObject({
+    const next = new URL(shared.searchParams.get("next")!, "http://web.test");
+    expect(Object.fromEntries(next.searchParams)).toMatchObject({
       by: "model",
       measure: "byok_usd",
       display: "daily_average_x30",

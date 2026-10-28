@@ -142,7 +142,7 @@ describe("deleteOrganizationAction", () => {
     const state = await deleteOrganizationAction(idleAction, formOf({ slug: "other" }));
     expect(state).toEqual({
       ok: false,
-      message: "Type the organization slug to confirm.",
+      message: "Type the organization ID (acme) to confirm.",
       field: "slug",
     });
     expect(api.deleteOrganization).not.toHaveBeenCalled();

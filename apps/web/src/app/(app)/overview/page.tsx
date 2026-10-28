@@ -21,6 +21,7 @@ import { drillDownHref } from "@/lib/dimensions";
 import {
   changePercent,
   formatDayRange,
+  formatDayShort,
   formatDelta,
   formatMonth,
   formatPercent,
@@ -30,6 +31,8 @@ import {
   ACCOUNT_DIMENSION,
   coverageNote,
   loadOverviewDetails,
+  partialCoverage,
+  rangeRunsPast,
   overviewQuery,
   overviewSignals,
   scopeBudget,
@@ -41,7 +44,15 @@ import { canOperate } from "@/lib/roles";
 import { first, oneOf, type Search } from "@/lib/search";
 import { gettingStartedItems } from "@/lib/setup";
 import { queryChartData, queryTotal, valuesTotal } from "@/lib/spend-query";
-import { intervalLabel, periodPhrase, periodTitle, rangeDays, wholeMonth } from "@/lib/time-range";
+import {
+  intervalLabel,
+  monthRange,
+  monthToDate,
+  periodPhrase,
+  periodTitle,
+  rangeDays,
+  wholeMonth,
+} from "@/lib/time-range";
 
 import { requireView } from "@/lib/view";
 import { dismissSetupAction } from "./actions";
@@ -81,16 +92,18 @@ export default async function OverviewPage({ searchParams }: { searchParams?: Pr
   // An empty range has already sent them by the time the total is known; the waterfall they
   // would cost on every range with spend is the larger price.
   const detailsRead = loadOverviewDetails(view);
+  // A range from the 1st to today is the month so far: the month's summary compares it
+  // month to date, where the range's own summary would compare it with a complete range.
+  const month = wholeMonth(from, to) ?? monthToDate(from, to);
+  const isMonthView = month !== null;
   const [summary, series, activity] = await Promise.all([
-    api.summary(org, provider, period),
+    api.summary(org, provider, isMonthView ? monthRange(month) : period),
     overviewQuery(view, by, CHART_TOP),
     provider === "openai"
       ? api.activity(org, { since: from, until: to }).catch(() => null)
       : Promise.resolve(null),
   ]);
   const currency = summary.currency ?? "USD";
-  const month = wholeMonth(from, to);
-  const isMonthView = month !== null;
   const displayRange = periodTitle(from, to);
   const inPeriod = periodPhrase(from, to);
   const projecting = summary.is_current_month;
@@ -98,6 +111,8 @@ export default async function OverviewPage({ searchParams }: { searchParams?: Pr
   const displayedTotal = isMonthView ? summary.total : rangeTotal;
   const previousRangeTotal = series.comparison ? valuesTotal(series.comparison.total) : null;
   const rangeChange = changePercent(rangeTotal, previousRangeTotal);
+  const runsPast = isMonthView ? null : rangeRunsPast(to, summary);
+  const partial = isMonthView ? partialCoverage(summary) : runsPast !== null;
 
   if (!(Number(displayedTotal) > 0)) {
     // Called rather than rendered: the empty state awaits its own `setup` read.
@@ -144,9 +159,19 @@ export default async function OverviewPage({ searchParams }: { searchParams?: Pr
               ]
                 .filter(Boolean)
                 .join(" ")
-            : previousRangeTotal !== null && Number(previousRangeTotal) > 0 && rangeChange !== null
-              ? `${formatDelta(rangeChange)} against the previous ${days} days (${formatUsd(previousRangeTotal)} ${currency}).`
-              : `No spend in the previous ${days} days to compare with.`
+            : [
+                previousRangeTotal !== null &&
+                Number(previousRangeTotal) > 0 &&
+                rangeChange !== null
+                  ? `${formatDelta(rangeChange)} against the previous ${days} days (${formatUsd(previousRangeTotal)} ${currency}).`
+                  : `No spend in the previous ${days} days to compare with.`,
+                runsPast
+                  ? `Data through ${formatDayShort(runsPast)}; the days after it are still arriving, so a drop is not savings.`
+                  : null,
+                coverageNote({ ...summary, complete_through: null }),
+              ]
+                .filter(Boolean)
+                .join(" ")
         }
       >
         {isMonthView ? (
@@ -182,6 +207,7 @@ export default async function OverviewPage({ searchParams }: { searchParams?: Pr
         inPeriod={inPeriod}
         currency={currency}
         isMonthView={isMonthView}
+        partial={partial}
         rangeTotal={rangeTotal}
         displayedTotal={displayedTotal}
         displayedChange={isMonthView ? summary.change_percent : rangeChange}
@@ -306,6 +332,7 @@ export default async function OverviewPage({ searchParams }: { searchParams?: Pr
             currency={currency}
             showProvider={aggregated}
             isDemo={isDemo}
+            provider={provider}
           />
           <OverviewModelsCard models={models} currency={currency} />
         </div>

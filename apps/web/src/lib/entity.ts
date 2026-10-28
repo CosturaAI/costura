@@ -21,7 +21,7 @@ import {
   type Workspace,
 } from "@/lib/api";
 import { NEXT_DIMENSION, splitLabel } from "@/lib/dimensions";
-import { isAll, PROVIDERS } from "@/lib/providers";
+import { ALL, isAll, PROVIDERS } from "@/lib/providers";
 import type { EntityHint } from "@/lib/resource-search";
 import { settledRecord, settledValue } from "@/lib/loaders";
 import { spendQuery } from "@/lib/spend-query";
@@ -83,8 +83,12 @@ export type EntityData = {
   period: DateRange;
   /** The period's row in the entity's own dimension, or null without usage. */
   current: UsageRow | null;
-  /** Percent of the organization's attributed spend in the period; null without allocation. */
+  /** Percent of the total spend of `provider` (every provider for a person under `all`) in
+   * the period; null without allocation. */
   share: string | null;
+  /** The provider scope a person page was asked under and has no account in; the page then
+   * shows every provider. Null otherwise. */
+  widenedFrom: string | null;
   previous: UsageRow | null;
   previousPeriod: DateRange;
   allocated: boolean;
@@ -173,6 +177,21 @@ export async function loadEntity(
   period: DateRange,
   id: string,
   hint: EntityHint = {},
+): Promise<EntityData | null> {
+  const data = await loadEntityUnder(kind, org, scope, period, id, hint);
+  if (data !== null || kind !== "person" || isAll(scope)) return data;
+  // A person with no account under the scope's provider still has a page across providers.
+  const everywhere = await loadEntityUnder(kind, org, ALL, period, id, hint);
+  return everywhere && { ...everywhere, widenedFrom: scope };
+}
+
+async function loadEntityUnder(
+  kind: EntityKind,
+  org: string,
+  scope: string,
+  period: DateRange,
+  id: string,
+  hint: EntityHint,
 ): Promise<EntityData | null> {
   const lookupScope = hint.provider && PROVIDERS.includes(hint.provider) ? hint.provider : scope;
   const resolved = await resolveEntityProvider(kind, org, lookupScope, id, hint.account);
@@ -332,6 +351,7 @@ export async function loadEntity(
     facts,
     current,
     share,
+    widenedFrom: null,
     period,
     previous,
     previousPeriod: comparedPeriod,

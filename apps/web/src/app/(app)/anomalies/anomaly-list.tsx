@@ -22,15 +22,16 @@ import {
   episodeSentence,
   formatAnomalyValue,
   groupByDay,
+  impactTotals,
   isDrop,
   kindLabel,
-  signedImpact,
   weekdayName,
   triageLine,
 } from "@/lib/anomaly-text";
 import { drillDownHref, entityHref, idHint, splitLabel } from "@/lib/dimensions";
 import { formatDayShort, formatPercent, formatSignedUsd, formatUsd } from "@/lib/format";
 import { hasAccountLabel, isAll, sourceLabel } from "@/lib/providers";
+import { openOrgHref } from "@/lib/setup";
 import { cn } from "@/lib/utils";
 
 const ENTITY_LINK: Partial<Record<Anomaly["series_kind"], string>> = {
@@ -41,7 +42,7 @@ const ENTITY_LINK: Partial<Record<Anomaly["series_kind"], string>> = {
 
 import { BulkStatusBar, StatusForm } from "./status-form";
 
-type Scope = { org: string; provider: string; periodTotal: string };
+type Scope = { org: string; provider: string; periodTotal: string; listQuery: string };
 
 /** The orders the API answers in; `day` is the only one the list groups. */
 type AnomalySort = "day" | "impact" | "severity";
@@ -117,7 +118,7 @@ export function AnomalyList({
                 {weekdayName(group.day)}; {group.rows.length} anomal
                 {group.rows.length === 1 ? "y" : "ies"}
                 {group.rows.every((row) => row.unit === "USD")
-                  ? `; ${formatSignedUsd(group.rows.reduce((sum, a) => sum + signedImpact(a, a.impact), 0))} impact`
+                  ? dayImpact(group.rows)
                   : "; cost and usage impacts"}
               </span>
             </h2>
@@ -142,12 +143,25 @@ export function AnomalyList({
   );
 }
 
+/** "; +900.00 above expected; -30.00 in drops": spikes and drops summed apart over each
+ * episode, since netting a drop against a spike hides both. */
+function dayImpact(rows: Anomaly[]): string {
+  const { over, under } = impactTotals(rows);
+  const parts = [
+    over > 0 || under === 0 ? `${formatSignedUsd(over)} above expected` : null,
+    under > 0 ? `${formatSignedUsd(-under)} in drops` : null,
+  ].filter(Boolean);
+  return `; ${parts.join("; ")}`;
+}
+
 function AnomalyCard({
   anomaly,
   selected,
   onSelect,
+  org,
   provider,
   periodTotal,
+  listQuery,
   canWrite,
   showDay,
 }: Scope & {
@@ -160,9 +174,9 @@ function AnomalyCard({
   const { name, id } = splitLabel(anomaly.label);
   const entity =
     anomaly.series_kind === "org"
-      ? investigateHref(anomaly)
+      ? investigateHref(anomaly, org)
       : entityHref(anomaly.series_kind, anomaly.series_id);
-  const detail = anomalyHref(anomaly.id);
+  const detail = anomalyHref(anomaly.id, listQuery);
   const [top, ...rest] = anomaly.root_causes;
   const showProvider = isAll(provider);
   const severity = anomaly.severity;
@@ -248,7 +262,11 @@ function AnomalyCard({
               {entity ? (
                 <>
                   {" "}
-                  <Link href={entity} className="relative z-10 text-primary hover:underline">
+                  <Link
+                    href={entity}
+                    prefetch={anomaly.series_kind === "org" ? false : undefined}
+                    className="relative z-10 text-primary hover:underline"
+                  >
                     {ENTITY_LINK[anomaly.series_kind]}
                   </Link>
                 </>
@@ -276,7 +294,7 @@ function AnomalyCard({
                 ? "1 driver"
                 : `${anomaly.root_causes.length} drivers`}
             </span>
-            <Driver cause={top} />
+            <Driver cause={top} org={org} provider={anomaly.provider} />
           </div>
           {rest.length > 0 ? (
             <details className="group mt-1 text-sm">
@@ -287,7 +305,7 @@ function AnomalyCard({
               <ul className="mt-2 divide-y divide-border border-t border-border">
                 {rest.map((cause) => (
                   <li key={`${cause.kind}:${cause.id}`} className="py-1.5">
-                    <Driver cause={cause} />
+                    <Driver cause={cause} org={org} provider={anomaly.provider} />
                   </li>
                 ))}
               </ul>
@@ -299,8 +317,18 @@ function AnomalyCard({
   );
 }
 
-function Driver({ cause }: { cause: Anomaly["root_causes"][number] }) {
-  const href = entityHref(cause.kind, cause.id) ?? drillDownHref(cause.kind, cause.id);
+function Driver({
+  cause,
+  org,
+  provider,
+}: {
+  cause: Anomaly["root_causes"][number];
+  org: string;
+  provider: string;
+}) {
+  const drill = drillDownHref(cause.kind, cause.id);
+  const entity = entityHref(cause.kind, cause.id, null, provider);
+  const href = entity ?? (drill ? openOrgHref(org, drill, { scope: provider }) : null);
   const label = splitLabel(cause.label);
   return (
     <span className="flex min-w-0 flex-1 flex-wrap items-baseline justify-between gap-x-4">
@@ -309,6 +337,7 @@ function Driver({ cause }: { cause: Anomaly["root_causes"][number] }) {
         {href ? (
           <Link
             href={href}
+            prefetch={entity ? undefined : false}
             className="inline-block min-h-6 leading-6 break-words text-foreground hover:underline"
           >
             {label.name}

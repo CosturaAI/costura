@@ -19,6 +19,7 @@ import {
   formatSignedUsd,
   formatUsd,
 } from "@/lib/format";
+import { isAll, providerLabel } from "@/lib/providers";
 import { sampleCopy } from "@/lib/sample";
 import { periodTitle } from "@/lib/time-range";
 
@@ -77,9 +78,17 @@ export function EntityFigures({
   return (
     <section aria-label="More figures" className="grid gap-4 sm:grid-cols-2">
       <KpiCard
-        label="Share of the organization"
+        label={
+          isAll(data.provider)
+            ? "Share of the organization"
+            : `Share of ${providerLabel(data.provider)} spend`
+        }
         value={formatPercent(data.share)}
-        hint="of the period's attributed spend"
+        hint={
+          isAll(data.provider)
+            ? "of the period's spend on every provider"
+            : `of the period's ${providerLabel(data.provider)} spend`
+        }
       />
       <KpiCard
         label={periodTitle(data.previousPeriod.from, data.previousPeriod.to)}

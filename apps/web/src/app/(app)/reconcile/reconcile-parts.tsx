@@ -127,8 +127,8 @@ function ProviderCard({
   const note = providerTotalNote(info.provider);
   return (
     <Card>
-      <CardHeader className="flex flex-row flex-wrap items-start justify-between gap-3">
-        <div>
+      <CardHeader className="flex flex-row items-start justify-between gap-3">
+        <div className="min-w-0 flex-1">
           <CardHeading className="flex items-center gap-3">
             {info.label}
             <StatusBadge tone={v.tone}>{v.text}</StatusBadge>

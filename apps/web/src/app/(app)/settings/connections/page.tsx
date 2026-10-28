@@ -1,6 +1,8 @@
 import type { Metadata } from "next";
 import { CardHeading } from "@/components/card-heading";
-import { Notice } from "@/components/notice";
+import { CouldNotLoad } from "@/components/could-not-load";
+import { RemovalFeedback } from "@/components/form-feedback";
+import { KeyStorageNotice } from "@/components/notice";
 import { StatusBadge } from "@/components/status-badge";
 import { Card, CardContent, CardDescription, CardHeader } from "@/components/ui/card";
 import { api, type Account, type Connection, type ProviderInfo } from "@/lib/api";
@@ -47,18 +49,16 @@ export default async function ConnectionsSettingsPage() {
   const codexPriceEntries = await Promise.all(
     codexAccounts
       .filter((account) => account.connected)
-      .map(async (account) => [account.id, await api.creditPrices(org, account.id)] as const),
+      .map(
+        async (account) =>
+          [account.id, await api.creditPrices(org, account.id).catch(() => null)] as const,
+      ),
   );
   const codexPrices = new Map(codexPriceEntries);
 
   return (
     <>
-      {canManage && !hasSecret ? (
-        <Notice>
-          Key storage is not configured on this instance, so a key cannot be saved yet. Ask whoever
-          runs Costura to finish the server setup.
-        </Notice>
-      ) : null}
+      {canManage && !hasSecret ? <KeyStorageNotice /> : null}
 
       {providerGroups.map(([vendor, entries]) => (
         <section key={vendor} className="space-y-3" aria-labelledby={`vendor-${vendor}`}>
@@ -173,7 +173,8 @@ function ConnectionCard({
   /** Whether the forms render: writes on, secret configured, owner, not the sample. */
   canWrite: boolean;
   canOperate: boolean;
-  codexPrices: Map<number, Awaited<ReturnType<typeof api.creditPrices>>>;
+  /** Null for an account whose rates did not load; that row says so and the rest renders. */
+  codexPrices: Map<number, Awaited<ReturnType<typeof api.creditPrices>> | null>;
   isOwner: boolean;
   isDemo: boolean;
   /** Whether the instance itself refuses browser writes (the sentence, not the forms). */
@@ -184,7 +185,11 @@ function ConnectionCard({
   return (
     <Card>
       <CardHeader>
-        <CardHeading className="flex items-center gap-3">
+        <CardHeading
+          id={`connection-${info.provider}-heading`}
+          tabIndex={-1}
+          className="flex items-center gap-3"
+        >
           {info.label}
           {info.experimental ? <StatusBadge tone="warning">experimental</StatusBadge> : null}
           {connection.connected ? (
@@ -224,50 +229,52 @@ function ConnectionCard({
         </CardDescription>
       </CardHeader>
       <CardContent className="space-y-4">
-        {connection.last_error && !accounts.some((a) => a.last_error) ? (
-          <p className="text-sm text-severity-critical">{connection.last_error}</p>
-        ) : null}
-        {accounts.length === 0 ? (
-          <p className="text-sm text-muted-foreground">
-            No {info.label} key for this organization. Nothing syncs from {info.label} until one is
-            connected here.
-            {isDemo
-              ? " The sample organization is read-only. Sign in to your own organization to connect a provider."
-              : writesOff
-                ? " Changes from the browser are turned off on this instance."
-                : null}
-          </p>
-        ) : (
-          <ul className="divide-y divide-border" aria-label={`${info.label} accounts`}>
-            {accounts.map((account) => (
-              <AccountRow
-                key={account.id}
-                org={org}
-                info={info}
-                account={account}
-                canWrite={canWrite}
-                canOperate={canOperate}
-                creditPrices={codexPrices.get(account.id) ?? []}
-                removable={several}
-                showName={several || account.label !== info.label}
-                showStatus={several}
-              />
-            ))}
-          </ul>
-        )}
-        {canWrite ? (
-          <div className="border-t border-border pt-4">
-            {accounts.length === 0 ? (
-              <ConnectForm org={org} info={info} />
-            ) : (
-              <AddAccountForm org={org} info={info} />
-            )}
-          </div>
-        ) : isDemo || isOwner ? null : (
-          <p className="text-xs text-muted-foreground">
-            An owner of this organization manages this key.
-          </p>
-        )}
+        <RemovalFeedback headingId={`connection-${info.provider}-heading`}>
+          {connection.last_error && !accounts.some((a) => a.last_error) ? (
+            <p className="text-sm text-severity-critical">{connection.last_error}</p>
+          ) : null}
+          {accounts.length === 0 ? (
+            <p className="text-sm text-muted-foreground">
+              No {info.label} key for this organization. Nothing syncs from {info.label} until one
+              is connected here.
+              {isDemo
+                ? " The sample organization is read-only. Sign in to your own organization to connect a provider."
+                : writesOff
+                  ? " Changes from the browser are turned off on this instance."
+                  : null}
+            </p>
+          ) : (
+            <ul className="divide-y divide-border" aria-label={`${info.label} accounts`}>
+              {accounts.map((account) => (
+                <AccountRow
+                  key={account.id}
+                  org={org}
+                  info={info}
+                  account={account}
+                  canWrite={canWrite}
+                  canOperate={canOperate}
+                  creditPrices={codexPrices.has(account.id) ? codexPrices.get(account.id)! : []}
+                  removable={several}
+                  showName={several || account.label !== info.label}
+                  showStatus={several}
+                />
+              ))}
+            </ul>
+          )}
+          {canWrite ? (
+            <div className="border-t border-border pt-4">
+              {accounts.length === 0 ? (
+                <ConnectForm org={org} info={info} />
+              ) : (
+                <AddAccountForm org={org} info={info} />
+              )}
+            </div>
+          ) : isDemo || isOwner ? null : (
+            <p className="text-xs text-muted-foreground">
+              An owner of this organization manages this key.
+            </p>
+          )}
+        </RemovalFeedback>
       </CardContent>
     </Card>
   );
@@ -293,7 +300,7 @@ function AccountRow({
   account: Account;
   canWrite: boolean;
   canOperate: boolean;
-  creditPrices: Awaited<ReturnType<typeof api.creditPrices>>;
+  creditPrices: Awaited<ReturnType<typeof api.creditPrices>> | null;
   removable: boolean;
   showName: boolean;
   showStatus: boolean;
@@ -340,15 +347,28 @@ function AccountRow({
       {account.last_error ? (
         <p className="text-sm text-severity-critical">{account.last_error}</p>
       ) : null}
-      {info.provider === "cursor" && canWrite ? <CursorSettingsForm account={account} /> : null}
+      {info.provider === "cursor" && canWrite ? (
+        <CursorSettingsForm org={org} account={account} />
+      ) : null}
       {info.provider === "codex" && account.connected ? (
-        <CodexCreditPriceSchedule account={account} prices={creditPrices} canOperate={canOperate} />
+        creditPrices === null ? (
+          <CouldNotLoad what={`the credit rates of ${account.label}`} />
+        ) : (
+          <CodexCreditPriceSchedule
+            org={org}
+            account={account}
+            prices={creditPrices}
+            canOperate={canOperate}
+          />
+        )
       ) : null}
       {canWrite ? (
         <ReplaceKeyForm org={org} info={info} account={account}>
-          <RenameAccountForm provider={info.provider} account={account} />
-          {stored ? <DisconnectForm provider={info.provider} account={account.id} /> : null}
-          {removable ? <RemoveAccountForm provider={info.provider} account={account} /> : null}
+          <RenameAccountForm org={org} provider={info.provider} account={account} />
+          {stored ? <DisconnectForm org={org} provider={info.provider} account={account} /> : null}
+          {removable ? (
+            <RemoveAccountForm org={org} provider={info.provider} account={account} />
+          ) : null}
         </ReplaceKeyForm>
       ) : null}
     </li>

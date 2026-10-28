@@ -114,9 +114,15 @@ export function personHref(email: string): string {
  * address names no provider: the entity page resolves the provider of the id
  * through the API's lookup route, so a row of the aggregated table opens as itself. Account
  * and creator rows whose `person` is known, and rows of the `person` dimension, lead to the
- * person page across providers instead.
+ * person page across providers instead. A model name can exist under several providers, so a
+ * model row that knows its provider names it (`?provider=`) and opens that provider's model.
  */
-export function entityHref(by: string, key: string | null, person?: string | null): string | null {
+export function entityHref(
+  by: string,
+  key: string | null,
+  person?: string | null,
+  provider?: string | null,
+): string | null {
   if (key === null) return null;
   if (person && (by === "account" || by === "creator" || by === "person")) {
     return personHref(person);
@@ -125,7 +131,8 @@ export function entityHref(by: string, key: string | null, person?: string | nul
   // account, unknown id): it keeps the provider account page.
   const segment = ENTITY_SEGMENTS[by === "person" ? "account" : by];
   if (!segment) return null;
-  return `/${segment}/${encodeURIComponent(key)}`;
+  const path = `/${segment}/${encodeURIComponent(key)}`;
+  return by === "model" && provider ? `${path}?${new URLSearchParams({ provider })}` : path;
 }
 
 /** Key of an inventory spend map: provider plus external id, since ids are unique per provider. */

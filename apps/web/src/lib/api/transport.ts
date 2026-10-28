@@ -3,12 +3,14 @@
  * request deduplication per render and the 401 detour to `/sign-in`.
  */
 
+import { headers as requestHeaders } from "next/headers";
 import { redirect } from "next/navigation";
 import { cache } from "react";
 
 import { ApiError } from "@/lib/api-error";
 import { forwardedRequestHeaders } from "@/lib/forwarded";
 import { appendUsageFilters } from "@/lib/query-export";
+import { PAGE_PATH_HEADER, expiredSignInHref } from "@/lib/return-path";
 import { readSessionToken } from "@/lib/session-cookie";
 
 import type { UsageFilters } from "./spend";
@@ -88,21 +90,35 @@ type RequestOptions = {
   unauthorized?: "redirect" | "throw";
 };
 
+/** The page being rendered or posted to, as the proxy recorded it; null outside a request. */
+async function currentPage(): Promise<string | null> {
+  try {
+    return (await requestHeaders()).get(PAGE_PATH_HEADER);
+  } catch {
+    return null;
+  }
+}
+
 /**
  * Every call carries the session cookie's token as a bearer. A 401 means no session or an
- * expired one, so the wrapper sends the browser to `/sign-in` with `redirect`, which throws a
+ * expired one, so the wrapper sends the browser to `/sign-in`, or for a token the API no longer
+ * accepts to `/sign-in?expired=1` with the page as `next` (`expiredSignInHref`), with
+ * `redirect`, which throws a
  * control-flow error Next.js handles in pages and server actions alike; `describeError` in
  * `lib/action-errors.ts` rethrows it out of the actions' catch blocks.
  */
 async function request<T>(url: URL, init: RequestInit, options: RequestOptions = {}): Promise<T> {
   const path = url.pathname.replace(/^\/api\/v1/, "");
   const headers = await forwardedRequestHeaders(init.headers);
+  let token: string | null = null;
   if (options.auth !== false) {
-    const token = await readSessionToken();
+    token = await readSessionToken();
     if (token) headers.set("authorization", `Bearer ${token}`);
   }
   const response = await fetch(url, { ...init, headers });
-  if (response.status === 401 && options.unauthorized !== "throw") redirect("/sign-in");
+  if (response.status === 401 && options.unauthorized !== "throw") {
+    redirect(token ? expiredSignInHref(await currentPage()) : "/sign-in");
+  }
   if (!response.ok) {
     let detail = response.statusText;
     let code: string | null = null;

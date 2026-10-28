@@ -31,10 +31,10 @@ export async function saveWebhookAction(
   _prev: WebhookState,
   form: FormData,
 ): Promise<WebhookState> {
-  const org = await requireActiveOrg();
   const parsed = parseForm(form, WebhookUrl, ["url"]);
   if (!parsed.ok) return { ...parsed.error, secret: null };
   try {
+    const org = await requireActiveOrg(form);
     const saved = await api.saveWebhook(org, parsed.data.url);
     refresh(SETTINGS_PAGES);
     return {
@@ -47,9 +47,9 @@ export async function saveWebhookAction(
   }
 }
 
-export async function testWebhookAction(): Promise<ActionState> {
-  const org = await requireActiveOrg();
+export async function testWebhookAction(_prev: ActionState, form: FormData): Promise<ActionState> {
   try {
+    const org = await requireActiveOrg(form);
     const result = await api.testWebhook(org);
     return result.delivered
       ? { ok: true, message: "The test message was delivered." }
@@ -59,10 +59,12 @@ export async function testWebhookAction(): Promise<ActionState> {
   }
 }
 
-export async function removeWebhookAction(): Promise<ActionState> {
-  const org = await requireActiveOrg();
+export async function removeWebhookAction(
+  _prev: ActionState,
+  form: FormData,
+): Promise<ActionState> {
   return runMutation(async () => {
-    await api.removeWebhook(org);
+    await api.removeWebhook(await requireActiveOrg(form));
     return "The webhook is removed; nothing is sent until one is saved again.";
   }, SETTINGS_PAGES);
 }
@@ -72,12 +74,11 @@ const Digest = z.object({
 });
 
 export async function setDigestAction(_prev: ActionState, form: FormData): Promise<ActionState> {
-  const org = await requireActiveOrg();
   const parsed = parseForm(form, Digest);
   if (!parsed.ok) return parsed.error;
   const { digest } = parsed.data;
   return runMutation(async () => {
-    await api.setWebhookDigest(org, digest);
+    await api.setWebhookDigest(await requireActiveOrg(form), digest);
     return digest === "off"
       ? "The digest is off."
       : `A ${digest} digest will be posted ${digest === "weekly" ? "on Mondays" : "on the 2nd"}.`;

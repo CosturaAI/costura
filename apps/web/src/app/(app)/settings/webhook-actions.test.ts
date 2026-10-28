@@ -72,24 +72,26 @@ describe("saveWebhookAction", () => {
 describe("testWebhookAction and removeWebhookAction", () => {
   it("reports whether the test message was accepted", async () => {
     vi.mocked(api.testWebhook).mockResolvedValueOnce({ delivered: true, error: null });
-    await expect(testWebhookAction()).resolves.toEqual({
+    await expect(testWebhookAction(idleWebhook, new FormData())).resolves.toEqual({
       ok: true,
       message: "The test message was delivered.",
     });
     vi.mocked(api.testWebhook).mockResolvedValueOnce({ delivered: false, error: "HTTP 404" });
-    await expect(testWebhookAction()).resolves.toEqual({
+    await expect(testWebhookAction(idleWebhook, new FormData())).resolves.toEqual({
       ok: false,
       message: "The webhook did not accept the test message (HTTP 404).",
     });
     vi.mocked(api.testWebhook).mockRejectedValueOnce(
       new ApiError(409, "/orgs/acme/webhook/test", "outbound webhooks are off"),
     );
-    await expect(testWebhookAction()).resolves.toMatchObject({ ok: false });
+    await expect(testWebhookAction(idleWebhook, new FormData())).resolves.toMatchObject({
+      ok: false,
+    });
   });
 
   it("removes the destination and refreshes the settings pages", async () => {
     vi.mocked(api.removeWebhook).mockResolvedValue(fx.webhookOff);
-    await expect(removeWebhookAction()).resolves.toEqual({
+    await expect(removeWebhookAction(idleWebhook, new FormData())).resolves.toEqual({
       ok: true,
       message: "The webhook is removed; nothing is sent until one is saved again.",
     });

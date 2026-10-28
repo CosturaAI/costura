@@ -1,11 +1,19 @@
 "use client";
 
-import { useActionState } from "react";
+import { useActionState, useState } from "react";
 
 import { CardHeading } from "@/components/card-heading";
 import { CopyButton } from "@/components/copy-button";
 import { StatePanel } from "@/components/empty-state";
-import { ConfirmSubmit, Feedback, FieldError, invalid } from "@/components/form-feedback";
+import {
+  ConfirmSubmit,
+  Feedback,
+  FieldError,
+  OrgField,
+  RemovalFeedback,
+  invalid,
+  useRemovalFeedback,
+} from "@/components/form-feedback";
 import { StatusBadge } from "@/components/status-badge";
 import { SubmitButton } from "@/components/submit-button";
 import { Card, CardContent, CardDescription, CardHeader } from "@/components/ui/card";
@@ -22,6 +30,7 @@ import {
 import { idleAction, idleWebhook } from "@/lib/action-errors";
 import type { Webhook, WebhookDelivery } from "@/lib/api";
 import { formatDateTime } from "@/lib/format";
+import { useOnSuccess } from "@/lib/use-on-success";
 import { SIGNAL_KIND_LABELS } from "@/lib/signals";
 import type { Tone } from "@/lib/ui-types";
 
@@ -47,16 +56,20 @@ const STATUS_TONES: Record<WebhookDelivery["status"], Tone> = {
  * remove and resend one delivery; everyone else reads.
  */
 export function WebhookCard({
+  org,
   webhook,
   canManage,
 }: {
+  org: string;
   webhook: Webhook | null;
   canManage: boolean;
 }) {
   return (
     <Card>
       <CardHeader>
-        <CardHeading>Slack webhook</CardHeading>
+        <CardHeading id="webhook-heading" tabIndex={-1}>
+          Slack webhook
+        </CardHeading>
         <CardDescription>
           Each new anomaly, budget alert and key gap is posted once to a Slack-compatible incoming
           webhook, with its sentence, the money at risk, the owner and a link. Signals open when the
@@ -64,33 +77,44 @@ export function WebhookCard({
         </CardDescription>
       </CardHeader>
       <CardContent className="space-y-4">
-        {webhook === null ? (
-          <p className="text-sm text-severity-critical">
-            Could not load the webhook; reload to retry.
-          </p>
-        ) : !webhook.egress_enabled ? (
-          <p className="text-sm text-secondary-foreground">
-            Outbound webhooks are off on this stack. The operator turns them on by listing the
-            allowed hosts in <code className="font-mono text-xs">COSTURA_WEBHOOK_HOSTS</code>.
-          </p>
-        ) : (
-          <>
-            <Destination webhook={webhook} canManage={canManage} />
-            {canManage && webhook.configured ? <DigestForm webhook={webhook} /> : null}
-            {canManage ? <SaveForm webhook={webhook} /> : null}
-            {webhook.configured ? (
-              <Deliveries deliveries={webhook.deliveries} canManage={canManage} />
-            ) : null}
-          </>
-        )}
+        <RemovalFeedback headingId="webhook-heading">
+          {webhook === null ? (
+            <p className="text-sm text-severity-critical">
+              Could not load the webhook; reload to retry.
+            </p>
+          ) : !webhook.egress_enabled ? (
+            <p className="text-sm text-secondary-foreground">
+              Outbound webhooks are off on this stack. The operator turns them on by listing the
+              allowed hosts in <code className="font-mono text-xs">COSTURA_WEBHOOK_HOSTS</code>.
+            </p>
+          ) : (
+            <>
+              <Destination org={org} webhook={webhook} canManage={canManage} />
+              {canManage && webhook.configured ? <DigestForm org={org} webhook={webhook} /> : null}
+              {canManage ? <SaveForm org={org} webhook={webhook} /> : null}
+              {webhook.configured ? (
+                <Deliveries org={org} deliveries={webhook.deliveries} canManage={canManage} />
+              ) : null}
+            </>
+          )}
+        </RemovalFeedback>
       </CardContent>
     </Card>
   );
 }
 
-function Destination({ webhook, canManage }: { webhook: Webhook; canManage: boolean }) {
+function Destination({
+  org,
+  webhook,
+  canManage,
+}: {
+  org: string;
+  webhook: Webhook;
+  canManage: boolean;
+}) {
   const [tested, test, testing] = useActionState(testWebhookAction, idleAction);
-  const [removed, remove, removing] = useActionState(removeWebhookAction, idleAction);
+  const [removal, remove, removing] = useActionState(removeWebhookAction, idleAction);
+  const removed = useRemovalFeedback(removal);
   if (!webhook.configured) {
     return (
       <p className="text-sm text-secondary-foreground">
@@ -113,11 +137,13 @@ function Destination({ webhook, canManage }: { webhook: Webhook; canManage: bool
       {canManage ? (
         <div className="flex flex-wrap items-center gap-2">
           <form action={test}>
+            <OrgField org={org} />
             <SubmitButton size="sm" variant="outline" pending={testing}>
               {testing ? "Sending..." : "Send a test message"}
             </SubmitButton>
           </form>
           <form id="remove-webhook" action={remove}>
+            <OrgField org={org} />
             <ConfirmSubmit
               formId="remove-webhook"
               title="Remove the webhook?"
@@ -137,10 +163,11 @@ function Destination({ webhook, canManage }: { webhook: Webhook; canManage: bool
   );
 }
 
-function DigestForm({ webhook }: { webhook: Webhook }) {
+function DigestForm({ org, webhook }: { org: string; webhook: Webhook }) {
   const [state, action, pending] = useActionState(setDigestAction, idleAction);
   return (
     <form action={action} className="flex flex-wrap items-center gap-2 text-sm">
+      <OrgField org={org} />
       <label htmlFor="webhook-digest" className="text-foreground">
         Digest
       </label>
@@ -165,10 +192,13 @@ function DigestForm({ webhook }: { webhook: Webhook }) {
   );
 }
 
-function SaveForm({ webhook }: { webhook: Webhook }) {
+function SaveForm({ org, webhook }: { org: string; webhook: Webhook }) {
   const [state, action, pending] = useActionState(saveWebhookAction, idleWebhook);
+  const [url, setUrl] = useState("");
+  useOnSuccess(state, () => setUrl(""));
   return (
     <form action={action} className="space-y-2">
+      <OrgField org={org} />
       <label htmlFor="webhook-url" className="block text-sm font-medium text-foreground">
         {webhook.configured ? "Replace the webhook URL" : "Webhook URL"}
       </label>
@@ -180,6 +210,8 @@ function SaveForm({ webhook }: { webhook: Webhook }) {
           autoComplete="off"
           placeholder="https://hooks.slack.com/services/..."
           className="min-w-0 flex-1"
+          value={url}
+          onChange={(event) => setUrl(event.target.value)}
           aria-invalid={invalid(state, "url")}
           aria-describedby="webhook-url-error"
         />
@@ -217,9 +249,11 @@ function signalLabel(d: WebhookDelivery): string {
  * renders the signal again as it stands now, so a signal that closed since answers 422.
  */
 function Deliveries({
+  org,
   deliveries,
   canManage,
 }: {
+  org: string;
   deliveries: WebhookDelivery[];
   canManage: boolean;
 }) {
@@ -251,7 +285,7 @@ function Deliveries({
         </TableHeader>
         <TableBody>
           {deliveries.map((d) => (
-            <DeliveryRow key={d.id} delivery={d} canManage={canManage} />
+            <DeliveryRow key={d.id} org={org} delivery={d} canManage={canManage} />
           ))}
         </TableBody>
       </Table>
@@ -260,9 +294,11 @@ function Deliveries({
 }
 
 function DeliveryRow({
+  org,
   delivery: d,
   canManage,
 }: {
+  org: string;
   delivery: WebhookDelivery;
   canManage: boolean;
 }) {
@@ -286,6 +322,7 @@ function DeliveryRow({
       {canManage ? (
         <TableCell className="py-1.5 text-right whitespace-normal">
           <form action={action} className="inline-flex flex-col items-end gap-1">
+            <OrgField org={org} />
             <input type="hidden" name="delivery_id" value={d.id} />
             <SubmitButton
               size="xs"

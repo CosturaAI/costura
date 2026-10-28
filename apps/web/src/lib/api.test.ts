@@ -11,13 +11,20 @@ const redirect = vi.fn((url: string) => {
 vi.mock("next/navigation", () => ({ redirect: (url: string) => redirect(url) }));
 
 let token: string | null = null;
+let pagePath: string | null = null;
 vi.mock("next/headers", () => ({
   cookies: () =>
     Promise.resolve({
       get: (name: string) =>
         name === "costura_session" && token !== null ? { name, value: token } : undefined,
     }),
-  headers: () => Promise.resolve(new Headers({ host: "localhost:3000" })),
+  headers: () =>
+    Promise.resolve(
+      new Headers({
+        host: "localhost:3000",
+        ...(pagePath === null ? {} : { "x-costura-path": pagePath }),
+      }),
+    ),
 }));
 
 const fetchMock = vi.fn();
@@ -33,6 +40,7 @@ const sentHeaders = () => new Headers((fetchMock.mock.calls[0]![1] as RequestIni
 beforeEach(() => {
   vi.clearAllMocks();
   token = null;
+  pagePath = null;
   vi.stubGlobal("fetch", fetchMock);
 });
 
@@ -69,7 +77,28 @@ describe("request wrapper", () => {
     token = "stale";
     answer(401, { detail: "session expired" });
     await expect(api.me()).rejects.toThrow("NEXT_REDIRECT /sign-in");
-    expect(redirect).toHaveBeenCalledWith("/sign-in");
+    expect(redirect).toHaveBeenCalledWith("/sign-in?expired=1");
+  });
+
+  it("says the session ended and returns to the page it was on", async () => {
+    token = "stale";
+    pagePath = "/anomalies?status=open";
+    answer(401, { detail: "session expired" });
+    await expect(api.me()).rejects.toThrow("NEXT_REDIRECT");
+    expect(redirect).toHaveBeenCalledWith("/sign-in?expired=1&next=%2Fanomalies%3Fstatus%3Dopen");
+  });
+
+  it("keeps a foreign next out and sends a visitor without a token to plain /sign-in", async () => {
+    token = "stale";
+    pagePath = "//evil.test/x";
+    answer(401, { detail: "session expired" });
+    await expect(api.me()).rejects.toThrow("NEXT_REDIRECT");
+    expect(redirect).toHaveBeenLastCalledWith("/sign-in?expired=1");
+
+    token = null;
+    answer(401, { detail: "not signed in" });
+    await expect(api.me()).rejects.toThrow("NEXT_REDIRECT");
+    expect(redirect).toHaveBeenLastCalledWith("/sign-in");
   });
 
   it("answers 401 as an ApiError where the caller asked for it", async () => {
@@ -255,8 +284,23 @@ describe("describeError", () => {
     for (const [, detail, expected] of cases) {
       expect(describeError(new ApiError(404, "/api/v1/resource", detail))).toBe(expected);
     }
-    expect(describeError(new ApiError(404, "/api/v1/orgs/acme", "resource missing"))).toBe(
-      "Organization not found on the API.",
+    expect(
+      describeError(new ApiError(404, "/api/v1/orgs/acme", "unknown organization 'acme'")),
+    ).toBe("Organization not found on the API.");
+    expect(
+      describeError(new ApiError(404, "/api/v1/orgs/acme", "gone", null, "unknown_organization")),
+    ).toBe("Organization not found on the API.");
+    expect(describeError(new ApiError(404, "/api/v1/orgs/acme/teams/x", "team not found"))).toBe(
+      "Team not found.",
+    );
+  });
+
+  it("turns any other API detail into a sentence", () => {
+    expect(describeError(new ApiError(409, "/orgs/acme/sync", "a sync is running"))).toBe(
+      "A sync is running.",
+    );
+    expect(describeError(new ApiError(422, "/orgs/acme", "Name is too long."))).toBe(
+      "Name is too long.",
     );
   });
   it("keeps a role or invitation refusal, which names what to do next", () => {
@@ -277,6 +321,6 @@ describe("describeError", () => {
           "this invitation is no longer valid; ask an owner for a new one",
         ),
       ),
-    ).toBe("this invitation is no longer valid; ask an owner for a new one");
+    ).toBe("This invitation is no longer valid; ask an owner for a new one.");
   });
 });

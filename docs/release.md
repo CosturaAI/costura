@@ -32,29 +32,34 @@ and release-please writes the changelog heading with that first section.
      them:
 
      ```
-     just prod::backup "costura-$(date -u +%Y%m%dT%H%M%SZ).dump"
-     COSTURA_VERSION=X.Y.Z just prod::up
+     git fetch --tags && git checkout vX.Y.Z
+     just prod::upgrade
      ```
 
-     The backup line is step 1 of [upgrade.md](operations/upgrade.md); the second line is
-     its last step with the version filled in.
+     These are the two commands at the top of [upgrade.md](operations/upgrade.md), with the
+     version filled in. `just prod::upgrade` takes the backup, writes `COSTURA_VERSION` to
+     `.env` and migrates; a `COSTURA_VERSION=X.Y.Z` prefix on `just prod::up` would do
+     neither, because `.env` keeps the old release.
 3. Merge it. release-please tags `vX.Y.Z` and creates the GitHub Release.
 4. [`.github/workflows/publish-images.yml`](../.github/workflows/publish-images.yml) builds
-   and pushes `ghcr.io/costuraai/costura-{api,web,proxy}:X.Y.Z` (and `:latest`) with SBOM
-   and provenance. Pull-request image scans are a different workflow,
+   and pushes `ghcr.io/costuraai/costura-{api,web,proxy}:sha-<commit>` with SBOM and
+   provenance, smokes them (step 5), and only then tags them `X.Y.Z` and `latest` in the
+   "Promote the release tags" job. Pull-request image scans are a different workflow,
    [`.github/workflows/images.yml`](../.github/workflows/images.yml): they run weekly, and
    on pushes to `main` and pull requests that touch `apps/api/**`, `apps/web/**`,
-   `deploy/**`, `docker-compose.prod.yml`, the mise pins, the production smoke scripts, or
-   `.just/prod.just`. A change to `COSTURA_DEMO_REFRESH` in that compose file is already
+   `deploy/**`, `docker-compose.prod.yml`, the mise pins, the production smoke scripts, the
+   `scripts/prod*` scripts, the `Justfile`, or `.just/prod.just`. A change to `COSTURA_DEMO_REFRESH` in that compose file is already
    on this path list. The variable defaults to `false` and is forwarded to the scheduler.
-5. The last job of Publish images, "Published images smoke", runs after the tags move. It
-   checks out the release tag, pulls `ghcr.io/costuraai/costura-{api,web,proxy}:X.Y.Z` from GHCR, starts
-   the production Compose stack on the runner with `just prod::up` and a synthetic env file
-   from `scripts/smoke-env.sh`, reads `/live` through the proxy, and removes the stack. It
-   builds nothing: a red run means the published images do not start together. Rerun that
-   job from the Actions tab after a GHCR outage; a failure that reproduces is a reason to pull
-   the Release and the tags before announcing them.
-6. The "Attach the Docker-only bundle" job runs after the smoke passes. It packs
+5. The "Release candidate smoke" job of Publish images runs after every image is built,
+   scanned and attested, and before the tags move. It checks out the release tag, pulls
+   `ghcr.io/costuraai/costura-{api,web,proxy}:sha-<commit>` from GHCR, starts the production
+   Compose stack on the runner with `just prod::up` and a synthetic env file from
+   `scripts/smoke-env.sh` (`COSTURA_VERSION=sha-<commit>`), reads `/live` through the proxy,
+   and removes the stack. It builds nothing: a red run means the candidate images do not
+   start together, and `X.Y.Z` and `latest` stay where they were. Rerun that job from the
+   Actions tab after a GHCR outage; the promote job runs when it passes. A failure that
+   reproduces is a reason to pull the Release before announcing it.
+6. The "Attach the Docker-only bundle" job runs after the promote job. It packs
    `costura-X.Y.Z.tar.gz` with `scripts/release-bundle.sh` (the production compose file,
    `.env.example`, `LICENSE` and the prod init, doctor and password scripts) and uploads it
    and its `.sha256` to the Release, for the

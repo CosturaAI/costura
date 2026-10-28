@@ -16,6 +16,7 @@ from costura.api.ratelimit import (
     bucket_for,
     client_address,
     connect_org,
+    limiter,
 )
 from costura.config import get_settings
 from costura.models.organization import DEMO_ORG_SLUG
@@ -164,7 +165,7 @@ def test_sign_in_answers_429_past_the_limit(
     assert [r.headers["ratelimit-limit"] for r in answers] == ["3"] * 4
     assert [r.headers["ratelimit-remaining"] for r in answers] == ["2", "1", "0", "0"]
     refused = anonymous.post("/api/v1/auth/dev-sign-in", json=body)
-    assert refused.json() == {"detail": TOO_MANY}
+    assert refused.json() == {"detail": TOO_MANY, "code": "rate_limited"}
     assert refused.headers["retry-after"] == refused.headers["ratelimit-reset"]
     assert 1 <= int(refused.headers["retry-after"]) <= WINDOW_SECONDS
     # The sign-in bucket does not touch the sample organization's reads.
@@ -211,6 +212,22 @@ def test_reads_are_limited_per_session(
     # Probes are not limited and carry no rate-limit headers.
     live = client.get("/live")
     assert live.status_code == 200 and "ratelimit-limit" not in live.headers
+
+
+def test_unknown_tokens_share_the_sender_address_window(
+    db_session: Session, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    from costura.main import app
+
+    monkeypatch.setattr(get_settings(), "costura_rate_limit_read", 3)
+    statuses = [
+        TestClient(app, headers={"Authorization": f"Bearer random-{n}"})
+        .get("/api/v1/orgs/default/setup")
+        .status_code
+        for n in range(5)
+    ]
+    assert statuses == [401, 401, 401, 429, 429]
+    assert not any(key[1] == "session" for key in limiter.hits)
 
 
 def test_key_stores_are_limited_per_organization(

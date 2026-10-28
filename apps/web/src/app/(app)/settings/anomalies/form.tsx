@@ -3,7 +3,7 @@
 import { useActionState } from "react";
 
 import { SubmitButton } from "@/components/submit-button";
-import { Feedback, FieldError, invalid } from "@/components/form-feedback";
+import { Feedback, FieldError, OrgField, invalid } from "@/components/form-feedback";
 import { NativeSelect } from "@/components/ui/native-select";
 import { Input } from "@/components/ui/input";
 import { idleAction } from "@/lib/action-errors";
@@ -12,15 +12,22 @@ import type { AnomalySettings } from "@/lib/api";
 import { saveAnomalySettingsAction } from "../organization-actions";
 
 export function AnomalySettingsForm({
+  org,
   settings,
   canManage,
+  isOwner,
 }: {
+  org: string;
   settings: AnomalySettings;
+  /** Owner, writes on and not the sample: the fields are editable. */
   canManage: boolean;
+  /** Owner whatever the instance allows: an owner is not told to ask one. */
+  isOwner: boolean;
 }) {
   const [state, action, pending] = useActionState(saveAnomalySettingsAction, idleAction);
   return (
     <form action={action} className="space-y-4">
+      <OrgField org={org} />
       <div className="space-y-1">
         <label htmlFor="anomaly-sensitivity" className="text-sm font-medium text-foreground">
           Sensitivity
@@ -32,6 +39,7 @@ export function AnomalySettingsForm({
           disabled={!canManage || pending}
           className="mt-1 w-full"
           aria-invalid={invalid(state, "sensitivity") || undefined}
+          aria-describedby={invalid(state, "sensitivity") ? "anomaly-sensitivity-error" : undefined}
         >
           <option value="low">Low</option>
           <option value="normal">Normal</option>
@@ -70,6 +78,9 @@ export function AnomalySettingsForm({
           defaultValue={settings.retention_days}
           disabled={!canManage || pending}
           aria-invalid={invalid(state, "retention_days") || undefined}
+          aria-describedby={
+            invalid(state, "retention_days") ? "anomaly-retention-error" : undefined
+          }
         />
         <FieldError state={state} field="retention_days" id="anomaly-retention-error" />
       </div>
@@ -109,7 +120,7 @@ export function AnomalySettingsForm({
       </div>
       {canManage ? (
         <SubmitButton pending={pending}>Save</SubmitButton>
-      ) : (
+      ) : isOwner ? null : (
         <p className="text-sm text-muted-foreground">Only an owner can change these.</p>
       )}
       <Feedback state={state} />

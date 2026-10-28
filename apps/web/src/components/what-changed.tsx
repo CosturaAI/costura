@@ -39,7 +39,7 @@ export function WhatChanged({
       <CardContent>
         <ul aria-labelledby="largest-moves" className="space-y-1 text-sm">
           {rows.map((row) => {
-            const href = entityHref(movers.dimension, row.key);
+            const href = entityHref(movers.dimension, row.key, null, row.provider);
             const name = splitLabel(row.label).name;
             return (
               <li key={`${row.provider ?? "scope"}:${row.key}`}>

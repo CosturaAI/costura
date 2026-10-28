@@ -80,7 +80,6 @@ export function ScopeSelectors({
           </SelectContent>
         </Select>
       </label>
-      {!stacked ? <span className="text-faint-foreground">/</span> : null}
     </div>
   );
 }
@@ -108,7 +107,14 @@ export function ScopeBreadcrumb({
   return (
     <nav aria-label="Scope" className="flex min-w-0 flex-1 items-center gap-1.5 sm:flex-wrap">
       <ScopeSelectors provider={provider} providers={providers} />
-      {showTime ? <TimeFrameControl from={from} to={to} /> : null}
+      {showTime ? (
+        <>
+          <span aria-hidden="true" className="text-faint-foreground">
+            /
+          </span>
+          <TimeFrameControl from={from} to={to} />
+        </>
+      ) : null}
       {showInterval ? <IntervalControl interval={interval} /> : null}
     </nav>
   );

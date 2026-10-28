@@ -104,10 +104,11 @@ script or an agent parses their output. The architecture is one diagram:
 
 ## Migrations
 
-Checked migration inventory, 1 revision in base-to-head order.
+Checked migration inventory, 2 revisions in base-to-head order.
 
 <!-- migration-inventory:start -->
 
 - `7ed3e699f8bc_baseline`
+- `1e0cf1dde539_index_sync_run_references_for_retention`
 
 <!-- migration-inventory:end -->

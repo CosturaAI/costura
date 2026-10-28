@@ -14,8 +14,7 @@ export type EntityLookup = { provider: string; provider_account_id: number | nul
 
 export type Organization = Schema<"OrganizationOut">;
 
-/** Slug of the public sample organization (`DEMO_ORG_SLUG` in the API). */
-export const DEMO_ORG = "demo";
+export { DEMO_ORG } from "@/lib/public-demo";
 
 export type Member = Schema<"MemberOut">;
 

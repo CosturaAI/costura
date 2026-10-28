@@ -84,6 +84,14 @@ def validate_org(value: str) -> str:
     return cleaned
 
 
+def served_from(now: datetime | None = None) -> datetime:
+    """Midnight UTC of the first day inside the API's lookback; reads and the replace of
+    stored rows both start there."""
+    today = (now or datetime.now(UTC)).astimezone(UTC).date()
+    first = today - timedelta(days=MAX_LOOKBACK_DAYS)
+    return datetime(first.year, first.month, first.day, tzinfo=UTC)
+
+
 def days_in(start: datetime, end: datetime, *, now: datetime | None = None) -> list[date]:
     """The UTC calendar days of `[start, end)`, within the API's lookback and not after today."""
     if start.tzinfo is None or end.tzinfo is None:
