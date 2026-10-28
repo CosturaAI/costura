@@ -146,19 +146,26 @@ export function ResourceSearch({
 
   return (
     <>
-      <button
-        type="button"
-        aria-label="Search resources"
-        aria-keyshortcuts="Control+K Meta+K"
-        aria-expanded={open}
-        aria-haspopup="dialog"
-        onClick={(event) => openSearch(event.currentTarget)}
-        className="inline-flex h-9 items-center gap-2 rounded-lg border border-border bg-card px-2.5 text-sm text-muted-foreground hover:text-foreground"
-      >
-        <Search className="size-4" aria-hidden />
-        <span className="hidden sm:inline">Search</span>
-        <kbd className="hidden font-mono text-xs sm:inline">Ctrl K</kbd>
-      </button>
+      <span className="relative inline-flex">
+        <button
+          type="button"
+          aria-label="Search resources"
+          aria-keyshortcuts="Control+K Meta+K"
+          aria-expanded={open}
+          aria-haspopup="dialog"
+          onClick={(event) => openSearch(event.currentTarget)}
+          className="peer inline-flex h-9 items-center gap-2 rounded-lg border border-border bg-card px-2.5 text-sm text-muted-foreground hover:text-foreground sm:pr-16"
+        >
+          <Search className="size-4" aria-hidden />
+          <span className="hidden sm:inline">Search</span>
+        </button>
+        <kbd
+          aria-hidden
+          className="pointer-events-none absolute top-1/2 right-2.5 hidden -translate-y-1/2 font-mono text-xs text-muted-foreground peer-hover:text-foreground sm:inline"
+        >
+          Ctrl K
+        </kbd>
+      </span>
       <CommandDialog
         open={open}
         onOpenChange={(next) => (next ? openSearch(null) : closeSearch())}

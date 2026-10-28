@@ -1,4 +1,5 @@
 import { StatePanel } from "@/components/empty-state";
+import { PageHeader } from "@/components/page-header";
 
 /**
  * A Settings section this caller cannot open: Audit and Advanced need the owner role (Advanced
@@ -7,10 +8,15 @@ import { StatePanel } from "@/components/empty-state";
  */
 export default function SettingsSectionNotFound() {
   return (
-    <StatePanel
-      title="This section is not available here"
-      message="Audit and Advanced need the owner role in this organization; ask an owner for it. The sample organization has no organization, members, teams or account sections."
-      action={{ href: "/settings", label: "Back to Settings" }}
-    />
+    <div className="space-y-4">
+      <PageHeader
+        title="Section not available"
+        description="Audit and Advanced need the owner role in this organization; ask an owner for it. The sample organization has no organization, members, teams or account sections."
+      />
+      <StatePanel
+        message="The other sections of Settings stay open to you."
+        action={{ href: "/settings", label: "Back to Settings" }}
+      />
+    </div>
   );
 }

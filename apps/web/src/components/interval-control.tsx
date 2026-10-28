@@ -29,7 +29,7 @@ export function IntervalControl({ interval }: { interval: QueryInterval }) {
   return (
     <Select value={interval} onValueChange={change}>
       <SelectTrigger
-        aria-label="Interval"
+        aria-label={`Interval: ${OPTIONS.find((option) => option.value === interval)?.label ?? interval}`}
         aria-busy={pending || undefined}
         aria-disabled={pending || undefined}
         className="w-24 sm:w-28"

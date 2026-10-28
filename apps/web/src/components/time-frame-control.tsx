@@ -100,7 +100,7 @@ export function TimeFrameControl({ from, to }: { from: string; to: string }) {
         <Button
           type="button"
           variant="outline"
-          aria-label="Time frame"
+          aria-label={`Time frame: ${label} ${range}`}
           aria-busy={pending || undefined}
           aria-disabled={pending || undefined}
           onClick={(event) => {
@@ -111,7 +111,7 @@ export function TimeFrameControl({ from, to }: { from: string; to: string }) {
           <CalendarIcon className="text-muted-foreground" />
           <span className={selected === "custom" ? "sr-only sm:not-sr-only" : "truncate"}>
             {label}
-          </span>
+          </span>{" "}
           <span
             className={
               selected === "custom" ? "truncate" : "hidden truncate text-muted-foreground sm:inline"

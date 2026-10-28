@@ -573,12 +573,12 @@ describe("sidebar account menu", () => {
 
   it("shows the account menu only when a user is given", async () => {
     const { unmount } = render(<Sidebar account={account} />);
-    expect(screen.queryByRole("button", { name: "Account menu" })).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: /^Account menu/ })).not.toBeInTheDocument();
     unmount();
 
     render(<Sidebar account={account} user={jane} />);
     const aside = screen.getByRole("complementary", { name: "Sidebar" });
-    const trigger = within(aside).getByRole("button", { name: "Account menu" });
+    const trigger = within(aside).getByRole("button", { name: /^Account menu/ });
     expect(trigger).toHaveTextContent("Acme");
     expect(trigger).toHaveTextContent("Owner - Acme");
     fireEvent.keyDown(trigger, { key: "Enter" });
@@ -599,7 +599,7 @@ describe("sidebar account menu", () => {
     render(<MobileNav account={account} user={jane} />);
     fireEvent.click(screen.getByRole("button", { name: "Open navigation" }));
     const dialog = screen.getByRole("dialog");
-    expect(within(dialog).getByRole("button", { name: "Account menu" })).toHaveTextContent("Acme");
+    expect(within(dialog).getByRole("button", { name: /^Account menu/ })).toHaveTextContent("Acme");
   });
 
   it("offers Sign in to a visitor on the sample organization, on desktop and mobile", () => {
@@ -610,7 +610,7 @@ describe("sidebar account menu", () => {
       "href",
       "/sign-in",
     );
-    expect(within(aside).queryByRole("button", { name: "Account menu" })).not.toBeInTheDocument();
+    expect(within(aside).queryByRole("button", { name: /^Account menu/ })).not.toBeInTheDocument();
     unmount();
 
     render(<MobileNav account={sample} user={null} />);

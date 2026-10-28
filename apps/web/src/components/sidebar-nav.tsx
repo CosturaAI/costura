@@ -272,7 +272,6 @@ function UserFooter({
     <div className="border-t border-border px-2 py-2">
       <DropdownMenu>
         <DropdownMenuTrigger
-          aria-label="Account menu"
           title={collapsed ? account.name : undefined}
           className={cn(
             "flex min-h-11 w-full items-center gap-2.5 rounded-lg px-2.5 text-left text-sm transition-colors hover:bg-muted data-[state=open]:bg-muted",
@@ -281,10 +280,10 @@ function UserFooter({
         >
           <span
             aria-hidden
-            className="inline-flex h-7 w-7 shrink-0 items-center justify-center rounded-md bg-subtle text-xs font-semibold text-secondary-foreground uppercase"
-          >
-            {account.name.slice(0, 1)}
-          </span>
+            data-initial={account.name.slice(0, 1)}
+            className="inline-flex h-7 w-7 shrink-0 items-center justify-center rounded-md bg-subtle text-xs font-semibold text-secondary-foreground uppercase before:content-[attr(data-initial)]"
+          />
+          <span className="sr-only">Account menu: </span>
           <span className={cn("sidebar-expanded min-w-0 flex-1", collapsed && "sr-only")}>
             <span className="block truncate font-medium text-foreground">{account.name}</span>
             <span className="block truncate text-xs text-muted-foreground">{subtitle}</span>

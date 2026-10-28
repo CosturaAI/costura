@@ -1,4 +1,4 @@
-import { fireEvent, render, screen, waitFor } from "@testing-library/react";
+import { fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
@@ -24,15 +24,15 @@ describe("time range controls", () => {
   it("shows the preset and its dates on the trigger", () => {
     render(<TimeFrameControl from="2026-09-10" to="2026-10-09" />);
 
-    expect(screen.getByRole("button", { name: "Time frame" })).toHaveTextContent("Last 30 days");
-    expect(screen.getByRole("button", { name: "Time frame" })).toHaveTextContent("Sep 10 - Oct 9");
+    expect(screen.getByRole("button", { name: /^Time frame/ })).toHaveTextContent("Last 30 days");
+    expect(screen.getByRole("button", { name: /^Time frame/ })).toHaveTextContent("Sep 10 - Oct 9");
   });
 
   it("shows and applies dates for a custom range", async () => {
     const user = userEvent.setup({ advanceTimers: vi.advanceTimersByTime });
     render(<TimeFrameControl from="2026-06-10" to="2026-06-20" />);
 
-    const trigger = screen.getByRole("button", { name: "Time frame" });
+    const trigger = screen.getByRole("button", { name: /^Time frame/ });
     expect(trigger).toHaveTextContent("Custom");
     expect(trigger).toHaveTextContent("Jun 10 - Jun 20");
     await user.click(trigger);
@@ -55,7 +55,7 @@ describe("time range controls", () => {
   it("blocks a custom range that ends before it starts", async () => {
     const user = userEvent.setup({ advanceTimers: vi.advanceTimersByTime });
     render(<TimeFrameControl from="2026-06-10" to="2026-06-20" />);
-    await user.click(screen.getByRole("button", { name: "Time frame" }));
+    await user.click(screen.getByRole("button", { name: /^Time frame/ }));
 
     fireEvent.change(screen.getByLabelText("From"), { target: { value: "2026-07-01" } });
 
@@ -66,12 +66,11 @@ describe("time range controls", () => {
   it("applies a calendar preset in one click", async () => {
     const user = userEvent.setup({ advanceTimers: vi.advanceTimersByTime });
     render(<TimeFrameControl from="2026-09-01" to="2026-09-30" />);
-    await user.click(screen.getByRole("button", { name: "Time frame" }));
+    await user.click(screen.getByRole("button", { name: /^Time frame/ }));
 
-    expect(screen.getByRole("button", { name: /Last month/ })).toHaveAttribute(
-      "aria-pressed",
-      "true",
-    );
+    expect(
+      within(screen.getByRole("dialog")).getByRole("button", { name: /Last month/ }),
+    ).toHaveAttribute("aria-pressed", "true");
     await user.click(screen.getByRole("button", { name: /This quarter/ }));
 
     await waitFor(() =>
@@ -87,7 +86,7 @@ describe("time range controls", () => {
   it("switches a last-N window between complete days and including today", async () => {
     const user = userEvent.setup({ advanceTimers: vi.advanceTimersByTime });
     render(<TimeFrameControl from="2026-10-03" to="2026-10-09" />);
-    await user.click(screen.getByRole("button", { name: "Time frame" }));
+    await user.click(screen.getByRole("button", { name: /^Time frame/ }));
 
     expect(screen.getByRole("button", { name: "7 days" })).toHaveAttribute("aria-pressed", "true");
     expect(screen.getByText(/Ends yesterday, Oct 9/)).toBeInTheDocument();
@@ -106,7 +105,7 @@ describe("time range controls", () => {
   it("labels a window that includes today", () => {
     render(<TimeFrameControl from="2026-09-11" to="2026-10-10" />);
 
-    expect(screen.getByRole("button", { name: "Time frame" })).toHaveTextContent(
+    expect(screen.getByRole("button", { name: /^Time frame/ })).toHaveTextContent(
       "Last 30 days + today",
     );
   });
@@ -114,6 +113,6 @@ describe("time range controls", () => {
   it("renders the selected interval", () => {
     render(<IntervalControl interval="week" />);
 
-    expect(screen.getByRole("combobox", { name: "Interval" })).toHaveTextContent("Weekly");
+    expect(screen.getByRole("combobox", { name: /^Interval/ })).toHaveTextContent("Weekly");
   });
 });

@@ -32,7 +32,7 @@ for (const [width, height, size] of [
     for (const [name, path] of APP_PAGES) {
       test(name, async ({ page }) => {
         await openApp(page, path);
-        await expect(page.getByRole("combobox", { name: "Provider" }).first()).toBeVisible();
+        await expect(page.getByRole("combobox", { name: /^Provider/ }).first()).toBeVisible();
         if (size === "desktop") {
           await page.evaluate(() => window.scrollTo(0, 600));
           const top = await page

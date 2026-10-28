@@ -150,7 +150,7 @@ export function DeleteTeamForm({ org, team }: { org: string; team: Team }) {
         description="Its mappings and its budgets are deleted; its spend reads (no team)."
         confirmLabel="Remove team"
         pending={pending}
-        aria-label={`Remove the team ${team.name}`}
+        aria-label={`Remove team ${team.name}`}
       >
         {pending ? "Removing..." : "Remove team"}
       </ConfirmSubmit>

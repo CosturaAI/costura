@@ -81,9 +81,9 @@ describe("scope layout", () => {
 
     // The organization is not a scope control any more: it lives in the footer menu.
     expect(screen.queryByRole("combobox", { name: "Organization" })).not.toBeInTheDocument();
-    expect(screen.getByRole("combobox", { name: "Provider" })).toHaveTextContent("Anthropic");
-    expect(screen.getByRole("button", { name: "Time frame" })).toHaveTextContent("Last month");
-    expect(screen.getByRole("combobox", { name: "Interval" })).toHaveTextContent("Daily");
+    expect(screen.getByRole("combobox", { name: /^Provider/ })).toHaveTextContent("Anthropic");
+    expect(screen.getByRole("button", { name: /^Time frame/ })).toHaveTextContent("Last month");
+    expect(screen.getByRole("combobox", { name: /^Interval/ })).toHaveTextContent("Daily");
     expect(screen.getByRole("button", { name: "Search resources" })).toHaveAttribute(
       "aria-keyshortcuts",
       "Control+K Meta+K",
@@ -190,7 +190,7 @@ describe("scope layout", () => {
     fireEvent.click(screen.getByRole("button", { name: "Open navigation" }));
 
     const sheet = screen.getByRole("dialog", { name: "Navigation" });
-    expect(within(sheet).getByRole("combobox", { name: "Provider" })).toHaveTextContent(
+    expect(within(sheet).getByRole("combobox", { name: /^Provider/ })).toHaveTextContent(
       "Anthropic",
     );
     expect(within(sheet).getByText("Provider")).toBeVisible();
@@ -232,7 +232,7 @@ describe("scope layout", () => {
     render(await ScopeLayout({ children: null }));
     // No organization select in the scope bar: the organization lives in the session.
     expect(screen.queryByRole("combobox", { name: "Organization" })).not.toBeInTheDocument();
-    const trigger = screen.getByRole("button", { name: "Account menu" });
+    const trigger = screen.getByRole("button", { name: /^Account menu/ });
     expect(trigger).toHaveTextContent("Default organization");
     expect(trigger).toHaveTextContent("Owner - Default organization");
 
@@ -314,8 +314,8 @@ describe("scope layout", () => {
     page.searchParams = new URLSearchParams({ by: "model", api_key: "apikey_1" });
     render(await ScopeLayout({ children: null }));
 
-    expect(screen.getByRole("button", { name: "Time frame" })).toHaveTextContent("Last month");
-    expect(screen.getByRole("combobox", { name: "Interval" })).toHaveTextContent("Daily");
+    expect(screen.getByRole("button", { name: /^Time frame/ })).toHaveTextContent("Last month");
+    expect(screen.getByRole("combobox", { name: /^Interval/ })).toHaveTextContent("Daily");
     expect(setViewAction).not.toHaveBeenCalled();
     expect(push).not.toHaveBeenCalled();
   });
@@ -510,7 +510,7 @@ describe("scope layout", () => {
         within(note).getByRole("link", { name: "Connect a provider in your organization" }),
       ).toHaveAttribute("href", "/o/default?next=%2Fwelcome");
       expect(screen.queryByRole("region", { name: "Import progress" })).not.toBeInTheDocument();
-      expect(screen.getByRole("button", { name: "Account menu" })).toHaveTextContent(
+      expect(screen.getByRole("button", { name: /^Account menu/ })).toHaveTextContent(
         "Sample organization",
       );
       expect(within(note).queryByRole("button")).not.toBeInTheDocument();
@@ -539,7 +539,9 @@ describe("scope layout", () => {
         "href",
         "/sign-in",
       );
-      expect(within(aside).queryByRole("button", { name: "Account menu" })).not.toBeInTheDocument();
+      expect(
+        within(aside).queryByRole("button", { name: /^Account menu/ }),
+      ).not.toBeInTheDocument();
       expect(within(aside).queryByText("Default")).not.toBeInTheDocument();
     });
 
@@ -567,14 +569,14 @@ describe("scope layout", () => {
     page.view = { org: "default", month: "2026-05", scope: "anthropic" };
     render(await ScopeLayout({ children: null }));
     expect(mocked.runs).toHaveBeenCalledWith("default", "anthropic", 50);
-    expect(screen.getByRole("button", { name: "Time frame" })).toHaveTextContent("Last month");
+    expect(screen.getByRole("button", { name: /^Time frame/ })).toHaveTextContent("Last month");
   });
 
   it("falls back to all providers when the cookie names an unknown scope", async () => {
     page.view = { org: "default", month: "2026-08", scope: "bedrock" };
     render(await ScopeLayout({ children: null }));
     expect(mocked.months).toHaveBeenCalledWith("default", "all");
-    expect(screen.getByRole("combobox", { name: "Provider" })).toHaveTextContent("All providers");
+    expect(screen.getByRole("combobox", { name: /^Provider/ })).toHaveTextContent("All providers");
   });
 
   it("sends a visitor without a session or a view cookie to sign in, not back to /", async () => {
@@ -612,7 +614,7 @@ describe("scope layout", () => {
     expect(mocked.connection).not.toHaveBeenCalledWith("default", "all");
     expect(mocked.months).toHaveBeenCalledWith("default", "all");
     expect(mocked.runs).toHaveBeenCalledWith("default", "all", 50);
-    expect(screen.getByRole("combobox", { name: "Provider" })).toHaveTextContent("All providers");
+    expect(screen.getByRole("combobox", { name: /^Provider/ })).toHaveTextContent("All providers");
     expect(screen.getByRole("link", { name: "Settings" })).toHaveAttribute("href", "/settings");
     // The freshness pill dates the data by the newest succeeded cost sync of any provider.
     expect(screen.getByRole("button", { name: /^Data freshness:/ })).toHaveTextContent(

@@ -105,8 +105,13 @@ The devcontainer installs mise from a release binary checked against a SHA-256 i
 (`gh api repos/jdx/mise/releases/latest --jq .tag_name`).
 
 Dependabot updates the `FROM` digests in [`deploy/proxy.Dockerfile`](../deploy/proxy.Dockerfile),
-not the arguments of its `xcaddy build` line. When Caddy or `golang.org/x/net` ships a
-release, or the image scan names one of them, bump `v2.11.7` (and the matching
-`caddy:<version>-builder-alpine` and `caddy:<version>-alpine` tags) and the `x/net` version in
-that line by hand. `gh api repos/caddyserver/caddy/releases/latest --jq .tag_name` and
-`curl -s https://proxy.golang.org/golang.org/x/net/@latest` print the newest versions.
+not the arguments of its `xcaddy build` line. When Caddy, `golang.org/x/net` or
+`github.com/go-jose/go-jose/v4` ships a release, or the image scan names one of them, bump
+`v2.11.7` (and the matching `caddy:<version>-builder-alpine` and `caddy:<version>-alpine` tags)
+and the `--replace` versions in that line by hand.
+`gh api repos/caddyserver/caddy/releases/latest --jq .tag_name`,
+`curl -s https://proxy.golang.org/golang.org/x/net/@latest` and
+`gh api repos/go-jose/go-jose/releases/latest --jq .tag_name` print the newest versions. The
+API and proxy runtime stages upgrade the base image's system packages at build time, as the
+web image does, so a fixed Debian or Alpine package reaches the image before its base is
+rebuilt.

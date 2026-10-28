@@ -23,8 +23,11 @@ FROM python:3.14.9-slim-bookworm@sha256:945c2676dc2b18e0c1f16879244122c57c0ffede
 ARG COSTURA_UID=1001
 ARG COSTURA_GID=1001
 
-# The digest-pinned base already ships ca-certificates; nothing is installed from apt.
-RUN groupadd --gid "${COSTURA_GID}" costura \
+# The digest-pinned base already ships ca-certificates; apt only upgrades its packages.
+RUN apt-get update \
+    && apt-get upgrade -y --no-install-recommends \
+    && rm -rf /var/lib/apt/lists/* \
+    && groupadd --gid "${COSTURA_GID}" costura \
     && useradd --uid "${COSTURA_UID}" --gid "${COSTURA_GID}" --home-dir /app --shell /usr/sbin/nologin costura \
     && rm -rf /usr/local/lib/python3.14/site-packages/pip /usr/local/lib/python3.14/site-packages/pip-*.dist-info \
         /usr/local/bin/pip /usr/local/bin/pip3 /usr/local/bin/pip3.14

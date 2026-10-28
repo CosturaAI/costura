@@ -224,7 +224,7 @@ configured and accepts no change.
 
 Every settings form posts the organization its page showed; when another tab has opened a
 different organization since, the write is refused with a sentence asking for a reload.
-A member's role changes only on Save. Audit and Advanced answer a "not available here" page
+A member's role changes only on Save. Audit and Advanced answer a "Section not available" page
 that links back to Settings for a caller without the owner role, and switching organization
 from a settings section or from an id-specific page lands on Settings or on the list page.
 

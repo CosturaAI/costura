@@ -61,7 +61,7 @@ export function ScopeSelectors({
         </span>
         <Select value={provider} onValueChange={go}>
           <SelectTrigger
-            aria-label="Provider"
+            aria-label={`Provider: ${providerLabel(provider)}`}
             aria-busy={pending || undefined}
             aria-disabled={pending || undefined}
             className={cn(

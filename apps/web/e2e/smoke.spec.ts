@@ -152,11 +152,11 @@ test("the account menu and the provider select change the view by keyboard", asy
     } else {
       await expect(page.getByRole("button", { name: "Open navigation" })).toBeHidden();
     }
-    await expect(shell().getByRole("combobox", { name: "Provider" })).toHaveText("Anthropic");
+    await expect(shell().getByRole("combobox", { name: /^Provider/ })).toHaveText("Anthropic");
 
     // The footer menu names the signed-in address and lists the organizations; the active one
     // is checked. Choosing another opens it and keeps the page.
-    const account = shell().getByRole("button", { name: "Account menu" });
+    const account = shell().getByRole("button", { name: /^Account menu/ });
     await expect(account).toContainText("Default organization");
     await account.focus();
     await page.keyboard.press("Enter");
@@ -173,10 +173,10 @@ test("the account menu and the provider select change the view by keyboard", asy
       await page.getByRole("button", { name: "Open navigation" }).press("Enter");
       await expect(sheet).toBeVisible();
     }
-    await expect(shell().getByRole("button", { name: "Account menu" })).toContainText("Acme");
+    await expect(shell().getByRole("button", { name: /^Account menu/ })).toContainText("Acme");
 
     // The provider select writes the view cookie: the address does not change, the page does.
-    const provider = shell().getByRole("combobox", { name: "Provider" });
+    const provider = shell().getByRole("combobox", { name: /^Provider/ });
     await provider.focus();
     await page.keyboard.press("Enter");
     await page.getByRole("option", { name: "OpenRouter" }).press("Enter");
@@ -626,7 +626,7 @@ test("a visitor without a session reads the sample organization and is offered s
   );
   const sidebar = page.getByRole("complementary", { name: "Sidebar" });
   await expect(sidebar.getByRole("link", { name: "Sign in" })).toHaveAttribute("href", "/sign-in");
-  await expect(sidebar.getByRole("button", { name: "Account menu" })).toHaveCount(0);
+  await expect(sidebar.getByRole("button", { name: /^Account menu/ })).toHaveCount(0);
 
   // Opening an organization the visitor would have to be a member of asks for a session.
   await page.goto("/o/default");
@@ -700,7 +700,7 @@ test("an owner invites an address and a second identity joins through the link",
   await expect(page.getByRole("heading", { level: 1 })).toContainText("Join Default organization");
   await page.getByRole("button", { name: "Accept invitation" }).click();
   await expect(page).toHaveURL(/\/overview$/);
-  await expect(page.getByRole("button", { name: "Account menu" }).first()).toContainText(
+  await expect(page.getByRole("button", { name: /^Account menu/ }).first()).toContainText(
     "Default organization",
   );
 

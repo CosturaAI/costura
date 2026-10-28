@@ -167,7 +167,9 @@ test("Settings explain the sample and leave out what it does not have", async ({
   for (const section of ["members", "organization", "account", "advanced"]) {
     // The settings shell streams first, so the status stays 200 and the body is the 404 page.
     await page.goto(`/settings/${section}`);
-    await expect(page.getByRole("heading", { level: 1, name: "Not found" })).toBeVisible();
+    await expect(
+      page.getByRole("heading", { level: 1, name: "Section not available" }),
+    ).toBeVisible();
   }
 });
 
