@@ -146,8 +146,9 @@ Examples: `feat: add openrouter credit prices`, `fix: reject empty operator secr
 
 On a first pull request to this repository, the workflows wait until a maintainer approves
 the run; after the first merged pull request they start on every push. A pull request
-merges only when its branch contains the latest `main`, so rebase on `upstream/main` and
-push again when the checks report the branch as out of date.
+merges after a maintainer approves it and only when its branch contains the latest `main`.
+When the page reports the branch as out of date, "Update branch" on the pull request merges
+`main` into it; rebasing on `upstream/main` and pushing again does the same.
 
 A small bug fix goes straight to a pull request. A change that adds surface (a new
 provider, a new route, or a new table) starts with an issue so the scope is agreed before
