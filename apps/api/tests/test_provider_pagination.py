@@ -6,7 +6,7 @@ import httpx
 import pytest
 
 from costura.providers.http import ProviderApiError
-from costura.providers.pagination import cursor_pages, offset_pages, split_window
+from costura.providers.pagination import clamped_windows, cursor_pages, offset_pages, split_window
 
 
 class PageError(ProviderApiError):
@@ -21,6 +21,18 @@ def test_split_window_is_consecutive_and_keeps_partial_tail() -> None:
         (start + timedelta(days=2), start + timedelta(days=4)),
         (start + timedelta(days=4), end),
     ]
+
+
+@pytest.mark.parametrize(
+    ("start", "end"),
+    [
+        (datetime(2026, 1, 1), datetime(2026, 1, 2, tzinfo=UTC)),
+        (datetime(2026, 1, 1, tzinfo=UTC), datetime(2026, 1, 2)),
+    ],
+)
+def test_clamped_windows_requires_timezone_aware_bounds(start: datetime, end: datetime) -> None:
+    with pytest.raises(ValueError, match="must be timezone-aware"):
+        clamped_windows(start, end, days=1)
 
 
 @pytest.mark.parametrize("days", [0, -1])
