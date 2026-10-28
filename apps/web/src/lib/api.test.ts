@@ -246,6 +246,19 @@ describe("describeError", () => {
     );
   });
 
+  it("words API 404 details for workspaces, budgets and anomalies", () => {
+    const cases = [
+      ["workspace", "workspace not found", "Workspace not found."],
+      ["budget", "budget has gone", "Budget has gone."],
+      ["anomaly", "anomaly disappeared", "Anomaly disappeared."],
+    ] as const;
+    for (const [, detail, expected] of cases) {
+      expect(describeError(new ApiError(404, "/api/v1/resource", detail))).toBe(expected);
+    }
+    expect(describeError(new ApiError(404, "/api/v1/orgs/acme", "resource missing"))).toBe(
+      "Organization not found on the API.",
+    );
+  });
   it("keeps a role or invitation refusal, which names what to do next", () => {
     expect(
       describeError(
