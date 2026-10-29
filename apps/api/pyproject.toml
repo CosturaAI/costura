@@ -1,6 +1,6 @@
 [project]
 name = "costura-api"
-version = "0.3.0"
+version = "0.4.0"
 description = "Costura API: self-hosted AI spend attribution."
 readme = "README.md"
 license = "Apache-2.0"
