@@ -75,6 +75,7 @@ operating or changing Costura:
 | `just api::purge` | One retention pass over raw pages and finished runs |
 | `just api::demo-seed`, `just api::demo-status`, `just api::demo-refresh` | Publish, check or rebuild the sample organization |
 | `just api::tieout-report --org <slug> --months 3` | Reconciliation verdicts as percentages, no amounts |
+| `just api::capture-fixtures <provider> <out_dir> --org <slug>` | Stored provider pages as redacted JSON fixtures; review before sharing |
 | `just api::secret-generate`, `just api::operator-secret`, `just api::secret-rotate` | Keys for `.env`; re-encrypt stored secrets |
 | `just api::claim-owner <slug> <email>` | First owner of an organization with no members |
 | `just db::up`, `just db::down`, `just db::psql`, `just db::reset` | Local PostgreSQL |

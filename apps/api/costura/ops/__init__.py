@@ -3,7 +3,8 @@
 Tenant administration lives in the API and the web app; these runners cover only what has to
 happen outside a signed-in session: the scheduler process, the sync worker, retention
 purge, the demo seed, the encryption key, the restricted runtime database role, the first
-owner of an organization that has no members, and the redacted tie-out report.
+owner of an organization that has no members, the redacted tie-out report, and redacted
+fixtures captured from stored provider pages.
 """
 
 import signal

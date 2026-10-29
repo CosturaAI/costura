@@ -65,6 +65,14 @@ body:
     attributes:
       label: Redacted logs
       description: Remove provider keys, session cookies, COSTURA_SECRET_KEY, and the contents of .env before pasting.
+  - type: textarea
+    id: shapes
+    attributes:
+      label: Provider responses (sync bugs)
+      description: >-
+        On a checkout of a `just dev` stack that synced the account, `just api::capture-fixtures <provider> ./captured`
+        writes the stored responses with e-mails, names, keys and ids replaced. Read every file, then attach the folder
+        as a zip ("Real response shapes" in CONTRIBUTING.md).
   - type: dropdown
     id: topology
     attributes:

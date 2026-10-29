@@ -23,6 +23,7 @@ From the repository root:
 | `just api::demo-refresh` | Rebuild it through today and swap it in; a failed build leaves the published sample |
 | `just api::demo-status` | Print the dataset version and freshness; exits 1 when a refresh would change it. `--json` prints one JSON object with the same fields and exit code |
 | `just api::tieout-report --org <slug>` | Pass or fail and percent deltas per provider and month, no amounts. `--json` prints the same rows as one JSON object |
+| `just api::capture-fixtures <provider> <out_dir>` | Write the stored provider pages of the newest run per endpoint as redacted fixtures; no provider call ([tests/fixtures/README.md](tests/fixtures/README.md)) |
 
 Tests may be marked `unit` or `integration`. A test that requests the database
 (`db_session`, `client`, or any fixture built on `migrated_database`) is marked `integration`

@@ -17,6 +17,12 @@
   </p>
 </div>
 
+AI spend now arrives from several places at once: seats in Cursor, Claude.ai, Codex and
+Copilot, and API usage in Anthropic, OpenAI and OpenRouter. Each console shows its own slice,
+an API key rarely says which person it belongs to, and finance asks for one figure per team.
+Costura answers three questions from those sources: who spent what this month, what changed
+and why, and whether the total matches the provider's report and the invoice.
+
 Costura imports read-only billing data from the AI providers a team uses, stores it as one
 daily ledger, attributes each dollar to an API key, a workspace or a person, and checks every
 month that the stored total matches what the provider itself reports. It runs on your own
@@ -150,16 +156,12 @@ with no amount, key, workspace or e-mail, so the output can go into a public iss
 
 ## Contributing
 
-```
-just check
-just coverage-core
-just smoke
-```
-
-`just check` is workflow lint, lint, types, generated API types and the secret scan.
-`just coverage-core` starts PostgreSQL and runs the API and web suites with the coverage
-floors CI enforces. `just smoke` boots the whole stack once and checks it over HTTP. The workflow, the commit format and the review expectations are in
-[CONTRIBUTING.md](CONTRIBUTING.md).
+Docs, web and connector changes need `mise install`, `just setup` and `just check` (about 25
+seconds, no Docker); CI runs the full test, coverage and browser suites on the pull request.
+[CONTRIBUTING.md](CONTRIBUTING.md) lists the checks for each kind of change, the commit format
+and how review works. Issues labeled
+[`good first issue`](https://github.com/CosturaAI/costura/issues?q=is%3Aissue+is%3Aopen+label%3A%22good+first+issue%22)
+are a place to start.
 
 ## Support and security
 

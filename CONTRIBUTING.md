@@ -10,9 +10,30 @@ Contributions are licensed under the Apache License, Version 2.0 ([LICENSE](LICE
 There is no CLA and no DCO sign-off. Opening a pull request submits the change under that
 license. The project name and mark follow [TRADEMARK.md](TRADEMARK.md).
 
+## Pick the smallest path
+
+Most changes do not need the whole stack or Docker. CI runs every test, the coverage
+floors and the browser suites on the pull request, so run locally what your change needs
+and let CI run the rest.
+
+| Change                                      | Run locally                                                                 | Docker |
+| ------------------------------------------- | --------------------------------------------------------------------------- | ------ |
+| Docs, a typo, an issue template             | `just setup`, then `just check` and `just docs::check-llms`                 | No     |
+| Web copy or a component                     | `just check` and `just web::test src/path/to/file.test.tsx`                 | No     |
+| A connector's client or normalization       | `just check` and `just api::test-unit tests/test_<provider>_client.py`      | No     |
+| Sync, reconcile, an API route or the schema | `just db::up`, then `just api::test tests/test_<area>.py`                   | Yes    |
+| A screen's layout                           | Push; a failing "Playwright browser tests" job attaches the new screenshots | No     |
+| Trying the product end to end               | `just dev`                                                                  | Yes    |
+
+`just setup` installs the dependencies and the git hooks and needs `uv` and `pnpm` from
+`mise install`; it prints a note, not an error, when Docker is missing. `just check` takes
+about 25 seconds and `just api::test-unit` under a second per connector file. A test that
+reaches PostgreSQL is marked `integration` and skipped by `just api::test-unit`.
+
 ## Setup
 
-Install [mise](https://mise.jdx.dev/getting-started.html) and Docker Compose v2. mise pins
+Install [mise](https://mise.jdx.dev/getting-started.html), and Docker Compose v2 for `just dev`
+and the PostgreSQL tests. mise pins
 Python, Node.js, pnpm, uv, just and the lint tools to the versions in `mise.toml`, so every
 contributor and CI run the same ones.
 Without mise, install those versions by hand; the `just` recipes are the same.
@@ -163,6 +184,19 @@ the fork-safe form, which yields an empty string on a pull request from a fork:
 ```
 ${{ (github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository) && secrets.X || '' }}
 ```
+
+## Real response shapes
+
+A connector breaks when a provider changes a response, and the fixtures under
+`apps/api/tests/fixtures/` are synthetic. If you can test against a real account, attach
+real shapes: connect the account on a `just dev` stack, let a sync run, then run
+`just api::capture-fixtures <provider> ./captured --org default`. It writes the pages Costura
+stored as JSON in the shape of those fixtures, with e-mails, names, keys and provider ids
+replaced by stable placeholders. It calls no provider and uploads nothing. Redaction goes by
+field name and value shape, so read every file before attaching it and replace anything that
+still names a person, company or account.
+[apps/api/tests/fixtures/README.md](apps/api/tests/fixtures/README.md) explains how a
+captured page becomes a regression test.
 
 ## Adding a provider
 

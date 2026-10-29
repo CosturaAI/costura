@@ -113,6 +113,15 @@ worker *args:
 tieout-report *args:
     cd "{{_api}}" && uv run python -m costura.ops.tieout {{args}}
 
+# Write stored provider pages as redacted fixtures, no provider call: just api::capture-fixtures anthropic ./captured [--org default] [--pages 3]
+capture-fixtures provider out_dir *args:
+    #!/usr/bin/env bash
+    set -euo pipefail
+    out="{{out_dir}}"
+    [[ "$out" = /* ]] || out="{{invocation_directory()}}/$out"
+    cd "{{_api}}"
+    uv run python -m costura.ops.capture_fixtures "{{provider}}" "$out" {{args}}
+
 # Delete raw provider pages and terminal runs past retention.
 purge:
     cd "{{_api}}" && uv run python -m costura.ops.purge

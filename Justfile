@@ -114,9 +114,10 @@ _require-tools:
     #!/usr/bin/env bash
     set -euo pipefail
     missing=0
-    for tool in docker uv pnpm; do
+    for tool in uv pnpm; do
       command -v "$tool" >/dev/null || { echo "error: $tool is not installed"; missing=1; }
     done
+    command -v docker >/dev/null || echo "note: docker is not installed; just check and just api::test-unit work without it, just dev and the PostgreSQL tests need it"
     if [[ $missing -ne 0 ]]; then
       echo "  install the pinned toolchain with: mise install"
       echo "  install mise from https://mise.jdx.dev/getting-started.html"

@@ -100,6 +100,12 @@ Report a vulnerability through the private form described in [SECURITY.md](../..
   `0` keeps forever) bounds them; the worker purges about once an hour, and
   `just api::purge`, `just prod::purge` or `python -m costura.ops.purge` run one pass
   (`apps/api/costura/ops/purge.py`).
+- `just api::capture-fixtures` (`apps/api/costura/ops/capture_fixtures.py`) reads those
+  pages from the database and writes them, redacted, to a local directory the operator
+  names; it reads no provider key, calls no provider and uploads nothing. Redaction goes by
+  field name and value shape (e-mails, ids, names, URLs, key hints, free text) and can miss a
+  personal value in a field it does not recognize, so the files are operator data until a
+  person has read them.
 - Credential events (a key connected, replaced or removed, a role changed, a member or
   invitation added or removed) are rows in `audit_events` with the actor, the target and the
   request id, and no key, key hint or invitee e-mail. Owners read them at

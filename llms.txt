@@ -4,7 +4,7 @@
 
 ## Project
 
-- [README](https://github.com/CosturaAI/costura/blob/main/README.md): Costura imports read-only billing data from the AI providers a team uses, stores it as one daily ledger, attributes each dollar to an API key, a workspace or a person, and checks every month that the stored total matches what the provider itself reports.
+- [README](https://github.com/CosturaAI/costura/blob/main/README.md): AI spend now arrives from several places at once: seats in Cursor, Claude.ai, Codex and Copilot, and API usage in Anthropic, OpenAI and OpenRouter. Each console shows its own slice, an API key rarely says which person it belongs to, and finance asks for one figure per team.
 - [Contributing](https://github.com/CosturaAI/costura/blob/main/CONTRIBUTING.md): Contributions of code, docs, tests, and bug reports are welcome. Issues labeled good first issue and help wanted are a place to start. GOVERNANCE.md describes how someone becomes a maintainer. Questions about using a deployment go to SUPPORT.md.
 - [Security](https://github.com/CosturaAI/costura/blob/main/SECURITY.md): Costura stores customer provider admin keys (Anthropic Admin API, Claude.ai Enterprise Analytics, OpenRouter management, OpenAI and Codex admin, Cursor team, and the GitHub token of the experimental Copilot connector) and the billing and usage data those keys read.
 - [Support](https://github.com/CosturaAI/costura/blob/main/SUPPORT.md): Costura is a self-hosted project. Support is community support through GitHub issues, with no response-time agreement, uptime target, or hosted instance.
