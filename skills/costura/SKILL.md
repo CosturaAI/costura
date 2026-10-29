@@ -4,7 +4,7 @@ description: Use when installing, running, operating or querying Costura, the se
 license: Apache-2.0
 metadata:
   author: Caue Braz
-  version: "0.3.0" # x-release-please-version
+  version: "0.4.0" # x-release-please-version
   source: https://github.com/CosturaAI/costura
 ---
 

@@ -1,5 +1,19 @@
 # Changelog
 
+## [0.4.0](https://github.com/CosturaAI/costura/compare/v0.3.0...v0.4.0) (2026-10-29)
+
+
+### Features
+
+* capture redacted provider fixtures and lighten contributor path ([cde8666](https://github.com/CosturaAI/costura/commit/cde86661a94417b455f6537834fdec0100e9b7ae))
+
+
+### Bug Fixes
+
+* harden sync, webhooks and upgrades, and fix ux defects end to end ([ab9ce04](https://github.com/CosturaAI/costura/commit/ab9ce046ee43171d8a64f34fb778009887d09716))
+* name remedies in Docker and busy-port diagnostics ([#26](https://github.com/CosturaAI/costura/issues/26)) ([23f5106](https://github.com/CosturaAI/costura/commit/23f51064d5daeb87f7b5ca3bce4cccc27cfe584d))
+* patch image cves and name header controls by their visible text ([a8edcfd](https://github.com/CosturaAI/costura/commit/a8edcfd3031d5602da0335c9cd8a5026e0498fad))
+
 ## [0.3.0](https://github.com/CosturaAI/costura/compare/v0.2.1...v0.3.0) (2026-10-20)
 
 
